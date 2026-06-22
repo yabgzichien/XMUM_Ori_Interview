@@ -1,0 +1,22 @@
+# Brainstorm visual-companion scratch
+.superpowers/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Env
+.env
+.env.local
+.env*.local
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# Misc
+.DS_Store
+*.log
