@@ -1,0 +1,98 @@
+# XMUM Orientation — Interview Slot Booking
+
+Two-sided interview booking for the **Head of Facilitators** and **Head of Game Masters**.
+Heads open interview availability; applicants self-book. Two independent tracks
+(Facilitator / Game Master). Built as the first module of the wider Orientation platform.
+
+- **Spec:** [docs/superpowers/specs/2026-06-22-interview-booking-design.md](docs/superpowers/specs/2026-06-22-interview-booking-design.md)
+- **Plan:** [docs/superpowers/plans/2026-06-22-interview-booking.md](docs/superpowers/plans/2026-06-22-interview-booking.md)
+
+## Tech stack
+
+Next.js 16 (App Router, TypeScript) · Tailwind v4 + shadcn/ui · Supabase (Postgres + Auth) ·
+Vitest. Booking concurrency is enforced in Postgres via a locking RPC (`book_slot`), so a
+slot can never be overbooked.
+
+## Roles
+
+| Role | Can |
+|---|---|
+| `applicant` (default on sign-up) | Browse + book slots, manage own bookings |
+| `head_facilitator` / `head_gm` | Manage slots/bookings + window for their own track |
+| `admin` | Everything, both tracks |
+
+## Routes
+
+- `/register`, `/login`
+- `/book` — browse + book slots (track tabs); supports `?reschedule=<id>` mode
+- `/my-bookings` — view / cancel / reschedule (until the per-track cutoff)
+- `/head` — Head/Admin dashboard (admin can switch track via `?track=`)
+
+## Local development
+
+```bash
+npm install
+cp .env.local.example .env.local   # then fill in the values below
+npm run dev                        # http://localhost:3000
+npm test                           # unit tests (DB tests auto-skip without env)
+npm run build && npm run lint
+```
+
+`.env.local`:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...        # server/seed/tests only — never expose to the browser
+```
+
+## Wiring up Supabase (the deferred step)
+
+The app code is complete, but it needs a Supabase project to run for real.
+
+1. **Create a project** at https://supabase.com (free tier is fine to start).
+2. **Get credentials:** Project Settings → API → copy the URL, the `anon` key, and the
+   `service_role` key into `.env.local`.
+3. **Apply migrations** (`supabase/migrations/0001`…`0007`), either:
+   - Supabase CLI: `npx supabase link --project-ref <ref>` then `npx supabase db push`, or
+   - Dashboard: paste each migration file into the SQL Editor in order and run.
+4. **(Demo) disable email confirmation:** Authentication → Providers → Email → turn off
+   "Confirm email" so applicants can log in immediately after registering. (For production,
+   leave it on and the register page will prompt them to confirm.)
+5. **Seed the staff accounts:**
+   ```bash
+   # optionally set SEED_*_EMAIL / SEED_*_PASSWORD first (see scripts/seed.mjs)
+   npm run seed
+   ```
+   Creates an admin + the two Head accounts and sets their roles.
+6. **Run the booking integration tests** (now that a DB exists):
+   ```bash
+   npm test    # tests/rpc/booking.test.ts now runs instead of skipping
+   ```
+
+## Deploy (Vercel)
+
+1. Push this repo to GitHub and import it at https://vercel.com.
+2. Add the three env vars (same as `.env.local`) in the Vercel project settings.
+3. Deploy. For the live recruitment window with ~250 concurrent users, consider
+   temporarily upgrading Supabase to Pro for that period.
+
+## Data model (summary)
+
+- `profiles` — user (→ auth.users), name, student_id, email, role
+- `slots` — track, starts_at, ends_at, capacity, status (open/closed)
+- `bookings` — slot, applicant, track, status (booked/cancelled); partial unique index =
+  one active booking per applicant per track
+- `track_settings` — per-track booking window + reschedule cutoff
+
+### Key RPCs
+
+`book_slot` (locks the slot, checks window + capacity + one-per-track) ·
+`cancel_booking` / `reschedule_booking` (owner-checked, cutoff-gated) ·
+`available_slots` (open future slots + seats-left, counts only) ·
+`head_slots` / `head_bookings` (track-gated reads incl. applicant identity for Heads).
+
+## Not built yet (Phase 2)
+
+Attendance / no-show, interview outcome + notes, CSV export, email notifications,
+live stats dashboard. The schema leaves room for these.
