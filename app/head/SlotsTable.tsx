@@ -18,6 +18,10 @@ function SlotRow({ slot, onChanged }: { slot: HeadSlot; onChanged: () => void })
   const [error, setError] = useState<string | null>(null)
 
   async function handleSaveCapacity() {
+    if (capacity < slot.booked_count) {
+      setError(`Capacity can't be below current bookings (${slot.booked_count}).`)
+      return
+    }
     setBusy(true)
     setError(null)
     const { error: saveError } = await updateSlot(slot.id, { capacity })
@@ -42,11 +46,10 @@ function SlotRow({ slot, onChanged }: { slot: HeadSlot; onChanged: () => void })
   }
 
   async function handleDelete() {
-    const message =
-      slot.booked_count > 0
-        ? `This slot has ${slot.booked_count} booking(s). Delete anyway?`
-        : 'Delete this slot?'
-    if (!window.confirm(message)) return
+    // Slots with bookings can't be deleted (the FK rejects it). Heads should
+    // Close such slots instead; the button is disabled in that case.
+    if (slot.booked_count > 0) return
+    if (!window.confirm('Delete this slot?')) return
 
     setBusy(true)
     setError(null)
@@ -86,7 +89,14 @@ function SlotRow({ slot, onChanged }: { slot: HeadSlot; onChanged: () => void })
               Close
             </Button>
           )}
-          <Button type="button" variant="destructive" size="xs" disabled={busy} onClick={handleDelete}>
+          <Button
+            type="button"
+            variant="destructive"
+            size="xs"
+            disabled={busy || slot.booked_count > 0}
+            title={slot.booked_count > 0 ? 'Has bookings — Close it instead' : undefined}
+            onClick={handleDelete}
+          >
             Delete
           </Button>
         </div>

@@ -86,7 +86,7 @@ function SlotRow({
       <div>
         <p className="text-sm font-medium">{formatTimeRange(slot.starts_at, slot.ends_at)}</p>
         <p className="text-xs text-zinc-500">
-          {slot.seats_left} of {slot.capacity} left
+          {Math.max(0, slot.seats_left)} of {slot.capacity} left
         </p>
         {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
       </div>
