@@ -56,6 +56,11 @@ export function isBookable(slot: AvailableSlot, now: Date = new Date()): boolean
   return slot.seats_left > 0 && new Date(slot.starts_at) > now
 }
 
+/** True if the slot has already ended (so it won't show in the public Book tab). */
+export function isPastSlot(endsAt: string, now: Date = new Date()): boolean {
+  return new Date(endsAt).getTime() <= now.getTime()
+}
+
 /**
  * Mirrors the DB's `within_cutoff` check: true if `now` is still before
  * `startsAt - cutoffHours`, i.e. the booking may still be cancelled/rescheduled.

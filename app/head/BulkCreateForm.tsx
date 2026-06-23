@@ -39,6 +39,12 @@ export function BulkCreateForm({ track, profileId, onCreated }: Props) {
       return
     }
 
+    // Slots in the past won't appear in the public Book tab, so block them here.
+    if (new Date(times[0].starts_at).getTime() <= Date.now()) {
+      setError('That date/time is in the past. Pick a future time.')
+      return
+    }
+
     setSubmitting(true)
     const rows = times.map((t) => ({
       track,

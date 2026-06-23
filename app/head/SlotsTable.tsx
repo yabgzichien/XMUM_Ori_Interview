@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { formatDateHeading, formatTimeRange, toLocalDateIso } from '@/lib/booking-helpers'
+import { formatDateHeading, formatTimeRange, isPastSlot, toLocalDateIso } from '@/lib/booking-helpers'
 import { deleteSlot, updateSlot, type HeadSlot } from '@/lib/head'
+import { cn } from '@/lib/utils'
 
 type Props = {
   slots: HeadSlot[]
@@ -16,6 +17,8 @@ function SlotRow({ slot, onChanged }: { slot: HeadSlot; onChanged: () => void })
   const [capacity, setCapacity] = useState(slot.capacity)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Past slots no longer appear in the public Book tab; flag them so it's clear.
+  const isPast = isPastSlot(slot.ends_at)
 
   async function handleSaveCapacity() {
     if (capacity < slot.booked_count) {
@@ -63,7 +66,7 @@ function SlotRow({ slot, onChanged }: { slot: HeadSlot; onChanged: () => void })
   }
 
   return (
-    <tr className="border-b border-border last:border-0">
+    <tr className={cn('border-b border-border last:border-0', isPast && 'opacity-50')}>
       <td className="py-2 pr-3 text-sm">{formatDateHeading(toLocalDateIso(slot.starts_at))}</td>
       <td className="py-2 pr-3 text-sm">{formatTimeRange(slot.starts_at, slot.ends_at)}</td>
       <td className="py-2 pr-3 text-sm">
@@ -81,7 +84,14 @@ function SlotRow({ slot, onChanged }: { slot: HeadSlot; onChanged: () => void })
         </div>
       </td>
       <td className="py-2 pr-3 text-sm">{slot.booked_count}</td>
-      <td className="py-2 pr-3 text-sm capitalize">{slot.status}</td>
+      <td className="py-2 pr-3 text-sm">
+        <span className="capitalize">{slot.status}</span>
+        {isPast && (
+          <span className="ml-2 rounded bg-zinc-200 px-1.5 py-0.5 text-xs text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+            Past
+          </span>
+        )}
+      </td>
       <td className="py-2 pr-3 text-sm">
         <div className="flex items-center gap-2">
           {slot.status === 'open' && (
