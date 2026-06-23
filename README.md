@@ -28,7 +28,21 @@ active booking per email per track; changes/cancellations are done by a Head.
 
 - `/book` — public, no login: track tabs → pick a slot → enter details → confirmation + reference
 - `/login` — staff sign-in (Heads/Admin)
+- `/register` — staff activation: a pre-invited staffer sets a password (email + invite code)
 - `/head` — Head/Admin dashboard (admin can switch track via `?track=`)
+- `/admin` — admin-only: invite staff (name, student ID, email, role) and view invite codes/status
+
+## Staff onboarding
+
+Two ways to create staff accounts:
+
+1. **Seed** (initial admin + heads): `npm run seed` — see below.
+2. **In-app invites** (admin self-service): an admin goes to `/admin`, adds a staffer
+   (name, student ID, email, role) → the system generates an **invite code**. The admin
+   shares the email + code with the staffer, who activates their account at `/register` by
+   setting a password. The claim runs server-side (`app/api/staff/register`, service-role
+   key) and assigns the invited role. Invite codes guard against anyone claiming an account
+   they weren't invited to.
 
 ## Local development
 
@@ -55,7 +69,7 @@ The app code is complete, but it needs a Supabase project to run for real.
 1. **Create a project** at https://supabase.com (free tier is fine to start).
 2. **Get credentials:** Project Settings → API → copy the URL, the `anon` key, and the
    `service_role` key into `.env.local`.
-3. **Apply migrations** (`supabase/migrations/0001`…`0009`), either:
+3. **Apply migrations** (`supabase/migrations/0001`…`0010`), either:
    - Supabase CLI: `npx supabase link --project-ref <ref>` then `npx supabase db push`, or
    - Dashboard: paste each migration file into the SQL Editor in order and run
      (or paste the combined `supabase/all_migrations.sql` once).

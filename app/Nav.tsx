@@ -28,6 +28,11 @@ export async function Nav() {
               <Link href="/head" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
                 Dashboard
               </Link>
+              {profile.role === 'admin' && (
+                <Link href="/admin" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
+                  Staff
+                </Link>
+              )}
               <span className="hidden text-zinc-500 sm:inline">
                 {profile.email} · {roleLabels[profile.role] ?? profile.role}
               </span>

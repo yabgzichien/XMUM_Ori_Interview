@@ -80,6 +80,12 @@ function LoginForm() {
       </form>
 
       <p className="mt-6 text-center text-sm text-zinc-500">
+        New staff member?{' '}
+        <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
+          Activate your account
+        </Link>
+      </p>
+      <p className="mt-2 text-center text-sm text-zinc-500">
         Want to book an interview?{' '}
         <Link href="/book" className="font-medium text-foreground underline-offset-4 hover:underline">
           Go to booking
