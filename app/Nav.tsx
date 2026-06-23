@@ -11,9 +11,9 @@ const roleLabels: Record<string, string> = {
 }
 
 // Server component: reads the session and renders role-aware links + log out.
+// Interviewees don't log in, so the signed-in view is for staff (Heads/Admin).
 export async function Nav() {
   const profile = await getCurrentProfile()
-  const isStaff = profile != null && profile.role !== 'applicant'
 
   return (
     <header className="border-b border-border">
@@ -25,24 +25,9 @@ export async function Nav() {
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {profile ? (
             <>
-              {profile.role === 'applicant' && (
-                <>
-                  <Link href="/book" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
-                    Book
-                  </Link>
-                  <Link
-                    href="/my-bookings"
-                    className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
-                  >
-                    My bookings
-                  </Link>
-                </>
-              )}
-              {isStaff && (
-                <Link href="/head" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
-                  Dashboard
-                </Link>
-              )}
+              <Link href="/head" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
+                Dashboard
+              </Link>
               <span className="hidden text-zinc-500 sm:inline">
                 {profile.email} · {roleLabels[profile.role] ?? profile.role}
               </span>
@@ -58,11 +43,11 @@ export async function Nav() {
             </>
           ) : (
             <>
-              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
-                Log in
+              <Link href="/book" className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}>
+                Book interview
               </Link>
-              <Link href="/register" className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}>
-                Register
+              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
+                Staff log in
               </Link>
             </>
           )}

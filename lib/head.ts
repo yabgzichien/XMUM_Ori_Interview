@@ -24,7 +24,8 @@ export type HeadBooking = {
   ends_at: string
   applicant_name: string
   applicant_email: string
-  student_id: string
+  student_id: string | null
+  experiences: string | null
   created_at: string
 }
 
@@ -54,6 +55,12 @@ export async function getHeadBookings(track: Track) {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('head_bookings', { p_track: track })
   return { data: (data as HeadBooking[] | null) ?? null, error }
+}
+
+export async function cancelBooking(bookingId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('head_cancel_booking', { p_booking: bookingId })
+  return { data, error }
 }
 
 export async function getTrackSettings(track: Track) {

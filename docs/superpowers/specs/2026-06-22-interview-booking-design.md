@@ -75,3 +75,14 @@ Attendance/scoring, location tracking, other orientation modules, payments, mobi
 Free tier ($0/mo) for build + normal use. Supabase Pro ($25) optional for one month if the
 live recruitment window drives ~250 concurrent bookings. Deploy via GitHub → Vercel; Supabase
 managed. MVP effort ≈ 6–7 working days of generated code + review.
+
+## 10. Amendment (2026-06-23) — interviewees don't log in
+
+Decision changed from "open self-registration" to **no-login interviewees**. An interviewee
+books by entering **name, student ID, email, experiences** and picking a slot — no account.
+- Bookings store these details directly; `applicant_id` is now nullable (migration `0009`).
+- Duplicate guard is **one active booking per email per track** (was per account).
+- Booking goes through `book_slot_public` (anon-callable, SECURITY DEFINER).
+- **No interviewee self-service:** a Head/Admin cancels a booking from the dashboard
+  (`head_cancel_booking`); the Head bookings view also shows `experiences`.
+- Only staff (Heads/Admin) have accounts and log in. `/register` and `/my-bookings` removed.

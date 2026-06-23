@@ -33,13 +33,15 @@ function LoginForm() {
     }
 
     const next = searchParams.get('next')
-    router.push(next || '/book')
+    router.push(next || '/head')
   }
 
   return (
     <div className="w-full max-w-sm rounded-xl border border-border bg-background p-8 shadow-sm">
-      <h1 className="text-xl font-semibold tracking-tight">Log in</h1>
-      <p className="mt-1 text-sm text-zinc-500">Welcome back.</p>
+      <h1 className="text-xl font-semibold tracking-tight">Staff log in</h1>
+      <p className="mt-1 text-sm text-zinc-500">
+        For Heads and Admin. Interviewees don&apos;t need an account.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
@@ -78,9 +80,9 @@ function LoginForm() {
       </form>
 
       <p className="mt-6 text-center text-sm text-zinc-500">
-        Don&apos;t have an account?{' '}
-        <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
-          Register
+        Want to book an interview?{' '}
+        <Link href="/book" className="font-medium text-foreground underline-offset-4 hover:underline">
+          Go to booking
         </Link>
       </p>
     </div>

@@ -15,17 +15,19 @@ slot can never be overbooked.
 
 ## Roles
 
-| Role | Can |
+| Who | Can |
 |---|---|
-| `applicant` (default on sign-up) | Browse + book slots, manage own bookings |
-| `head_facilitator` / `head_gm` | Manage slots/bookings + window for their own track |
+| Interviewee (no account) | Browse + book a slot by entering name, student ID, email, experiences |
+| `head_facilitator` / `head_gm` | Manage slots/bookings + window for their own track; cancel a booking |
 | `admin` | Everything, both tracks |
+
+Interviewees do **not** log in. Only staff (Heads/Admin) have accounts. At most one
+active booking per email per track; changes/cancellations are done by a Head.
 
 ## Routes
 
-- `/register`, `/login`
-- `/book` — browse + book slots (track tabs); supports `?reschedule=<id>` mode
-- `/my-bookings` — view / cancel / reschedule (until the per-track cutoff)
+- `/book` — public, no login: track tabs → pick a slot → enter details → confirmation + reference
+- `/login` — staff sign-in (Heads/Admin)
 - `/head` — Head/Admin dashboard (admin can switch track via `?track=`)
 
 ## Local development
@@ -53,12 +55,12 @@ The app code is complete, but it needs a Supabase project to run for real.
 1. **Create a project** at https://supabase.com (free tier is fine to start).
 2. **Get credentials:** Project Settings → API → copy the URL, the `anon` key, and the
    `service_role` key into `.env.local`.
-3. **Apply migrations** (`supabase/migrations/0001`…`0007`), either:
+3. **Apply migrations** (`supabase/migrations/0001`…`0009`), either:
    - Supabase CLI: `npx supabase link --project-ref <ref>` then `npx supabase db push`, or
-   - Dashboard: paste each migration file into the SQL Editor in order and run.
-4. **(Demo) disable email confirmation:** Authentication → Providers → Email → turn off
-   "Confirm email" so applicants can log in immediately after registering. (For production,
-   leave it on and the register page will prompt them to confirm.)
+   - Dashboard: paste each migration file into the SQL Editor in order and run
+     (or paste the combined `supabase/all_migrations.sql` once).
+4. **Email confirmation:** interviewees don't register, so this only affects staff. The seed
+   creates Head/Admin accounts pre-confirmed, so they can log in regardless of this setting.
 5. **Seed the staff accounts:**
    ```bash
    # optionally set SEED_*_EMAIL / SEED_*_PASSWORD first (see scripts/seed.mjs)

@@ -65,6 +65,11 @@ export function HeadDashboard({ track, profileId }: Props) {
     loadSlots()
   }
 
+  function refreshBookings() {
+    setBookingsLoading(true)
+    loadBookings()
+  }
+
   return (
     <div className="flex flex-col gap-10">
       <WindowForm track={track} />
@@ -73,7 +78,12 @@ export function HeadDashboard({ track, profileId }: Props) {
 
       <SlotsTable slots={slots} loading={slotsLoading} error={slotsError} onChanged={refreshSlots} />
 
-      <BookingsTable bookings={bookings} loading={bookingsLoading} error={bookingsError} />
+      <BookingsTable
+        bookings={bookings}
+        loading={bookingsLoading}
+        error={bookingsError}
+        onChanged={refreshBookings}
+      />
     </div>
   )
 }
