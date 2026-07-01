@@ -1,8 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { getTrackSettings, updateTrackWindow, type Track } from '@/lib/head'
+import { getTrackSettings, updateTrackWindow, type Track, type Orientation } from '@/lib/head'
 
 // Converts an ISO timestamp (or null) to the value a <input type="datetime-local">
 // expects, in local time.
@@ -17,8 +16,6 @@ function toDatetimeLocalValue(iso: string | null): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
-// Converts a <input type="datetime-local"> value back to an ISO string, or
-// null if blank.
 function fromDatetimeLocalValue(value: string): string | null {
   if (!value) return null
   return new Date(value).toISOString()
@@ -26,9 +23,10 @@ function fromDatetimeLocalValue(value: string): string | null {
 
 type Props = {
   track: Track
+  orientation: Orientation
 }
 
-export function WindowForm({ track }: Props) {
+export function WindowForm({ track, orientation }: Props) {
   const [windowOpen, setWindowOpen] = useState('')
   const [windowClose, setWindowClose] = useState('')
   const [loading, setLoading] = useState(true)
@@ -36,9 +34,8 @@ export function WindowForm({ track }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
-  // No synchronous setState before the await — safe to call from the effect.
   const load = useCallback(async () => {
-    const { data, error: loadError } = await getTrackSettings(track)
+    const { data, error: loadError } = await getTrackSettings(track, orientation)
     setLoading(false)
     setSaved(false)
     if (loadError) {
@@ -48,11 +45,9 @@ export function WindowForm({ track }: Props) {
     setError(null)
     setWindowOpen(toDatetimeLocalValue(data?.window_open ?? null))
     setWindowClose(toDatetimeLocalValue(data?.window_close ?? null))
-  }, [track])
+  }, [track, orientation])
 
   useEffect(() => {
-    // Fetch-on-mount/track-change; state is only set after the await inside load.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
   }, [load])
 
@@ -62,6 +57,7 @@ export function WindowForm({ track }: Props) {
     setSaved(false)
     const { error: saveError } = await updateTrackWindow(
       track,
+      orientation,
       fromDatetimeLocalValue(windowOpen),
       fromDatetimeLocalValue(windowClose),
     )
@@ -71,43 +67,48 @@ export function WindowForm({ track }: Props) {
       return
     }
     setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
-    <section>
-      <h2 className="text-lg font-medium">Booking window</h2>
-      <p className="mt-1 text-sm text-zinc-500">Leave blank = always open.</p>
-
+    <div className="form-card" style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '26px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>⚙️</div>
+        <div>
+          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 2px' }}>Booking window</h2>
+          <p style={{ fontSize: '12.5px', color: '#64748B', margin: 0 }}>Leave blank = always open.</p>
+        </div>
+      </div>
+      
       {loading ? (
-        <p className="mt-3 text-sm text-zinc-500">Loading...</p>
+        <p style={{ fontSize: '13px', color: '#94A3B8' }}>Loading...</p>
       ) : (
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            Opens
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }}>Opens</label>
             <input
               type="datetime-local"
               value={windowOpen}
               onChange={(e) => setWindowOpen(e.target.value)}
-              className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: '9px', fontSize: '14px', fontFamily: 'inherit', color: '#475569' }}
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Closes
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }}>Closes</label>
             <input
               type="datetime-local"
               value={windowClose}
               onChange={(e) => setWindowClose(e.target.value)}
-              className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: '9px', fontSize: '14px', fontFamily: 'inherit', color: '#475569' }}
             />
-          </label>
-          <Button type="button" size="sm" disabled={saving} onClick={handleSave}>
-            {saving ? 'Saving...' : 'Save'}
-          </Button>
-          {saved && <span className="text-sm text-green-600">Saved.</span>}
+          </div>
+          <button type="button" disabled={saving} onClick={handleSave} style={{ padding: '10.5px 18px', borderRadius: '9px', border: 'none', background: saved ? '#16A34A' : '#2563EB', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: saved ? 'none' : '0 4px 12px -4px rgba(37,99,235,.4)', transition: 'all 0.2s', opacity: saving ? 0.7 : 1 }}>
+            {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save'}
+          </button>
         </div>
       )}
-
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-    </section>
+      
+      {error && <p style={{ marginTop: '10px', fontSize: '13px', color: '#B91C1C' }}>{error}</p>}
+    </div>
   )
 }

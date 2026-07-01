@@ -7,12 +7,14 @@ import { createClient } from '@/lib/supabase/client'
 import type { AvailableSlot } from '@/lib/booking-helpers'
 
 export type Track = 'facilitator' | 'game_master'
+export type Orientation = 'february' | 'april' | 'december'
 
 export type PublicBookingInput = {
   name: string
   studentId: string
   email: string
   experiences: string
+  links?: string
 }
 
 export type PublicBooking = {
@@ -27,9 +29,9 @@ export type PublicBooking = {
   created_at: string
 }
 
-export async function getAvailableSlots(track: Track) {
+export async function getAvailableSlots(track: Track, orientation: Orientation) {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('available_slots', { p_track: track })
+  const { data, error } = await supabase.rpc('available_slots', { p_track: track, p_orientation: orientation })
   return { data: (data as AvailableSlot[] | null) ?? null, error }
 }
 

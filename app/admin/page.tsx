@@ -13,16 +13,15 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Staff management</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Invite Heads and admins. Share each person their <strong>email + invite code</strong>;
-        they activate the account by setting a password at the staff registration page.
-      </p>
-
-      <div className="mt-8">
-        <AdminStaff />
+    <main className="scr" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px 48px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>Committee Management</h1>
+          <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0 }}>Invite and manage heads and administrators.</p>
+        </div>
       </div>
-    </div>
+
+      <AdminStaff />
+    </main>
   )
 }

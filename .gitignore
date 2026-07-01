@@ -41,3 +41,6 @@ next-env.d.ts
 
 # Local MCP config (contains access token)
 .mcp.json
+
+# Supabase database password/keys backup file
+supabase.txt

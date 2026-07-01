@@ -1,0 +1,112 @@
+'use client'
+
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+const roleLabels: Record<string, string> = {
+  applicant: 'Applicant',
+  head_facilitator: 'Head of Facilitators',
+  head_gm: 'Head of Game Masters',
+  admin: 'Admin',
+}
+
+export function NavClient({ profile }: { profile: any }) {
+  const pathname = usePathname()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  if (profile) {
+    const initials = profile.email?.slice(0, 2).toUpperCase() || 'SC'
+    return (
+      <header style={{ background: '#fff', borderBottom: '1px solid #EAEEF4', position: 'relative', zIndex: 100 }}>
+        <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '16px' }}>X</div>
+              <div style={{ fontWeight: 800, fontSize: '15px' }}>XMUM <span style={{ color: '#94A3B8', fontWeight: 600 }}>Committee</span></div>
+            </Link>
+            <nav className="nav-links flex gap-[4px]">
+              <Link href="/head" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/head') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/head') ? '#2563EB' : '#64748B' }}>
+                Dashboard
+              </Link>
+              {profile.role === 'admin' && (
+                <Link href="/admin" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/admin') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/admin') ? '#2563EB' : '#64748B' }}>
+                  Committee
+                </Link>
+              )}
+            </nav>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Role pill — hidden on very small screens */}
+            <span className="nav-links" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 11px', borderRadius: '99px', background: '#EFF4FF', color: '#2563EB', fontSize: '12px', fontWeight: 700, border: '1px solid #DBE6FF' }}>
+              {roleLabels[profile.role] || profile.role}
+            </span>
+            <div style={{ width: '34px', height: '34px', borderRadius: '99px', background: '#EEF2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: '#475569' }}>
+              {initials}
+            </div>
+            <form action="/auth/signout" method="post">
+              <button
+                type="submit"
+                style={{ padding: '8px 13px', borderRadius: '9px', border: '1px solid #E2E8F0', background: '#fff', color: '#64748B', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+              >
+                Sign out
+              </button>
+            </form>
+            {/* Hamburger */}
+            <button
+              type="button"
+              className="nav-mobile-toggle"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              style={{ background: 'none', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center' }}
+              aria-label="Open menu"
+            >
+              <span style={{ width: '18px', height: '2px', background: '#475569', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
+              <span style={{ width: '18px', height: '2px', background: '#475569', borderRadius: '1px', display: 'block', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.2s' }} />
+              <span style={{ width: '18px', height: '2px', background: '#475569', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
+            </button>
+          </div>
+        </div>
+        {/* Mobile dropdown */}
+        <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
+          <Link href="/head" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/head') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/head') ? '#2563EB' : '#334155' }}>
+            📊 Dashboard
+          </Link>
+          {profile.role === 'admin' && (
+            <Link href="/admin" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/admin') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/admin') ? '#2563EB' : '#334155' }}>
+              👥 Committee
+            </Link>
+          )}
+          <div style={{ borderTop: '1px solid #EAEEF4', marginTop: '4px', paddingTop: '8px', fontSize: '12px', color: '#94A3B8', fontWeight: 600, padding: '8px 12px 4px' }}>
+            {roleLabels[profile.role] || profile.role}
+          </div>
+        </div>
+      </header>
+    )
+  }
+
+  return (
+    <header style={{ background: '#fff', borderBottom: '1px solid #EAEEF4', position: 'relative', zIndex: 100 }}>
+      <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '11px' }}>
+          <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '17px', boxShadow: '0 4px 12px -3px rgba(37,99,235,.5)' }}>X</div>
+          <div style={{ lineHeight: 1.15 }}>
+            <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em' }}>XMUM Orientation</div>
+            <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Interview Booking</div>
+          </div>
+        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link href="/book" style={{ padding: '9px 13px', borderRadius: '10px', border: 'none', background: 'transparent', color: '#334155', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+            Book
+          </Link>
+          <Link href="/my-booking" style={{ padding: '9px 13px', borderRadius: '10px', border: 'none', background: 'transparent', color: '#334155', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+            Check booking
+          </Link>
+          <Link href="/login" style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#1E293B', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            Committee
+          </Link>
+        </div>
+      </div>
+    </header>
+  )
+}

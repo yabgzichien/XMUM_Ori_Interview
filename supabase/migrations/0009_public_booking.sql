@@ -102,7 +102,7 @@ end $$;
 drop function if exists head_bookings(track);
 create function head_bookings(p_track track)
 returns table (
-  booking_id uuid, slot_id uuid, starts_at timestamptz, ends_at timestamptz,
+  booking_id uuid, slot_id uuid, track track, starts_at timestamptz, ends_at timestamptz,
   applicant_name text, applicant_email text, student_id text, experiences text,
   created_at timestamptz
 )
@@ -112,7 +112,7 @@ begin
     raise exception 'not authorized for this track';
   end if;
   return query
-    select b.id, b.slot_id, s.starts_at, s.ends_at,
+    select b.id, b.slot_id, b.track, s.starts_at, s.ends_at,
            b.applicant_name, b.applicant_email, b.student_id, b.experiences, b.created_at
     from bookings b
     join slots s on s.id = b.slot_id

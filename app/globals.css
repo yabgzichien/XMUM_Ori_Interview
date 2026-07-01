@@ -121,10 +121,192 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-[#F6F8FC] text-[#0F172A] antialiased m-0;
   }
+
   html {
     @apply font-sans;
+  }
+}
+
+::selection {
+  background: #DBE6FF;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop {
+  0% { transform: scale(.85); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.scr {
+  animation: fadeUp .35s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.16) !important;
+  outline: none;
+}
+
+/* ─── Desktop-only table view ─── */
+.tbl-mob { display: none !important; }
+
+/* ─── Nav mobile menu (hidden by default) ─── */
+.nav-mobile-toggle { display: none !important; }
+.nav-mobile-menu { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-bottom: 1px solid #EAEEF4; padding: 12px 16px; gap: 4px; z-index: 200; box-shadow: 0 8px 24px -8px rgba(0,0,0,0.12); }
+.nav-mobile-menu.open { display: flex; }
+
+/* ─── Tablet/Mobile: <= 840px ─── */
+@media (max-width: 840px) {
+  /* Tables: swap desktop table for mobile card list */
+  .tbl-desk { display: none !important; }
+  .tbl-mob { display: block !important; }
+
+  /* 2-column grids collapse to 1 column */
+  .grid-2, .hero-2, .book-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 4-col stats: 2 col */
+  .stats-4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Slots grid */
+  .slots-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Nav: hide link bar, show hamburger */
+  .nav-links { display: none !important; }
+  .nav-mobile-toggle { display: flex !important; }
+
+  /* Head page padding */
+  .head-page-main {
+    padding: 24px 14px 60px !important;
+  }
+
+  /* Dashboard header: stack vertically */
+  .head-page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin-bottom: 20px !important;
+  }
+
+  /* Track toggle buttons: full width */
+  .track-toggle-group {
+    width: 100% !important;
+    justify-content: stretch !important;
+  }
+  .track-toggle-group a {
+    flex: 1 !important;
+    text-align: center !important;
+  }
+
+  /* Bulk create form first row (date/start/end): stack */
+  .bulk-form-row-1 {
+    flex-direction: column !important;
+  }
+
+  /* Bulk create form second row: stack */
+  .bulk-form-row-2 {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .bulk-form-row-2 button {
+    width: 100% !important;
+  }
+
+  /* Bookings filter bar: stack on mobile */
+  .bookings-filter-bar {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+  .bookings-filter-bar input[type="text"] {
+    max-width: 100% !important;
+  }
+  .bulk-email-btn {
+    margin-left: 0 !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Candidate detail modal: full screen */
+  .candidate-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .candidate-modal-inner {
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    width: 100% !important;
+  }
+
+  /* Profile grid in modal: 1 col */
+  .modal-profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Landing hero text */
+  .hero-h1 {
+    font-size: 36px !important;
+    line-height: 1.1 !important;
+  }
+
+  /* Landing: tighter padding */
+  .page-main {
+    padding: 28px 16px 56px !important;
+  }
+}
+
+/* ─── Small Mobile: <= 480px ─── */
+@media (max-width: 480px) {
+  /* Stats: single column */
+  .stats-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tab buttons: compact text */
+  .tab-group button {
+    font-size: 12.5px !important;
+    padding: 12px 8px !important;
+    gap: 5px !important;
+  }
+
+  /* Form cards: tighter padding */
+  .form-card {
+    padding: 18px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  /* Email editor modal overlay padding */
+  .email-editor-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .email-editor-modal-inner {
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 92dvh !important;
+  }
+
+  /* My booking portal card */
+  .my-booking-card {
+    border-radius: 16px !important;
+  }
+
+  /* Hero H1 even smaller */
+  .hero-h1 {
+    font-size: 30px !important;
   }
 }

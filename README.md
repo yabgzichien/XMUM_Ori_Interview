@@ -27,10 +27,11 @@ active booking per email per track; changes/cancellations are done by a Head.
 ## Routes
 
 - `/book` — public, no login: track tabs → pick a slot → enter details → confirmation + reference
-- `/login` — staff sign-in (Heads/Admin)
-- `/register` — staff activation: a pre-invited staffer sets a password (email + invite code)
-- `/head` — Head/Admin dashboard (admin can switch track via `?track=`)
-- `/admin` — admin-only: invite staff (name, student ID, email, role) and view invite codes/status
+- `/my-booking` — public, no login: search active bookings by Student ID and cancel them if active
+- `/login` — committee sign-in (Heads/Admin)
+- `/register` — committee activation: a pre-invited committee member sets a password (email + invite code)
+- `/head` — Committee dashboard (admin/Heads)
+- `/admin` — admin-only: invite committee (name, student ID, email, role) and view invite codes/status
 
 ## Staff onboarding
 
@@ -108,7 +109,10 @@ The app code is complete, but it needs a Supabase project to run for real.
 `available_slots` (open future slots + seats-left, counts only) ·
 `head_slots` / `head_bookings` (track-gated reads incl. applicant identity for Heads).
 
-## Not built yet (Phase 2)
+## Core Features Built
 
-Attendance / no-show, interview outcome + notes, CSV export, email notifications,
-live stats dashboard. The schema leaves room for these.
+- **Email notifications**: Confirmation email (sent via Nodemailer) after booking a slot.
+- **Committee dashboard customizer**: Ability to customize and edit welcome email templates before bulk sending.
+- **Interview outcome & notes**: Interactive evaluation notes field inside the candidate detail modal on `/head`.
+- **Responsive design**: Supports mobile devices, tablets, and desktop computers (with collapsible forms and bottom-sheet drawers).
+- **Self-service lookup & cancellation**: Public `/my-booking` route allows applicants to retrieve and cancel slots with case-insensitive student ID lookups.

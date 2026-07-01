@@ -4,6 +4,7 @@
 export type AvailableSlot = {
   id: string
   track: string
+  orientation: string
   starts_at: string
   ends_at: string
   capacity: number
