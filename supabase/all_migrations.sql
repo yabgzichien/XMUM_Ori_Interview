@@ -1,6 +1,7 @@
--- ============================================================
--- 0001_schema.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0001_schema.sql
+-- ==========================================
+
 -- 0001_schema.sql
 -- Core schema for the interview-slot booking system.
 -- Two tracks (facilitator / game_master); applicants self-book slots that have a capacity.
@@ -61,9 +62,10 @@ create table track_settings (
 insert into track_settings (track) values ('facilitator'), ('game_master');
 
 
--- ============================================================
--- 0002_rls.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0002_rls.sql
+-- ==========================================
+
 -- 0002_rls.sql
 -- Row Level Security. Track isolation: each Head can only touch their own track;
 -- admin sees/does everything; applicants manage only their own data.
@@ -186,9 +188,10 @@ create policy "track_settings_update_head_or_admin" on track_settings
   with check (auth_managed_track() = track or is_admin());
 
 
--- ============================================================
--- 0003_book_slot.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0003_book_slot.sql
+-- ==========================================
+
 -- 0003_book_slot.sql
 -- The concurrency-safe booking entry point. SECURITY DEFINER so it can insert
 -- into bookings regardless of RLS; it enforces all rules itself.
@@ -250,9 +253,10 @@ begin
 end $$;
 
 
--- ============================================================
--- 0004_cancel_reschedule.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0004_cancel_reschedule.sql
+-- ==========================================
+
 -- 0004_cancel_reschedule.sql
 -- Applicant self-service: cancel and reschedule, both owner-checked and
 -- gated by the track's reschedule cutoff. SECURITY DEFINER (bypass RLS,
@@ -364,9 +368,10 @@ begin
 end $$;
 
 
--- ============================================================
--- 0005_handle_new_user.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0005_handle_new_user.sql
+-- ==========================================
+
 -- 0005_handle_new_user.sql
 -- Auto-create a profiles row whenever a new auth.users row is inserted,
 -- using the signup metadata passed via supabase.auth.signUp({ options: { data } }).
@@ -391,9 +396,10 @@ create trigger on_auth_user_created
   for each row execute function handle_new_user();
 
 
--- ============================================================
--- 0006_available_slots.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0006_available_slots.sql
+-- ==========================================
+
 -- 0006_available_slots.sql
 -- Applicant-facing slot browsing. Applicants can only SELECT their own rows in
 -- `bookings` (see 0002_rls.sql), so they cannot count a slot's occupancy
@@ -422,9 +428,10 @@ language sql security definer stable set search_path = public as $$
 $$;
 
 
--- ============================================================
--- 0007_head_functions.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0007_head_functions.sql
+-- ==========================================
+
 -- 0007_head_functions.sql
 -- Read functions for the Head dashboard. SECURITY DEFINER so a Head can see
 -- applicant identities for THEIR track (RLS otherwise hides other users'
@@ -473,9 +480,10 @@ begin
 end $$;
 
 
--- ============================================================
--- 0008_fix_role_change_trigger.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0008_fix_role_change_trigger.sql
+-- ==========================================
+
 -- 0008_fix_role_change_trigger.sql
 -- Fix: the role-change guard fired even for server-side/service-role operations
 -- (e.g. the seed script), where auth.uid() is null and is_admin() is false.
@@ -492,9 +500,10 @@ begin
 end $$;
 
 
--- ============================================================
--- 0009_public_booking.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0009_public_booking.sql
+-- ==========================================
+
 -- 0009_public_booking.sql
 -- Interviewees no longer log in. They submit name + student id + email +
 -- experiences and pick a slot. Bookings carry these details directly instead of
@@ -599,7 +608,7 @@ end $$;
 drop function if exists head_bookings(track);
 create function head_bookings(p_track track)
 returns table (
-  booking_id uuid, slot_id uuid, starts_at timestamptz, ends_at timestamptz,
+  booking_id uuid, slot_id uuid, track track, starts_at timestamptz, ends_at timestamptz,
   applicant_name text, applicant_email text, student_id text, experiences text,
   created_at timestamptz
 )
@@ -609,7 +618,7 @@ begin
     raise exception 'not authorized for this track';
   end if;
   return query
-    select b.id, b.slot_id, s.starts_at, s.ends_at,
+    select b.id, b.slot_id, b.track, s.starts_at, s.ends_at,
            b.applicant_name, b.applicant_email, b.student_id, b.experiences, b.created_at
     from bookings b
     join slots s on s.id = b.slot_id
@@ -622,9 +631,10 @@ grant execute on function available_slots(track) to anon, authenticated;
 grant execute on function book_slot_public(uuid, text, text, text, text) to anon, authenticated;
 
 
--- ============================================================
--- 0010_staff_invites.sql
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0010_staff_invites.sql
+-- ==========================================
+
 -- 0010_staff_invites.sql
 -- Admin pre-registers staff (Heads/Admin). Each invite carries the assigned role
 -- and a short code. The staff member then activates the account by setting a
@@ -653,9 +663,11 @@ create policy "staff_invites_admin_all" on staff_invites
   using (is_admin()) with check (is_admin());
 
 
--- ============================================================
+-- ==========================================
+-- MIGRATION: 0011_interview_status.sql
+-- ==========================================
+
 -- 0011_interview_status.sql
--- ============================================================
 -- Add interview status ('pending', 'failed', 'approved') to bookings.
 -- Default is 'pending'.
 
@@ -713,5 +725,394 @@ end $$;
 -- ---------- Grants: head facilitators/admin can invoke status updates ----------
 grant execute on function head_update_interview_status(uuid, text) to authenticated;
 
+
+-- ==========================================
+-- MIGRATION: 0012_interview_notes.sql
+-- ==========================================
+
+-- 0012_interview_notes.sql
+-- Add interview_notes column for Committee member evaluation notes.
+-- Also add public lookup and cancel RPCs for the self-service /my-booking portal.
+
+-- ---------- interview_notes column ----------
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS interview_notes text;
+
+-- ---------- public lookup: requires matching email + booking UUID ----------
+CREATE OR REPLACE FUNCTION lookup_booking_public(p_email text, p_booking_id uuid)
+RETURNS TABLE (
+  booking_id uuid,
+  track track,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  applicant_name text,
+  applicant_email text,
+  student_id text,
+  interview_status text,
+  status text,
+  created_at timestamptz
+)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN QUERY
+    SELECT b.id, b.track, s.starts_at, s.ends_at,
+           b.applicant_name, b.applicant_email, b.student_id,
+           b.interview_status, b.status::text, b.created_at
+    FROM bookings b
+    JOIN slots s ON s.id = b.slot_id
+    WHERE b.id = p_booking_id
+      AND lower(b.applicant_email) = lower(trim(p_email));
+END $$;
+
+GRANT EXECUTE ON FUNCTION lookup_booking_public(text, uuid) TO anon, authenticated;
+
+-- ---------- public cancel: requires matching email + booking UUID ----------
+CREATE OR REPLACE FUNCTION cancel_booking_public(p_email text, p_booking_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  b bookings;
+BEGIN
+  SELECT * INTO b FROM bookings
+    WHERE id = p_booking_id
+      AND lower(applicant_email) = lower(trim(p_email))
+    FOR UPDATE;
+
+  IF b IS NULL THEN
+    RAISE EXCEPTION 'booking not found or email does not match';
+  END IF;
+
+  IF b.status <> 'booked' THEN
+    RAISE EXCEPTION 'this booking is not active';
+  END IF;
+
+  UPDATE bookings SET status = 'cancelled' WHERE id = p_booking_id;
+END $$;
+
+GRANT EXECUTE ON FUNCTION cancel_booking_public(text, uuid) TO anon, authenticated;
+
+
+-- ==========================================
+-- MIGRATION: 0013_student_id_lookup.sql
+-- ==========================================
+
+-- 0013_student_id_lookup.sql
+-- Replace the old email+uuid lookup with a student_id-only lookup.
+-- Case-insensitive matching (lower() on both sides).
+-- Cancel is secured by student_id + booking_id to ensure the requester owns the booking.
+
+-- Drop old signatures so they can be replaced.
+DROP FUNCTION IF EXISTS lookup_booking_public(text, uuid);
+DROP FUNCTION IF EXISTS cancel_booking_public(text, uuid);
+
+-- ---------- lookup: student_id only (case-insensitive) ----------
+CREATE OR REPLACE FUNCTION lookup_booking_public(p_student_id text)
+RETURNS TABLE (
+  booking_id   uuid,
+  track        track,
+  starts_at    timestamptz,
+  ends_at      timestamptz,
+  applicant_name  text,
+  applicant_email text,
+  student_id   text,
+  interview_status text,
+  status       text,
+  created_at   timestamptz
+)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN QUERY
+    SELECT b.id, b.track, s.starts_at, s.ends_at,
+           b.applicant_name, b.applicant_email, b.student_id,
+           b.interview_status, b.status::text, b.created_at
+    FROM bookings b
+    JOIN slots s ON s.id = b.slot_id
+    WHERE lower(b.student_id) = lower(trim(p_student_id))
+    ORDER BY b.created_at DESC;
+END $$;
+
+GRANT EXECUTE ON FUNCTION lookup_booking_public(text) TO anon, authenticated;
+
+-- ---------- cancel: secured by student_id + booking_id ----------
+CREATE OR REPLACE FUNCTION cancel_booking_public(p_student_id text, p_booking_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  b bookings;
+BEGIN
+  SELECT * INTO b FROM bookings
+    WHERE id = p_booking_id
+      AND lower(student_id) = lower(trim(p_student_id))
+    FOR UPDATE;
+
+  IF b IS NULL THEN
+    RAISE EXCEPTION 'booking not found';
+  END IF;
+
+  IF b.status <> 'booked' THEN
+    RAISE EXCEPTION 'this booking is not active';
+  END IF;
+
+  UPDATE bookings SET status = 'cancelled' WHERE id = p_booking_id;
+END $$;
+
+GRANT EXECUTE ON FUNCTION cancel_booking_public(text, uuid) TO anon, authenticated;
+
+
+-- ==========================================
+-- MIGRATION: 0014_orientation.sql
+-- ==========================================
+
+-- 0014_orientation.sql
+-- Add support for multiple orientations (February, April, December).
+-- Each orientation has its own independent set of slots, bookings, and track settings.
+
+-- ---------- New Enum ----------
+DO $$ BEGIN
+  CREATE TYPE orientation AS ENUM ('february', 'april', 'december');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+-- ---------- Add orientation column to slots ----------
+DO $$ BEGIN
+  ALTER TABLE slots ADD COLUMN orientation orientation NOT NULL DEFAULT 'february';
+EXCEPTION
+  WHEN duplicate_column THEN null;
+END $$;
+
+drop index if exists slots_track_starts_at_idx;
+create index slots_track_orientation_starts_at_idx on slots (track, orientation, starts_at);
+
+-- ---------- Add orientation column to bookings ----------
+DO $$ BEGIN
+  ALTER TABLE bookings ADD COLUMN orientation orientation NOT NULL DEFAULT 'february';
+EXCEPTION
+  WHEN duplicate_column THEN null;
+END $$;
+
+-- Update unique constraint: one active booking per email per track per orientation
+drop index if exists one_active_booking_per_email_track;
+DO $$ BEGIN
+  CREATE UNIQUE INDEX one_active_booking_per_email_track_orientation
+    ON bookings (lower(applicant_email), track, orientation) WHERE status = 'booked';
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
+
+-- ---------- Add orientation column to track_settings ----------
+DO $$ BEGIN
+  ALTER TABLE track_settings ADD COLUMN orientation orientation NOT NULL DEFAULT 'february';
+EXCEPTION
+  WHEN duplicate_column THEN null;
+END $$;
+
+-- Drop old primary key and create composite primary key
+DO $$ BEGIN
+  ALTER TABLE track_settings DROP CONSTRAINT track_settings_pkey;
+EXCEPTION
+  WHEN undefined_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE track_settings ADD PRIMARY KEY (track, orientation);
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
+
+-- Insert default rows for each track+orientation combination
+insert into track_settings (track, orientation) values
+  ('facilitator', 'february'),
+  ('facilitator', 'april'),
+  ('facilitator', 'december'),
+  ('game_master', 'february'),
+  ('game_master', 'april'),
+  ('game_master', 'december')
+on conflict do nothing;
+
+-- ---------- Update RLS for track_settings ----------
+drop policy if exists "track_settings_select_authenticated" on track_settings;
+create policy "track_settings_select_authenticated" on track_settings
+  for select to authenticated
+  using (auth.uid() is not null);
+
+drop policy if exists "track_settings_update_head_or_admin" on track_settings;
+create policy "track_settings_update_head_or_admin" on track_settings
+  for update to authenticated
+  using (auth_managed_track() = track or is_admin())
+  with check (auth_managed_track() = track or is_admin());
+
+-- ---------- Update available_slots function ----------
+create or replace function available_slots(p_track track, p_orientation orientation)
+returns table (
+  id uuid,
+  track track,
+  orientation orientation,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  capacity int,
+  booked_count bigint,
+  seats_left bigint
+)
+language sql security definer stable set search_path = public as $$
+  select s.id, s.track, s.orientation, s.starts_at, s.ends_at, s.capacity,
+         count(b.*) filter (where b.status = 'booked') as booked_count,
+         s.capacity - count(b.*) filter (where b.status = 'booked') as seats_left
+  from slots s
+  left join bookings b on b.slot_id = s.id
+  where s.track = p_track and s.orientation = p_orientation and s.status = 'open' and s.starts_at > now()
+  group by s.id
+  order by s.starts_at
+$$;
+
+-- ---------- Update head_slots function ----------
+create or replace function head_slots(p_track track, p_orientation orientation)
+returns table (
+  id uuid, track track, orientation orientation, starts_at timestamptz, ends_at timestamptz,
+  capacity int, status slot_status, booked_count bigint
+)
+language plpgsql security definer stable set search_path = public as $$
+begin
+  if not (auth_managed_track() = p_track or is_admin()) then
+    raise exception 'not authorized for this track';
+  end if;
+  return query
+    select s.id, s.track, s.orientation, s.starts_at, s.ends_at, s.capacity, s.status,
+           count(b.*) filter (where b.status = 'booked') as booked_count
+    from slots s
+    left join bookings b on b.slot_id = s.id
+    where s.track = p_track and s.orientation = p_orientation
+    group by s.id
+    order by s.starts_at;
+end $$;
+
+-- ---------- Update head_bookings function ----------
+create or replace function head_bookings(p_track track, p_orientation orientation)
+returns table (
+  booking_id uuid, slot_id uuid, track track, orientation orientation, starts_at timestamptz, ends_at timestamptz,
+  applicant_name text, applicant_email text, student_id text, experiences text,
+  created_at timestamptz
+)
+language plpgsql security definer stable set search_path = public as $$
+begin
+  if not (auth_managed_track() = p_track or is_admin()) then
+    raise exception 'not authorized for this track';
+  end if;
+  return query
+    select b.id, b.slot_id, b.track, b.orientation, s.starts_at, s.ends_at,
+           b.applicant_name, b.applicant_email, b.student_id, b.experiences, b.created_at
+    from bookings b
+    join slots s on s.id = b.slot_id
+    where b.track = p_track and b.orientation = p_orientation and b.status = 'booked'
+    order by s.starts_at, b.applicant_name;
+end $$;
+
+-- ---------- Update book_slot_public function ----------
+-- Auto-detect orientation from the slot being booked
+create or replace function book_slot_public(
+  p_slot uuid,
+  p_name text,
+  p_student_id text,
+  p_email text,
+  p_experiences text
+) returns bookings
+language plpgsql security definer set search_path = public as $$
+declare
+  s slots;
+  taken int;
+  b bookings;
+begin
+  if coalesce(trim(p_name), '') = '' then
+    raise exception 'name is required';
+  end if;
+  if coalesce(trim(p_email), '') = '' then
+    raise exception 'email is required';
+  end if;
+
+  select * into s from slots where id = p_slot for update;
+  if s is null then
+    raise exception 'slot not found';
+  end if;
+  if s.status <> 'open' then
+    raise exception 'slot is not open';
+  end if;
+
+  if not exists (
+    select 1 from track_settings t
+    where t.track = s.track
+      and t.orientation = s.orientation
+      and now() >= coalesce(t.window_open, now())
+      and now() <= coalesce(t.window_close, now())
+  ) then
+    raise exception 'booking window is closed for this track';
+  end if;
+
+  select count(*) into taken
+  from bookings where slot_id = p_slot and status = 'booked';
+  if taken >= s.capacity then
+    raise exception 'slot is full';
+  end if;
+
+  begin
+    insert into bookings (
+      slot_id, applicant_id, track, orientation, status,
+      applicant_name, applicant_email, student_id, experiences
+    )
+    values (
+      p_slot, null, s.track, s.orientation, 'booked',
+      trim(p_name), lower(trim(p_email)), nullif(trim(p_student_id), ''), nullif(trim(p_experiences), '')
+    )
+    returning * into b;
+  exception when unique_violation then
+    raise exception 'this email already has an active booking in this track for this orientation';
+  end;
+
+  return b;
+end $$;
+
+-- ---------- Update grants ----------
+grant execute on function available_slots(track, orientation) to anon, authenticated;
+
+
+-- ==========================================
+-- MIGRATION: 0015_fix_head_bookings.sql
+-- ==========================================
+
+-- 0015_fix_head_bookings.sql
+-- Fix the head_bookings function to return interview_status and interview_notes.
+
+DROP FUNCTION IF EXISTS head_bookings(track, orientation);
+
+CREATE OR REPLACE FUNCTION head_bookings(p_track track, p_orientation orientation)
+RETURNS TABLE (
+  booking_id uuid,
+  slot_id uuid,
+  track track,
+  orientation orientation,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  applicant_name text,
+  applicant_email text,
+  student_id text,
+  experiences text,
+  created_at timestamptz,
+  interview_status text,
+  interview_notes text
+)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+BEGIN
+  IF NOT (auth_managed_track() = p_track OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this track';
+  END IF;
+  RETURN QUERY
+    SELECT b.id, b.slot_id, b.track, b.orientation, s.starts_at, s.ends_at,
+           b.applicant_name, b.applicant_email, b.student_id, b.experiences, b.created_at,
+           b.interview_status, b.interview_notes
+    FROM bookings b
+    JOIN slots s ON s.id = b.slot_id
+    WHERE b.track = p_track AND b.orientation = p_orientation AND b.status = 'booked'
+    ORDER BY s.starts_at, b.applicant_name;
+END $$;
+
+GRANT EXECUTE ON FUNCTION head_bookings(track, orientation) TO authenticated;
 
 

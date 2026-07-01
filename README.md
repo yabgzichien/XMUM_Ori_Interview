@@ -58,33 +58,38 @@ npm run build && npm run lint
 `.env.local`:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...        # server/seed/tests only — never expose to the browser
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key # Keep secret, never expose to browser
+
+# SMTP Email Configuration (Nodemailer)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM="XMUM Orientation Committee" <your-email@gmail.com>
 ```
 
-## Wiring up Supabase (the deferred step)
+## Wiring up Supabase & Setup
 
-The app code is complete, but it needs a Supabase project to run for real.
+Follow these simple steps to hook up your own Supabase project:
 
-1. **Create a project** at https://supabase.com (free tier is fine to start).
-2. **Get credentials:** Project Settings → API → copy the URL, the `anon` key, and the
-   `service_role` key into `.env.local`.
-3. **Apply migrations** (`supabase/migrations/0001`…`0010`), either:
-   - Supabase CLI: `npx supabase link --project-ref <ref>` then `npx supabase db push`, or
-   - Dashboard: paste each migration file into the SQL Editor in order and run
-     (or paste the combined `supabase/all_migrations.sql` once).
-4. **Email confirmation:** interviewees don't register, so this only affects staff. The seed
-   creates Head/Admin accounts pre-confirmed, so they can log in regardless of this setting.
-5. **Seed the staff accounts:**
+1. **Create a Supabase Project**: Create a new project at [supabase.com](https://supabase.com).
+2. **Setup Credentials**: Copy the URL, the `anon` key, and the `service_role` key from your Supabase Dashboard (Project Settings -> API) and paste them into your `.env.local`.
+3. **Configure Email SMTP**: Set up your email transporter variables in `.env.local`. If using Gmail, generate an **App Password** in your Google Account security settings.
+4. **Apply SQL Migrations**:
+   - Go to your Supabase project dashboard and click on **SQL Editor**.
+   - Open the [supabase/all_migrations.sql](file:///c:/Users/yang/Desktop/xmum/my-own/OriApp/supabase/all_migrations.sql) file in this repository.
+   - Copy the entire file content, paste it into a new query inside the Supabase SQL Editor, and click **Run**. This will build the tables, RLS policies, views, triggers, and RPCs (including multi-orientation filters, evaluations, and Student ID lookups).
+5. **Seed the Committee Accounts**:
+   Run the seed script in your terminal to initialize pre-confirmed Admin and Head accounts:
    ```bash
-   # optionally set SEED_*_EMAIL / SEED_*_PASSWORD first (see scripts/seed.mjs)
    npm run seed
    ```
-   Creates an admin + the two Head accounts and sets their roles.
-6. **Run the booking integration tests** (now that a DB exists):
+6. **Run Integration Tests**:
+   Ensure everything is communicating correctly with the DB:
    ```bash
-   npm test    # tests/rpc/booking.test.ts now runs instead of skipping
+   npm test
    ```
 
 ## Deploy (Vercel)
