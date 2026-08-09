@@ -44,3 +44,11 @@ next-env.d.ts
 
 # Supabase database password/keys backup file
 supabase.txt
+
+# IDE / Assistant configs
+.claude/
+
+# Handoff context documentation for AI agents
+HANDOFF.md
+handoff.md
+

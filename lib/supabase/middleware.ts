@@ -1,8 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Only staff areas require a login. /book is public (no-login interviewees).
-const PROTECTED = ['/head']
+// Only staff/committee areas require a login. /book is public (no-login interviewees).
+const PROTECTED = ['/head', '/practice']
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })

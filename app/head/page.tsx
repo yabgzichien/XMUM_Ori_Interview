@@ -35,7 +35,12 @@ export default async function HeadPage({
     redirect('/book')
   }
 
+  if (profile.role === 'committee' || profile.role === 'performance_lead') {
+    redirect('/practice')
+  }
+
   const isAdmin = profile.role === 'admin'
+  const isRestricted = !isAdmin && !!profile.orientation
   const params = await searchParams
 
   let track: Track
@@ -47,24 +52,31 @@ export default async function HeadPage({
     track = isTrack(params.track) ? params.track : 'facilitator'
   }
 
-  const orientation: Orientation = isOrientation(params.orientation) ? params.orientation : 'february'
+  const orientation: Orientation = isRestricted && profile.orientation
+    ? profile.orientation
+    : isOrientation(params.orientation) ? params.orientation : 'december'
+
+  const orientationYear: number = isRestricted && profile.orientation_year
+    ? profile.orientation_year
+    : (params.year ? parseInt(String(params.year), 10) || 2026 : 2026)
 
   const orientationLabel = ORIENTATIONS.find(o => o.key === orientation)?.label || 'February'
+  const visibleOrientations = isRestricted ? ORIENTATIONS.filter(o => o.key === orientation) : ORIENTATIONS
 
   return (
     <main className="scr head-page-main" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px 48px' }}>
       <div className="head-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>{orientationLabel} Orientation Dashboard</h1>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>{orientationLabel} {orientationYear} Orientation Dashboard</h1>
           <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0 }}>Manage interview slots and review applicants.</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end' }}>
           {/* Orientation Tabs */}
           <div style={{ display: 'flex', gap: '8px' }}>
-            {ORIENTATIONS.map(o => (
+            {visibleOrientations.map(o => (
               <Link
                 key={o.key}
-                href={`/head?orientation=${o.key}&track=${track}`}
+                href={`/head?orientation=${o.key}&track=${track}&year=${orientationYear}`}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
                   background: orientation === o.key ? '#EFF4FF' : '#fff',
@@ -82,7 +94,7 @@ export default async function HeadPage({
           {isAdmin && (
             <div className="track-toggle-group" style={{ display: 'flex', gap: '8px' }}>
               <Link
-                href={`/head?orientation=${orientation}&track=facilitator`}
+                href={`/head?orientation=${orientation}&track=facilitator&year=${orientationYear}`}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
                   background: track === 'facilitator' ? '#0F172A' : '#fff',
@@ -94,7 +106,7 @@ export default async function HeadPage({
                 Facilitator
               </Link>
               <Link
-                href={`/head?orientation=${orientation}&track=game_master`}
+                href={`/head?orientation=${orientation}&track=game_master&year=${orientationYear}`}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
                   background: track === 'game_master' ? '#0F172A' : '#fff',
@@ -110,7 +122,7 @@ export default async function HeadPage({
         </div>
       </div>
 
-      <HeadDashboard track={track} orientation={orientation} profileId={profile.id} isAdmin={isAdmin} />
+      <HeadDashboard track={track} orientation={orientation} orientationYear={orientationYear} profileId={profile.id} isAdmin={isAdmin} />
     </main>
   )
 }

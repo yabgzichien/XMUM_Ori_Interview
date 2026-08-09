@@ -32,9 +32,9 @@ export function RegisterForm() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code, password }),
     })
+    const data = await res.json().catch(() => ({}))
     if (!res.ok) {
       setLoading(false)
-      const data = await res.json().catch(() => ({}))
       setError(data.error ?? 'Could not activate the account.')
       return
     }
@@ -48,9 +48,11 @@ export function RegisterForm() {
       return
     }
 
+    const destination = data.role === 'committee' || data.role === 'performance_lead' ? '/practice' : '/head'
+
     setDone(true)
     setTimeout(() => {
-      router.push('/head')
+      router.push(destination)
       router.refresh()
     }, 1200)
   }

@@ -6,7 +6,7 @@ import { RegisterForm } from './RegisterForm'
 export default async function RegisterPage() {
   const profile = await getCurrentProfile()
   if (profile) {
-    redirect('/head')
+    redirect(profile.role === 'committee' || profile.role === 'performance_lead' ? '/practice' : '/head')
   }
   return (
     <Suspense fallback={<div style={{ padding: '64px', textAlign: 'center', color: '#64748B', fontSize: '14.5px' }}>Loading activation...</div>}>

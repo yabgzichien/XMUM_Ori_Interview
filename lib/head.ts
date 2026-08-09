@@ -12,6 +12,7 @@ export type HeadSlot = {
   id: string
   track: Track
   orientation: Orientation
+  orientation_year?: number
   starts_at: string
   ends_at: string
   capacity: number
@@ -24,6 +25,7 @@ export type HeadBooking = {
   slot_id: string
   track: Track
   orientation: Orientation
+  orientation_year?: number
   starts_at: string
   ends_at: string
   applicant_name: string
@@ -38,6 +40,7 @@ export type HeadBooking = {
 export type TrackSettings = {
   track: Track
   orientation: Orientation
+  orientation_year?: number
   window_open: string | null
   window_close: string | null
   reschedule_cutoff_hours: number
@@ -46,6 +49,7 @@ export type TrackSettings = {
 export type NewSlotRow = {
   track: Track
   orientation: Orientation
+  orientation_year?: number
   starts_at: string
   ends_at: string
   capacity: number
@@ -53,15 +57,15 @@ export type NewSlotRow = {
   created_by: string
 }
 
-export async function getHeadSlots(track: Track, orientation: Orientation) {
+export async function getHeadSlots(track: Track, orientation: Orientation, orientationYear: number = 2026) {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_slots', { p_track: track, p_orientation: orientation })
+  const { data, error } = await supabase.rpc('head_slots', { p_track: track, p_orientation: orientation, p_year: orientationYear })
   return { data: (data as HeadSlot[] | null) ?? null, error }
 }
 
-export async function getHeadBookings(track: Track, orientation: Orientation) {
+export async function getHeadBookings(track: Track, orientation: Orientation, orientationYear: number = 2026) {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_bookings', { p_track: track, p_orientation: orientation })
+  const { data, error } = await supabase.rpc('head_bookings', { p_track: track, p_orientation: orientation, p_year: orientationYear })
   return { data: (data as HeadBooking[] | null) ?? null, error }
 }
 
@@ -71,13 +75,14 @@ export async function cancelBooking(bookingId: string) {
   return { data, error }
 }
 
-export async function getTrackSettings(track: Track, orientation: Orientation) {
+export async function getTrackSettings(track: Track, orientation: Orientation, orientationYear: number = 2026) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('track_settings')
     .select('*')
     .eq('track', track)
     .eq('orientation', orientation)
+    .eq('orientation_year', orientationYear)
     .single()
   return { data: (data as TrackSettings | null) ?? null, error }
 }
@@ -108,6 +113,7 @@ export async function updateTrackWindow(
   orientation: Orientation,
   windowOpen: string | null,
   windowClose: string | null,
+  orientationYear: number = 2026,
 ) {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -115,6 +121,7 @@ export async function updateTrackWindow(
     .update({ window_open: windowOpen, window_close: windowClose })
     .eq('track', track)
     .eq('orientation', orientation)
+    .eq('orientation_year', orientationYear)
   return { data, error }
 }
 

@@ -10,11 +10,12 @@ import { getHeadSlots, getHeadBookings, type HeadBooking, type HeadSlot, type Tr
 type Props = {
   track: Track
   orientation: Orientation
+  orientationYear?: number
   profileId: string
   isAdmin: boolean
 }
 
-export function HeadDashboard({ track, orientation, profileId }: Props) {
+export function HeadDashboard({ track, orientation, orientationYear = 2026, profileId }: Props) {
   const [slots, setSlots] = useState<HeadSlot[]>([])
   const [slotsLoading, setSlotsLoading] = useState(true)
   const [slotsError, setSlotsError] = useState<string | null>(null)
@@ -26,7 +27,7 @@ export function HeadDashboard({ track, orientation, profileId }: Props) {
   const [activeTab, setActiveTab] = useState<'slots' | 'bookings'>('slots')
 
   const loadSlots = useCallback(async () => {
-    const { data, error } = await getHeadSlots(track, orientation)
+    const { data, error } = await getHeadSlots(track, orientation, orientationYear)
     setSlotsLoading(false)
     if (error) {
       setSlotsError(error.message)
@@ -35,10 +36,10 @@ export function HeadDashboard({ track, orientation, profileId }: Props) {
     }
     setSlotsError(null)
     setSlots(data ?? [])
-  }, [track, orientation])
+  }, [track, orientation, orientationYear])
 
   const loadBookings = useCallback(async () => {
-    const { data, error } = await getHeadBookings(track, orientation)
+    const { data, error } = await getHeadBookings(track, orientation, orientationYear)
     setBookingsLoading(false)
     if (error) {
       setBookingsError(error.message)
@@ -47,7 +48,7 @@ export function HeadDashboard({ track, orientation, profileId }: Props) {
     }
     setBookingsError(null)
     setBookings(data ?? [])
-  }, [track, orientation])
+  }, [track, orientation, orientationYear])
 
   useEffect(() => {
     loadSlots()
@@ -84,8 +85,8 @@ export function HeadDashboard({ track, orientation, profileId }: Props) {
       </div>
 
       <div className="grid-2 mt-8" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-        <WindowForm track={track} orientation={orientation} />
-        <BulkCreateForm track={track} orientation={orientation} profileId={profileId} onCreated={refreshSlots} />
+        <WindowForm track={track} orientation={orientation} orientationYear={orientationYear} />
+        <BulkCreateForm track={track} orientation={orientation} orientationYear={orientationYear} profileId={profileId} onCreated={refreshSlots} />
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
@@ -104,7 +105,7 @@ export function HeadDashboard({ track, orientation, profileId }: Props) {
           {activeTab === 'slots' ? (
             <SlotsTable slots={slots} loading={slotsLoading} error={slotsError} onChanged={refreshSlots} />
           ) : (
-            <BookingsTable bookings={bookings} loading={bookingsLoading} error={bookingsError} track={track} onChanged={refreshBookings} />
+            <BookingsTable bookings={bookings} loading={bookingsLoading} error={bookingsError} track={track} orientation={orientation} orientationYear={orientationYear} onChanged={refreshBookings} />
           )}
         </div>
       </div>

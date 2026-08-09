@@ -19,20 +19,36 @@ function LoginFormInner() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    setLoading(false)
-
     if (signInError) {
+      setLoading(false)
       setError(signInError.message)
       return
     }
 
     const next = searchParams.get('next')
-    router.push(next || '/head')
+    if (next) {
+      setLoading(false)
+      router.push(next)
+      router.refresh()
+      return
+    }
+
+    let destination = '/head'
+    const userId = signInData.user?.id
+    if (userId) {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
+      if (profile?.role === 'committee' || profile?.role === 'performance_lead') {
+        destination = '/practice'
+      }
+    }
+    setLoading(false)
+    router.push(destination)
+    router.refresh()
   }
 
   return (

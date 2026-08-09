@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import { formatDateHeading, formatTimeRange, isPastSlot, toLocalDateIso } from '@/lib/booking-helpers'
 import { cancelBooking, updateInterviewStatus, type HeadBooking } from '@/lib/head'
+import type { Orientation } from '@/lib/head'
 import { DateRangePicker, type DateRange } from '@/components/DateRangePicker'
 import { sendBulkWelcomeEmailsAction } from '@/app/actions/bookingAction'
 import { saveInterviewNotesAction } from '@/app/actions/saveNotesAction'
+import { bulkInviteApprovedAction } from '@/app/actions/inviteCommitteeAction'
 
 const DEFAULT_SUBJECT = `[XMUM Orientation] Welcome to the Committee! - {track}`
 const DEFAULT_BODY = `Dear {name},
@@ -25,6 +27,8 @@ type Props = {
   loading: boolean
   error: string | null
   track: 'facilitator' | 'game_master'
+  orientation: Orientation
+  orientationYear?: number
   onChanged: () => void
 }
 
@@ -59,13 +63,14 @@ function cycleStatus(current: string | undefined | null): 'pending' | 'approved'
   return 'pending'
 }
 
-export function BookingsTable({ bookings, loading, error, track, onChanged }: Props) {
+export function BookingsTable({ bookings, loading, error, track, orientation, orientationYear = 2026, onChanged }: Props) {
   const [filter, setFilter] = useState('')
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [selectedBooking, setSelectedBooking] = useState<HeadBooking | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
   const [showPast, setShowPast] = useState<boolean>(true)
   const [sendingBulk, setSendingBulk] = useState(false)
+  const [invitingCommittee, setInvitingCommittee] = useState(false)
   const [notesValue, setNotesValue] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
@@ -137,6 +142,29 @@ export function BookingsTable({ bookings, loading, error, track, onChanged }: Pr
     }
   }
 
+  async function handleInviteCommittee() {
+    if (approvedBookings.length === 0) return
+    if (!window.confirm(`Invite ${approvedBookings.length} approved applicant(s) to the committee?`)) return
+    setInvitingCommittee(true)
+    try {
+      const res = await bulkInviteApprovedAction(track, orientation, orientationYear)
+      if (res.error) {
+        alert(`Failed to invite: ${res.error}`)
+      } else {
+        alert(
+          `Invited ${res.invited} new committee member(s).` +
+          (res.alreadyInvited ? ` ${res.alreadyInvited} already invited.` : '') +
+          (res.alreadyClaimed ? ` ${res.alreadyClaimed} already active.` : '') +
+          (res.failed ? ` ${res.failed} failed.` : '')
+        )
+      }
+    } catch (err: any) {
+      alert(`Failed to trigger committee invites: ${err.message || String(err)}`)
+    } finally {
+      setInvitingCommittee(false)
+    }
+  }
+
   async function handleStatusChange(bookingId: string, status: 'pending' | 'failed' | 'approved') {
     const { error: updateErr } = await updateInterviewStatus(bookingId, status)
     if (updateErr) {
@@ -194,7 +222,30 @@ export function BookingsTable({ bookings, loading, error, track, onChanged }: Pr
         </div>
 
         {approvedBookings.length > 0 && (
-          <div className="bulk-email-btn" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', height: '36px' }}>
+          <div className="bulk-email-btn" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', height: '36px' }}>
+            <button
+              type="button"
+              onClick={handleInviteCommittee}
+              disabled={invitingCommittee}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#2563EB',
+                color: '#fff',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                cursor: invitingCommittee ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 12px -3px rgba(37,99,235,.35)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+                opacity: invitingCommittee ? 0.7 : 1,
+              }}
+            >
+              <span>🎭</span> {invitingCommittee ? 'Inviting...' : `Invite Approved to Committee (${approvedBookings.length})`}
+            </button>
             <button
               type="button"
               onClick={handleBulkEmail}

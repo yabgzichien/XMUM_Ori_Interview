@@ -5,7 +5,7 @@ import { LoginForm } from './LoginForm'
 export default async function LoginPage() {
   const profile = await getCurrentProfile()
   if (profile) {
-    redirect('/head')
+    redirect(profile.role === 'committee' || profile.role === 'performance_lead' ? '/practice' : '/head')
   }
   return <LoginForm />
 }

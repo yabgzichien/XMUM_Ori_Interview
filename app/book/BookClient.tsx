@@ -41,7 +41,7 @@ export function BookClient() {
     : 'facilitator'
   const initOrientation: Orientation = isOrientation(searchParams.get('orientation'))
     ? (searchParams.get('orientation') as Orientation)
-    : 'february'
+    : 'december'
 
   const [orientation, setOrientation] = useState<Orientation>(initOrientation)
   const [track, setTrack] = useState<Track>(initTrack)

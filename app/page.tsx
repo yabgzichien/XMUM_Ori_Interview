@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 export default async function Home() {
   const profile = await getCurrentProfile()
   if (profile) {
-    redirect('/head')
+    redirect(profile.role === 'committee' || profile.role === 'performance_lead' ? '/practice' : '/head')
   }
 
   const supabase = await createClient()

@@ -60,6 +60,9 @@ export async function POST(request: Request) {
       student_id: invite.student_id,
       email,
       role: invite.role,
+      track: invite.track ?? null,
+      orientation: invite.orientation ?? null,
+      orientation_year: invite.orientation_year ?? 2026,
     },
     { onConflict: 'id' },
   )
@@ -72,5 +75,5 @@ export async function POST(request: Request) {
     .update({ claimed_at: new Date().toISOString() })
     .eq('id', invite.id)
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, role: invite.role })
 }

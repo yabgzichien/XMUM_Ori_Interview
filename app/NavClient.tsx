@@ -9,6 +9,8 @@ const roleLabels: Record<string, string> = {
   head_facilitator: 'Head of Facilitators',
   head_gm: 'Head of Game Masters',
   admin: 'Admin',
+  committee: 'Committee Member',
+  performance_lead: 'Performance Lead',
 }
 
 export function NavClient({ profile }: { profile: any }) {
@@ -17,6 +19,8 @@ export function NavClient({ profile }: { profile: any }) {
 
   if (profile) {
     const initials = profile.email?.slice(0, 2).toUpperCase() || 'SC'
+    const isStaff = profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin'
+    const practiceHref = isStaff ? '/head/practice' : '/practice'
     return (
       <header style={{ background: '#fff', borderBottom: '1px solid #EAEEF4', position: 'relative', zIndex: 100 }}>
         <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
@@ -26,8 +30,13 @@ export function NavClient({ profile }: { profile: any }) {
               <div style={{ fontWeight: 800, fontSize: '15px' }}>XMUM <span style={{ color: '#94A3B8', fontWeight: 600 }}>Committee</span></div>
             </Link>
             <nav className="nav-links flex gap-[4px]">
-              <Link href="/head" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/head') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/head') ? '#2563EB' : '#64748B' }}>
-                Dashboard
+              {isStaff && (
+                <Link href="/head" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname === '/head' ? '#EFF4FF' : 'transparent', color: pathname === '/head' ? '#2563EB' : '#64748B' }}>
+                  Dashboard
+                </Link>
+              )}
+              <Link href={practiceHref} style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? '#2563EB' : '#64748B' }}>
+                Practice Groups
               </Link>
               {profile.role === 'admin' && (
                 <Link href="/admin" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/admin') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/admin') ? '#2563EB' : '#64748B' }}>
@@ -69,8 +78,13 @@ export function NavClient({ profile }: { profile: any }) {
         </div>
         {/* Mobile dropdown */}
         <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
-          <Link href="/head" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/head') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/head') ? '#2563EB' : '#334155' }}>
-            📊 Dashboard
+          {isStaff && (
+            <Link href="/head" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/head' ? '#EFF4FF' : 'transparent', color: pathname === '/head' ? '#2563EB' : '#334155' }}>
+              📊 Dashboard
+            </Link>
+          )}
+          <Link href={practiceHref} onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? '#2563EB' : '#334155' }}>
+            🎭 Practice Groups
           </Link>
           {profile.role === 'admin' && (
             <Link href="/admin" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/admin') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/admin') ? '#2563EB' : '#334155' }}>

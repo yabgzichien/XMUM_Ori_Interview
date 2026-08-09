@@ -7,11 +7,12 @@ import { createSlots, type Track, type Orientation } from '@/lib/head'
 type Props = {
   track: Track
   orientation: Orientation
+  orientationYear?: number
   profileId: string
   onCreated: () => void
 }
 
-export function BulkCreateForm({ track, orientation, profileId, onCreated }: Props) {
+export function BulkCreateForm({ track, orientation, orientationYear = 2026, profileId, onCreated }: Props) {
   const [date, setDate] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -48,6 +49,7 @@ export function BulkCreateForm({ track, orientation, profileId, onCreated }: Pro
     const rows = times.map((t) => ({
       track,
       orientation,
+      orientation_year: orientationYear,
       starts_at: t.starts_at,
       ends_at: t.ends_at,
       capacity,

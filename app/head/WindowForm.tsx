@@ -24,9 +24,10 @@ function fromDatetimeLocalValue(value: string): string | null {
 type Props = {
   track: Track
   orientation: Orientation
+  orientationYear?: number
 }
 
-export function WindowForm({ track, orientation }: Props) {
+export function WindowForm({ track, orientation, orientationYear = 2026 }: Props) {
   const [windowOpen, setWindowOpen] = useState('')
   const [windowClose, setWindowClose] = useState('')
   const [loading, setLoading] = useState(true)
@@ -35,7 +36,7 @@ export function WindowForm({ track, orientation }: Props) {
   const [saved, setSaved] = useState(false)
 
   const load = useCallback(async () => {
-    const { data, error: loadError } = await getTrackSettings(track, orientation)
+    const { data, error: loadError } = await getTrackSettings(track, orientation, orientationYear)
     setLoading(false)
     setSaved(false)
     if (loadError) {
@@ -45,7 +46,7 @@ export function WindowForm({ track, orientation }: Props) {
     setError(null)
     setWindowOpen(toDatetimeLocalValue(data?.window_open ?? null))
     setWindowClose(toDatetimeLocalValue(data?.window_close ?? null))
-  }, [track, orientation])
+  }, [track, orientation, orientationYear])
 
   useEffect(() => {
     load()
@@ -60,6 +61,7 @@ export function WindowForm({ track, orientation }: Props) {
       orientation,
       fromDatetimeLocalValue(windowOpen),
       fromDatetimeLocalValue(windowClose),
+      orientationYear,
     )
     setSaving(false)
     if (saveError) {
