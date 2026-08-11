@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "node --env-file=.env.local scripts/seed.mjs",
-    "seed:committee": "node --env-file=.env.local scripts/seed-committee.mjs"
+    "seed:committee": "node --env-file=.env.local scripts/seed-committee.mjs",
+    "seed:all": "npm run seed && npm run seed:committee"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
