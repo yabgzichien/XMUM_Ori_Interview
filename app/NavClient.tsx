@@ -18,14 +18,22 @@ const roleLabels: Record<string, string> = {
 // the generic account role whenever one is set — including after HOF/HOG
 // promotes someone to head_facilitator/head_gm, so the abbreviated position
 // label stays visible rather than reverting to the generic role name.
-function displayRoleLabel(profile: { role: string; position?: string | null }): string {
+function displayRoleLabel(profile: NavProfile): string {
   if (profile.position) {
     return positionLabel(profile.position)
   }
   return roleLabels[profile.role] || profile.role
 }
 
-export function NavClient({ profile }: { profile: any }) {
+/** The profile fields the nav renders. `getCurrentProfile` returns the full row. */
+export type NavProfile = {
+  role: string
+  name?: string | null
+  email?: string | null
+  position?: string | null
+}
+
+export function NavClient({ profile }: { profile: NavProfile | null }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 

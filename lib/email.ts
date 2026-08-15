@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { formatDateHeading, formatTimeRange, toLocalDateIso } from './booking-helpers'
+import { errorMessage } from './utils'
 
 type BookingDetails = {
   id: string
@@ -56,16 +57,17 @@ async function getTransporter(): Promise<{
   return { transporter, from }
 }
 
-export async function sendBookingConfirmation(
-  details: BookingDetails
-): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const { transporter, from } = await getTransporter()
-
+/**
+ * Builds the confirmation email body. Split out from sending so the content —
+ * in particular that the slot's venue actually reaches the applicant — can be
+ * asserted in a unit test without an SMTP round trip.
+ */
+export function buildBookingConfirmationHtml(details: BookingDetails): string {
   const dateStr = formatDateHeading(toLocalDateIso(details.starts_at))
   const timeStr = formatTimeRange(details.starts_at, details.ends_at)
   const trackStr = formatTrack(details.track)
 
-  const htmlContent = `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -148,13 +150,20 @@ export async function sendBookingConfirmation(
 </body>
 </html>
   `
+}
+
+export async function sendBookingConfirmation(
+  details: BookingDetails
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const { transporter, from } = await getTransporter()
+  const trackStr = formatTrack(details.track)
 
   try {
     const info = await transporter.sendMail({
       from,
       to: details.applicant_email,
       subject: `[XMUM Orientation] Interview Confirmation - ${trackStr}`,
-      html: htmlContent,
+      html: buildBookingConfirmationHtml(details),
     })
 
     const testUrl = nodemailer.getTestMessageUrl(info)
@@ -162,9 +171,9 @@ export async function sendBookingConfirmation(
       console.log(`[TEST EMAIL SENT] View message: ${testUrl}`)
     }
     return { success: true, messageId: info.messageId }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to send booking confirmation email:', err)
-    return { success: false, error: err.message || String(err) }
+    return { success: false, error: errorMessage(err) }
   }
 }
 
@@ -286,9 +295,9 @@ Once again, welcome onboard! We are excited to work with you.`
       console.log(`[TEST EMAIL SENT] View message: ${testUrl}`)
     }
     return { success: true, messageId: info.messageId }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to send welcome email:', err)
-    return { success: false, error: err.message || String(err) }
+    return { success: false, error: errorMessage(err) }
   }
 }
 
@@ -372,8 +381,8 @@ export async function sendInvitationEmail(
       console.log(`[TEST EMAIL SENT] View message: ${testUrl}`)
     }
     return { success: true, messageId: info.messageId }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to send invitation email:', err)
-    return { success: false, error: err.message || String(err) }
+    return { success: false, error: errorMessage(err) }
   }
 }

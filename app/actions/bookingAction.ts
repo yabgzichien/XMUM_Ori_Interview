@@ -28,10 +28,10 @@ export async function bookSlotAction(
   // 2. Booking succeeded! Fetch slot times and trigger email asynchronously
   const booking = data as PublicBooking
   
-  // Query slot times from DB
+  // Query slot times + venue from DB so the confirmation email can show them
   const { data: slot } = await supabase
     .from('slots')
-    .select('starts_at, ends_at')
+    .select('starts_at, ends_at, venue')
     .eq('id', booking.slot_id)
     .maybeSingle()
 
@@ -43,6 +43,7 @@ export async function bookSlotAction(
     starts_at: slot?.starts_at || '',
     ends_at: slot?.ends_at || '',
     created_at: booking.created_at,
+    venue: slot?.venue || '',
   }
 
   // Fire email dispatch asynchronously so we don't delay the client UI redirection

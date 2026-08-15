@@ -1,6 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { errorMessage } from '@/lib/utils'
 
 export async function saveInterviewNotesAction(
   bookingId: string,
@@ -17,7 +18,7 @@ export async function saveInterviewNotesAction(
       return { success: false, error: error.message }
     }
     return { success: true }
-  } catch (err: any) {
-    return { success: false, error: err.message || String(err) }
+  } catch (err: unknown) {
+    return { success: false, error: errorMessage(err) }
   }
 }

@@ -57,27 +57,35 @@ export function HeadPracticeDashboard({ orientation, orientationYear = 2026, isA
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'mygroup' | 'groups' | 'members'>('mygroup')
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    const [{ data: g, error: gErr }, { data: r, error: rErr }, { data: mg, error: mgErr }] = await Promise.all([
-      getHeadPracticeGroups(orientation, orientationYear),
-      getHeadCommitteeRoster(orientation, orientationYear),
-      getMyPracticeGroup(),
-    ])
-    setError(gErr?.message ?? rErr?.message ?? mgErr?.message ?? null)
-    setGroups(g ?? [])
-    setRoster(r ?? [])
-    const userMyGroup = mg && mg.is_lead ? mg : null
-    setMyGroup(userMyGroup)
-    if (!userMyGroup) {
-      setActiveTab((prev) => (prev === 'mygroup' ? 'groups' : prev))
-    }
-    setLoading(false)
-  }, [orientation, orientationYear])
+  const [reloadToken, setReloadToken] = useState(0)
+  const load = useCallback(() => setReloadToken((n) => n + 1), [])
 
   useEffect(() => {
-    load()
-  }, [load])
+    let active = true
+
+    async function run() {
+      const [{ data: g, error: gErr }, { data: r, error: rErr }, { data: mg, error: mgErr }] = await Promise.all([
+        getHeadPracticeGroups(orientation, orientationYear),
+        getHeadCommitteeRoster(orientation, orientationYear),
+        getMyPracticeGroup(),
+      ])
+      if (!active) return
+      setError(gErr?.message ?? rErr?.message ?? mgErr?.message ?? null)
+      setGroups(g ?? [])
+      setRoster(r ?? [])
+      const userMyGroup = mg && mg.is_lead ? mg : null
+      setMyGroup(userMyGroup)
+      if (!userMyGroup) {
+        setActiveTab((prev) => (prev === 'mygroup' ? 'groups' : prev))
+      }
+      setLoading(false)
+    }
+
+    run()
+    return () => {
+      active = false
+    }
+  }, [orientation, orientationYear, reloadToken])
 
   const availableLeads = roster.filter((m) => m.role === 'committee')
 

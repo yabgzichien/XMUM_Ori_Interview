@@ -27,21 +27,30 @@ export function AdminStaff() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    const { data, error } = await listInvites()
-    setLoading(false)
-    if (error) {
-      setLoadError(error.message)
-      setInvites([])
-      return
-    }
-    setLoadError(null)
-    setInvites(data ?? [])
-  }, [])
+  const [reloadToken, setReloadToken] = useState(0)
+  const load = useCallback(() => setReloadToken((n) => n + 1), [])
 
   useEffect(() => {
-    load()
-  }, [load])
+    let active = true
+
+    async function run() {
+      const { data, error } = await listInvites()
+      if (!active) return
+      setLoading(false)
+      if (error) {
+        setLoadError(error.message)
+        setInvites([])
+        return
+      }
+      setLoadError(null)
+      setInvites(data ?? [])
+    }
+
+    run()
+    return () => {
+      active = false
+    }
+  }, [reloadToken])
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -77,7 +86,17 @@ export function AdminStaff() {
     load()
   }
 
-  const deleteBtnStyle = `padding:8px 14px;border-radius:8px;border:none;background:#FEE2E2;color:#EF4444;font-weight:700;font-size:13px;cursor:pointer;transition:background .15s`
+  const deleteBtnStyle: React.CSSProperties = {
+    padding: '8px 14px',
+    borderRadius: '8px',
+    border: 'none',
+    background: '#FEE2E2',
+    color: '#EF4444',
+    fontWeight: 700,
+    fontSize: '13px',
+    cursor: 'pointer',
+    transition: 'background .15s',
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -163,7 +182,8 @@ export function AdminStaff() {
 
         {!loading && !loadError && invites.length > 0 && (
           <div style={{ width: '100%' }}>
-            {/* Desktop Table */}
+            {/* Desktop Table — one table, header and rows together. The mobile
+                card list below is toggled by the shared .tbl-desk/.tbl-mob rules. */}
             <table className="tbl-desk" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
@@ -173,13 +193,9 @@ export function AdminStaff() {
                   <th style={{ padding: '16px 20px' }}></th>
                 </tr>
               </thead>
-              <tbody />
-            </table>
-
-            <table className="w-full tbl-desk-wrapper-hack" style={{ borderCollapse: 'collapse', width: '100%' }}>
               <tbody>
                 {invites.map((inv) => (
-                  <tr key={inv.id} className="tbl-desk-row" style={{ borderBottom: '1px solid #EAEEF4' }}>
+                  <tr key={inv.id} style={{ borderBottom: '1px solid #EAEEF4' }}>
                     <td style={{ padding: '18px 20px' }}>
                       <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{inv.name}</div>
                       <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{inv.email}</div>
@@ -199,7 +215,7 @@ export function AdminStaff() {
                     </td>
                     <td style={{ padding: '18px 20px', textAlign: 'right' }}>
                       {!inv.claimed_at && (
-                        <button type="button" onClick={() => handleDelete(inv)} className="btn-del hover:bg-red-200" style={Object.fromEntries(deleteBtnStyle.split(';').map(x=>x.split(':')).filter(x=>x.length===2).map(x=>[x[0].replace(/-([a-z])/g, g=>g[1].toUpperCase()), x[1]])) as React.CSSProperties}>
+                        <button type="button" onClick={() => handleDelete(inv)} className="btn-del hover:bg-red-200" style={deleteBtnStyle}>
                           Remove
                         </button>
                       )}
@@ -240,7 +256,7 @@ export function AdminStaff() {
                   </div>
                   {!inv.claimed_at && (
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                      <button type="button" onClick={() => handleDelete(inv)} className="btn-del hover:bg-red-200" style={Object.fromEntries(deleteBtnStyle.split(';').map(x=>x.split(':')).filter(x=>x.length===2).map(x=>[x[0].replace(/-([a-z])/g, g=>g[1].toUpperCase()), x[1]])) as React.CSSProperties}>
+                      <button type="button" onClick={() => handleDelete(inv)} className="btn-del hover:bg-red-200" style={deleteBtnStyle}>
                         Remove
                       </button>
                     </div>
@@ -248,20 +264,6 @@ export function AdminStaff() {
                 </div>
               ))}
             </div>
-
-            <style>{`
-               .tbl-desk-wrapper-hack thead { display: none; }
-               @media (max-width: 640px) {
-                 .tbl-desk { display: none !important; }
-                 .tbl-desk-wrapper-hack { display: block; border-collapse: separate; }
-                 .tbl-desk-wrapper-hack tbody { display: flex; flex-direction: column; width: 100%; }
-               }
-               .tbl-mob { display: none; }
-               @media (max-width: 640px) {
-                 .tbl-desk-wrapper-hack { display: none !important; }
-                 .tbl-mob { display: block; }
-               }
-            `}</style>
           </div>
         )}
       </div>

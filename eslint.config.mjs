@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored design-handoff bundles. These are third-party build output kept
+    // for reference, never imported by the app, and they drown the real
+    // findings in noise.
+    "Interview Booking UI Redesign-handoff/**",
+    "redesign_handoff/**",
   ]),
 ]);
 

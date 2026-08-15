@@ -5,6 +5,7 @@ import { BulkCreateForm } from '@/app/head/BulkCreateForm'
 import { SlotsTable } from '@/app/head/SlotsTable'
 import { BookingsTable } from '@/app/head/BookingsTable'
 import { getHeadSlots, getHeadBookings, type HeadBooking, type HeadSlot, type Track, type Orientation } from '@/lib/head'
+import { isPastSlot } from '@/lib/booking-helpers'
 
 type Props = {
   track: Track
@@ -25,66 +26,89 @@ export function HeadDashboard({ track, orientation, orientationYear = 2026, prof
 
   const [activeTab, setActiveTab] = useState<'slots' | 'bookings'>('slots')
 
-  const loadSlots = useCallback(async () => {
-    const { data, error } = await getHeadSlots(track, orientation, orientationYear)
-    setSlotsLoading(false)
-    if (error) {
-      setSlotsError(error.message)
-      setSlots([])
-      return
-    }
-    setSlotsError(null)
-    setSlots(data ?? [])
-  }, [track, orientation, orientationYear])
+  // Each list reloads when its token bumps. The effects own cancellation so a
+  // slow response for one track can't land after the head switched to another.
+  const [slotsToken, setSlotsToken] = useState(0)
+  const [bookingsToken, setBookingsToken] = useState(0)
 
-  const loadBookings = useCallback(async () => {
-    const { data, error } = await getHeadBookings(track, orientation, orientationYear)
-    setBookingsLoading(false)
-    if (error) {
-      setBookingsError(error.message)
-      setBookings([])
-      return
-    }
-    setBookingsError(null)
-    setBookings(data ?? [])
-  }, [track, orientation, orientationYear])
+  const refreshSlots = useCallback(() => setSlotsToken((n) => n + 1), [])
+  const refreshBookings = useCallback(() => setBookingsToken((n) => n + 1), [])
 
   useEffect(() => {
-    loadSlots()
-  }, [loadSlots])
+    let active = true
+
+    async function run() {
+      const { data, error } = await getHeadSlots(track, orientation, orientationYear)
+      if (!active) return
+      setSlotsLoading(false)
+      if (error) {
+        setSlotsError(error.message)
+        setSlots([])
+        return
+      }
+      setSlotsError(null)
+      setSlots(data ?? [])
+    }
+
+    run()
+    return () => {
+      active = false
+    }
+  }, [track, orientation, orientationYear, slotsToken])
 
   useEffect(() => {
-    loadBookings()
-  }, [loadBookings])
+    let active = true
 
-  function refreshSlots() {
-    setSlotsLoading(true)
-    loadSlots()
-  }
+    async function run() {
+      const { data, error } = await getHeadBookings(track, orientation, orientationYear)
+      if (!active) return
+      setBookingsLoading(false)
+      if (error) {
+        setBookingsError(error.message)
+        setBookings([])
+        return
+      }
+      setBookingsError(null)
+      setBookings(data ?? [])
+    }
 
-  function refreshBookings() {
-    setBookingsLoading(true)
-    loadBookings()
-  }
+    run()
+    return () => {
+      active = false
+    }
+  }, [track, orientation, orientationYear, bookingsToken])
 
-  const totalSlotsCapacity = slots.reduce((acc, slot) => acc + slot.capacity, 0)
-  const filledSlots = slots.reduce((acc, slot) => acc + slot.booked_count, 0)
+  // "Slots" counts slot rows; "seats" counts capacity across them. Keeping the
+  // two apart matters once a slot can seat more than one applicant.
+  const totalSeats = slots.reduce((acc, slot) => acc + slot.capacity, 0)
+  const bookedSeats = slots.reduce((acc, slot) => acc + slot.booked_count, 0)
+  const upcomingSlots = slots.filter((slot) => !isPastSlot(slot.ends_at))
+  const openSeatsLeft = upcomingSlots
+    .filter((slot) => slot.status === 'open')
+    .reduce((acc, slot) => acc + Math.max(0, slot.capacity - slot.booked_count), 0)
+  const fillRate = totalSeats > 0 ? Math.round((bookedSeats / totalSeats) * 100) : 0
+
+  const stats: { label: string; value: string; hint?: string }[] = [
+    { label: 'Slots', value: String(slots.length), hint: `${upcomingSlots.length} upcoming` },
+    { label: 'Seats booked', value: `${bookedSeats} / ${totalSeats}`, hint: `${fillRate}% filled` },
+    { label: 'Seats still open', value: String(openSeatsLeft), hint: 'upcoming & open' },
+    { label: 'Applicants', value: String(bookings.length), hint: 'active bookings' },
+  ]
 
   return (
     <>
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '12px', padding: '12px 18px', display: 'flex', flexDirection: 'column', minWidth: '130px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
-          <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Total slots</span>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A' }}>{totalSlotsCapacity}</span>
-        </div>
-        <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '12px', padding: '12px 18px', display: 'flex', flexDirection: 'column', minWidth: '130px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
-          <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>Slots filled</span>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A' }}>{filledSlots} <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>/ {totalSlotsCapacity}</span></span>
-        </div>
+      <div className="stats-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+        {stats.map((stat) => (
+          <div key={stat.label} style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '12px', padding: '12px 18px', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
+            <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>{stat.label}</span>
+            <span style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', lineHeight: 1.15 }}>{stat.value}</span>
+            {stat.hint && <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#94A3B8', marginTop: '2px' }}>{stat.hint}</span>}
+          </div>
+        ))}
       </div>
 
       <div style={{ marginTop: '24px', marginBottom: '20px' }}>
-        <BulkCreateForm track={track} orientation={orientation} orientationYear={orientationYear} profileId={profileId} onCreated={refreshSlots} />
+        <BulkCreateForm track={track} orientation={orientation} orientationYear={orientationYear} profileId={profileId} existingSlots={slots} onCreated={refreshSlots} />
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>

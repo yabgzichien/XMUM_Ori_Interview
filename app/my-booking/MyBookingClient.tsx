@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { errorMessage } from '@/lib/utils'
 
 type BookingInfo = {
   booking_id: string
@@ -52,6 +53,7 @@ function BookingCard({
   onCancelled: (id: string) => void
 }) {
   const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const [localStatus, setLocalStatus] = useState(b.status)
   const isPast = new Date(b.ends_at) < new Date()
   const isActive = localStatus === 'booked'
@@ -62,6 +64,7 @@ function BookingCard({
     )
     if (!confirmed) return
     setCancelling(true)
+    setCancelError(null)
     try {
       const supabase = createClient()
       const { error } = await supabase.rpc('cancel_booking_public', {
@@ -71,8 +74,8 @@ function BookingCard({
       if (error) throw new Error(error.message)
       setLocalStatus('cancelled')
       onCancelled(b.booking_id)
-    } catch (err: any) {
-      alert(`Failed to cancel: ${err.message || String(err)}`)
+    } catch (err: unknown) {
+      setCancelError(errorMessage(err))
     } finally {
       setCancelling(false)
     }
@@ -145,6 +148,12 @@ function BookingCard({
           </div>
         </div>
 
+        {cancelError && (
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 13px', fontSize: '13px', color: '#B91C1C', fontWeight: 600 }}>
+            Couldn&apos;t cancel: {cancelError}
+          </div>
+        )}
+
         {/* Cancel button */}
         {isActive && !isPast && (
           <button
@@ -213,8 +222,8 @@ export function MyBookingClient() {
       const rows = Array.isArray(data) ? data : (data ? [data] : [])
       setBookings(rows as BookingInfo[])
       setSearched(true)
-    } catch (err: any) {
-      setLookupError(err.message || 'An unexpected error occurred.')
+    } catch (err: unknown) {
+      setLookupError(errorMessage(err))
     } finally {
       setLoading(false)
     }

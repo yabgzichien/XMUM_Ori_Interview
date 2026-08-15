@@ -19,31 +19,40 @@ export function PracticeClient({ currentUserId }: { currentUserId: string }) {
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [leaving, setLeaving] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    const { data: group, error: groupErr } = await getMyPracticeGroup()
-    if (groupErr) {
-      setError(groupErr.message)
-      setLoading(false)
-      return
-    }
-    setMyGroup(group)
-
-    if (!group) {
-      const { data: groups, error: groupsErr } = await getAvailablePracticeGroups()
-      if (groupsErr) {
-        setError(groupsErr.message)
-      }
-      setAvailableGroups(groups ?? [])
-    }
-    setLoading(false)
-  }, [])
+  // Bumping the token re-runs the fetch effect. The effect owns cancellation,
+  // so a response that arrives after the component moved on is discarded
+  // instead of clobbering fresher state.
+  const [reloadToken, setReloadToken] = useState(0)
+  const load = useCallback(() => setReloadToken((n) => n + 1), [])
 
   useEffect(() => {
-    load()
-  }, [load])
+    let active = true
+
+    async function run() {
+      const { data: group, error: groupErr } = await getMyPracticeGroup()
+      if (!active) return
+      if (groupErr) {
+        setError(groupErr.message)
+        setLoading(false)
+        return
+      }
+      setError(null)
+      setMyGroup(group)
+
+      if (!group) {
+        const { data: groups, error: groupsErr } = await getAvailablePracticeGroups()
+        if (!active) return
+        if (groupsErr) setError(groupsErr.message)
+        setAvailableGroups(groups ?? [])
+      }
+      setLoading(false)
+    }
+
+    run()
+    return () => {
+      active = false
+    }
+  }, [reloadToken])
 
   async function handleJoin(groupId: string) {
     setJoiningId(groupId)

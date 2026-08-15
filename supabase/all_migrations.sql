@@ -1,3 +1,12 @@
+-- GENERATED FILE — do not edit by hand.
+-- Rebuild with: npm run build:migrations
+--
+-- Every migration in supabase/migrations, concatenated in order. Paste the
+-- whole file into the Supabase SQL editor to build a database from scratch.
+-- Applying it to an existing database is safe to re-run only if that database
+-- is already at the same revision; use scripts/apply-migrations.mjs for
+-- incremental upgrades instead.
+
 -- ==========================================
 -- MIGRATION: 0001_schema.sql
 -- ==========================================
@@ -60,7 +69,6 @@ create table track_settings (
   reschedule_cutoff_hours int not null default 2
 );
 insert into track_settings (track) values ('facilitator'), ('game_master');
-
 
 -- ==========================================
 -- MIGRATION: 0002_rls.sql
@@ -187,7 +195,6 @@ create policy "track_settings_update_head_or_admin" on track_settings
   using (auth_managed_track() = track or is_admin())
   with check (auth_managed_track() = track or is_admin());
 
-
 -- ==========================================
 -- MIGRATION: 0003_book_slot.sql
 -- ==========================================
@@ -251,7 +258,6 @@ begin
 
   return b;
 end $$;
-
 
 -- ==========================================
 -- MIGRATION: 0004_cancel_reschedule.sql
@@ -367,7 +373,6 @@ begin
   return new_b;
 end $$;
 
-
 -- ==========================================
 -- MIGRATION: 0005_handle_new_user.sql
 -- ==========================================
@@ -394,7 +399,6 @@ end $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
-
 
 -- ==========================================
 -- MIGRATION: 0006_available_slots.sql
@@ -426,7 +430,6 @@ language sql security definer stable set search_path = public as $$
   group by s.id
   order by s.starts_at
 $$;
-
 
 -- ==========================================
 -- MIGRATION: 0007_head_functions.sql
@@ -479,7 +482,6 @@ begin
     order by s.starts_at, p.name;
 end $$;
 
-
 -- ==========================================
 -- MIGRATION: 0008_fix_role_change_trigger.sql
 -- ==========================================
@@ -498,7 +500,6 @@ begin
   end if;
   return new;
 end $$;
-
 
 -- ==========================================
 -- MIGRATION: 0009_public_booking.sql
@@ -630,7 +631,6 @@ end $$;
 grant execute on function available_slots(track) to anon, authenticated;
 grant execute on function book_slot_public(uuid, text, text, text, text) to anon, authenticated;
 
-
 -- ==========================================
 -- MIGRATION: 0010_staff_invites.sql
 -- ==========================================
@@ -661,7 +661,6 @@ alter table staff_invites enable row level security;
 create policy "staff_invites_admin_all" on staff_invites
   for all to authenticated
   using (is_admin()) with check (is_admin());
-
 
 -- ==========================================
 -- MIGRATION: 0011_interview_status.sql
@@ -724,7 +723,6 @@ end $$;
 
 -- ---------- Grants: head facilitators/admin can invoke status updates ----------
 grant execute on function head_update_interview_status(uuid, text) to authenticated;
-
 
 -- ==========================================
 -- MIGRATION: 0012_interview_notes.sql
@@ -789,7 +787,6 @@ BEGIN
 END $$;
 
 GRANT EXECUTE ON FUNCTION cancel_booking_public(text, uuid) TO anon, authenticated;
-
 
 -- ==========================================
 -- MIGRATION: 0013_student_id_lookup.sql
@@ -856,7 +853,6 @@ BEGIN
 END $$;
 
 GRANT EXECUTE ON FUNCTION cancel_booking_public(text, uuid) TO anon, authenticated;
-
 
 -- ==========================================
 -- MIGRATION: 0014_orientation.sql
@@ -1072,7 +1068,6 @@ end $$;
 -- ---------- Update grants ----------
 grant execute on function available_slots(track, orientation) to anon, authenticated;
 
-
 -- ==========================================
 -- MIGRATION: 0015_fix_head_bookings.sql
 -- ==========================================
@@ -1114,10 +1109,6 @@ BEGIN
 END $$;
 
 GRANT EXECUTE ON FUNCTION head_bookings(track, orientation) TO authenticated;
-
-
-
-
 
 -- ==========================================
 -- MIGRATION: 0016_practice_groups_schema.sql
@@ -1264,7 +1255,6 @@ create policy "practice_sessions_select_head_or_admin" on practice_sessions
         and (auth_managed_track() = g.track or is_admin())
     )
   );
-
 
 -- ==========================================
 -- MIGRATION: 0017_practice_group_functions.sql
@@ -1633,7 +1623,6 @@ grant execute on function head_create_practice_group(text, track, orientation, i
 grant execute on function head_update_practice_group(uuid, text, int, slot_status) to authenticated;
 grant execute on function head_reassign_practice_lead(uuid, uuid) to authenticated;
 grant execute on function head_delete_practice_group(uuid) to authenticated;
-
 
 -- ==========================================
 -- MIGRATION: 0018_fix_head_auth_null_safety.sql
@@ -2124,7 +2113,6 @@ update practice_groups set created_by = lead_id where created_by is null;
 alter table practice_groups alter column created_by set not null;
 alter table practice_sessions alter column created_by set not null;
 
-
 -- ==========================================
 -- MIGRATION: 0019_practice_groups_cross_track.sql
 -- ==========================================
@@ -2483,7 +2471,10 @@ grant execute on function lead_create_session(uuid, timestamptz, timestamptz) to
 grant execute on function lead_update_session(uuid, timestamptz, timestamptz) to authenticated;
 grant execute on function lead_delete_session(uuid) to authenticated;
 
--- ---------- Migration 0020_orientation_year_and_committee_isolation.sql ----------
+-- ==========================================
+-- MIGRATION: 0020_orientation_year_and_committee_isolation.sql
+-- ==========================================
+
 -- 0020_orientation_year_and_committee_isolation.sql
 -- Add orientation_year support to all orientation tables and isolate committee access.
 
@@ -2554,6 +2545,7 @@ DROP INDEX IF EXISTS practice_groups_orientation_idx;
 CREATE INDEX IF NOT EXISTS practice_groups_orientation_year_idx ON practice_groups (orientation, orientation_year);
 
 -- ---------- Helper: auth_committee_scope ----------
+DROP FUNCTION IF EXISTS auth_committee_scope();
 CREATE OR REPLACE FUNCTION auth_committee_scope()
 RETURNS TABLE (orientation orientation, orientation_year int)
 LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
@@ -2561,6 +2553,8 @@ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
 $$;
 
 -- ---------- RPC Updates ----------
+DROP FUNCTION IF EXISTS available_slots(track, orientation);
+DROP FUNCTION IF EXISTS available_slots(track, orientation, int);
 CREATE OR REPLACE FUNCTION available_slots(p_track track, p_orientation orientation, p_year int DEFAULT 2026)
 RETURNS TABLE (
   id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
@@ -2578,6 +2572,8 @@ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
   ORDER BY s.starts_at
 $$;
 
+DROP FUNCTION IF EXISTS head_slots(track, orientation);
+DROP FUNCTION IF EXISTS head_slots(track, orientation, int);
 CREATE OR REPLACE FUNCTION head_slots(p_track track, p_orientation orientation, p_year int DEFAULT 2026)
 RETURNS TABLE (
   id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
@@ -2598,6 +2594,8 @@ BEGIN
     ORDER BY s.starts_at;
 END $$;
 
+DROP FUNCTION IF EXISTS head_bookings(track, orientation);
+DROP FUNCTION IF EXISTS head_bookings(track, orientation, int);
 CREATE OR REPLACE FUNCTION head_bookings(p_track track, p_orientation orientation, p_year int DEFAULT 2026)
 RETURNS TABLE (
   booking_id uuid, slot_id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
@@ -2759,6 +2757,7 @@ BEGIN
 END $$;
 
 DROP FUNCTION IF EXISTS head_practice_groups(orientation);
+DROP FUNCTION IF EXISTS head_practice_groups(orientation, int);
 CREATE OR REPLACE FUNCTION head_practice_groups(p_orientation orientation, p_year int DEFAULT 2026)
 RETURNS TABLE (
   id uuid, name text, lead_id uuid, lead_name text, lead_email text, capacity int,
@@ -2782,6 +2781,7 @@ BEGIN
 END $$;
 
 DROP FUNCTION IF EXISTS head_committee_roster(orientation);
+DROP FUNCTION IF EXISTS head_committee_roster(orientation, int);
 CREATE OR REPLACE FUNCTION head_committee_roster(p_orientation orientation, p_year int DEFAULT 2026)
 RETURNS TABLE (id uuid, name text, email text, track track, role user_role, leading_group_id uuid)
 LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
@@ -2799,6 +2799,7 @@ BEGIN
 END $$;
 
 DROP FUNCTION IF EXISTS head_create_practice_group(text, orientation, int, uuid);
+DROP FUNCTION IF EXISTS head_create_practice_group(text, orientation, int, uuid, int);
 CREATE OR REPLACE FUNCTION head_create_practice_group(
   p_name text, p_orientation orientation, p_capacity int, p_lead_profile_id uuid, p_year int DEFAULT 2026
 ) RETURNS practice_groups
@@ -2836,7 +2837,9 @@ GRANT EXECUTE ON FUNCTION head_practice_groups(orientation, int) TO authenticate
 GRANT EXECUTE ON FUNCTION head_committee_roster(orientation, int) TO authenticated;
 GRANT EXECUTE ON FUNCTION head_create_practice_group(text, orientation, int, uuid, int) TO authenticated;
 
-
+-- ==========================================
+-- MIGRATION: 0021_committee_positions.sql
+-- ==========================================
 
 -- 0021_committee_positions.sql
 -- Adds an organizational committee "position" (e.g. Treasurer, Secretary,
@@ -2920,6 +2923,10 @@ END $$;
 GRANT EXECUTE ON FUNCTION head_committee_roster(orientation, int) TO authenticated;
 GRANT EXECUTE ON FUNCTION my_practice_group_members() TO authenticated;
 GRANT EXECUTE ON FUNCTION head_set_committee_position(uuid, text) TO authenticated;
+
+-- ==========================================
+-- MIGRATION: 0022_position_grants_head_access.sql
+-- ==========================================
 
 -- 0022_position_grants_head_access.sql
 -- Makes the "Head of Facilitator (HOF)" / "Head of Game Master (HOG)"
@@ -3012,6 +3019,10 @@ END $$;
 -- ---------- Grants ----------
 GRANT EXECUTE ON FUNCTION head_committee_roster(orientation, int) TO authenticated;
 GRANT EXECUTE ON FUNCTION head_set_committee_position(uuid, text) TO authenticated;
+
+-- ==========================================
+-- MIGRATION: 0023_admin_only_practice_governance.sql
+-- ==========================================
 
 -- 0023_admin_only_practice_governance.sql
 -- Locks committee-position and performance-lead management down to admin
@@ -3195,6 +3206,10 @@ GRANT EXECUTE ON FUNCTION head_update_practice_group(uuid, text, int, slot_statu
 GRANT EXECUTE ON FUNCTION head_delete_practice_group(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION lead_update_practice_group(uuid, text, int) TO authenticated;
 
+-- ==========================================
+-- MIGRATION: 0024_available_group_members.sql
+-- ==========================================
+
 -- 0024_available_group_members.sql
 -- Surfaces each open practice group's member names in the browse/join view
 -- (available_practice_groups), so a committee member can see who's already
@@ -3237,6 +3252,10 @@ BEGIN
 END $$;
 
 GRANT EXECUTE ON FUNCTION available_practice_groups() TO authenticated;
+
+-- ==========================================
+-- MIGRATION: 0025_performance_lead_group_self_service.sql
+-- ==========================================
 
 -- 0025_performance_lead_group_self_service.sql
 -- Lets a performance lead (including one who is also a Head, e.g. via the
@@ -3409,8 +3428,17 @@ GRANT EXECUTE ON FUNCTION lead_eligible_members(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION lead_add_member(uuid, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION lead_remove_member(uuid, uuid) TO authenticated;
 
+-- ==========================================
 -- MIGRATION: 0026_add_venue_to_slots.sql
+-- ==========================================
+
+-- 0026_add_venue_to_slots.sql
+-- Adds venue/location field to slots table and updates related RPCs.
+
+-- ---------- slots.venue ----------
 ALTER TABLE slots ADD COLUMN IF NOT EXISTS venue text NOT NULL DEFAULT '';
+
+-- ---------- RPC Updates for slots venue ----------
 
 DROP FUNCTION IF EXISTS available_slots(track, orientation);
 DROP FUNCTION IF EXISTS available_slots(track, orientation, int);
@@ -3508,12 +3536,38 @@ BEGIN
 END $$;
 GRANT EXECUTE ON FUNCTION lookup_booking_public(text) TO anon, authenticated;
 
+-- ==========================================
 -- MIGRATION: 0027_hof_hog_practice_committee_parity.sql
+-- ==========================================
+
+-- 0027_hof_hog_practice_committee_parity.sql
+-- HOF/HOG (head_facilitator/head_gm) lose their elevated view into the
+-- performance-practice feature: for practice purposes they now behave
+-- exactly like a normal committee member — they browse/join/leave a group
+-- via /practice like anyone else, with no visibility into other groups, the
+-- committee roster, or any group's member list. That cross-group visibility
+-- (head_practice_groups, head_committee_roster, the practice_* "select head
+-- or admin" RLS policies, and the head-override branch on the lead_* RPCs)
+-- is now admin-only.
+--
+-- is_head_or_admin() is redefined rather than renamed: every RLS policy and
+-- RPC that already calls it (head_practice_groups, head_committee_roster,
+-- lead_create_session/update/delete, lead_eligible_members/add/remove_member,
+-- and the three practice_*_select_head_or_admin policies) picks up the
+-- narrower admin-only check automatically, with no need to touch those
+-- definitions individually.
+--
+-- This does NOT touch head_facilitator/head_gm's real /head dashboard
+-- access (booking slots, interview notes) — that is unrelated and stays as
+-- introduced in 0022.
+
+-- ---------- is_head_or_admin: admin only for practice governance/visibility ----------
 CREATE OR REPLACE FUNCTION is_head_or_admin() RETURNS boolean
   LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
   SELECT is_admin()
 $$;
 
+-- ---------- available_practice_groups: HOF/HOG browse like committee ----------
 CREATE OR REPLACE FUNCTION available_practice_groups()
 RETURNS TABLE (
   id uuid, name text, lead_id uuid, lead_name text, capacity int,
@@ -3549,6 +3603,7 @@ BEGIN
     ORDER BY g.name;
 END $$;
 
+-- ---------- join_practice_group: HOF/HOG join like committee ----------
 CREATE OR REPLACE FUNCTION join_practice_group(p_group uuid)
 RETURNS practice_group_members
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -3593,4 +3648,3 @@ BEGIN
 
   RETURN row_out;
 END $$;
-

@@ -6,6 +6,8 @@ import { DateRangePicker, type DateRange } from '@/components/DateRangePicker'
 import { sendBulkWelcomeEmailsAction } from '@/app/actions/bookingAction'
 import { saveInterviewNotesAction } from '@/app/actions/saveNotesAction'
 import { bulkInviteApprovedAction } from '@/app/actions/inviteCommitteeAction'
+import { errorMessage } from '@/lib/utils'
+import { useToast } from '@/components/Toast'
 
 const DEFAULT_SUBJECT = `[XMUM Orientation] Welcome to the Committee! - {track}`
 const DEFAULT_BODY = `Dear {name},
@@ -74,6 +76,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   const [notesValue, setNotesValue] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
+  const { showToast, toastElement } = useToast()
 
   const approvedBookings = useMemo(() => {
     return bookings.filter((b) => b.interview_status === 'approved')
@@ -132,11 +135,14 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
         customSubject,
         customBody
       )
-      alert(`Successfully sent ${res.successCount} welcome email(s)!${res.failCount > 0 ? ` (${res.failCount} failed)` : ''}`)
+      showToast(
+        `Sent ${res.successCount} welcome email${res.successCount === 1 ? '' : 's'}.${res.failCount > 0 ? ` ${res.failCount} failed.` : ''}`,
+        res.failCount > 0 ? 'info' : 'success',
+      )
       setShowEmailEditor(false)
       onChanged()
-    } catch (err: any) {
-      alert(`Failed to trigger bulk emails: ${err.message || String(err)}`)
+    } catch (err: unknown) {
+      showToast(`Failed to send welcome emails: ${errorMessage(err)}`, 'error')
     } finally {
       setSendingBulk(false)
     }
@@ -149,17 +155,18 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
     try {
       const res = await bulkInviteApprovedAction(track, orientation, orientationYear)
       if (res.error) {
-        alert(`Failed to invite: ${res.error}`)
+        showToast(`Failed to invite: ${res.error}`, 'error')
       } else {
-        alert(
-          `Invited ${res.invited} new committee member(s).` +
+        showToast(
+          `Invited ${res.invited} new committee member${res.invited === 1 ? '' : 's'}.` +
           (res.alreadyInvited ? ` ${res.alreadyInvited} already invited.` : '') +
           (res.alreadyClaimed ? ` ${res.alreadyClaimed} already active.` : '') +
-          (res.failed ? ` ${res.failed} failed.` : '')
+          (res.failed ? ` ${res.failed} failed.` : ''),
+          res.failed > 0 ? 'info' : 'success',
         )
       }
-    } catch (err: any) {
-      alert(`Failed to trigger committee invites: ${err.message || String(err)}`)
+    } catch (err: unknown) {
+      showToast(`Failed to invite to committee: ${errorMessage(err)}`, 'error')
     } finally {
       setInvitingCommittee(false)
     }
@@ -168,7 +175,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   async function handleStatusChange(bookingId: string, status: 'pending' | 'failed' | 'approved') {
     const { error: updateErr } = await updateInterviewStatus(bookingId, status)
     if (updateErr) {
-      alert(updateErr.message)
+      showToast(updateErr.message, 'error')
       return
     }
     onChanged()
@@ -182,14 +189,16 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
     const { error: cancelErr } = await cancelBooking(b.booking_id)
     setCancellingId(null)
     if (cancelErr) {
-      alert(cancelErr.message)
+      showToast(cancelErr.message, 'error')
       return
     }
+    showToast(`${b.applicant_name}'s booking cancelled — the seat is free again.`, 'success')
     onChanged()
   }
 
   return (
     <div style={{ minHeight: '380px', display: 'flex', flexDirection: 'column' }}>
+      {toastElement}
       {/* Combined Search & Filter Bar */}
       <div className="bookings-filter-bar" style={{ padding: '16px 20px', borderBottom: '1px solid #EAEEF4', display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-end', background: '#FAFBFD' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -338,7 +347,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                     <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: (b.track || track) === 'game_master' ? '#F3F0FF' : '#EFF4FF', color: (b.track || track) === 'game_master' ? '#7C3AED' : '#2563EB', fontSize: '11.5px', fontWeight: 700 }}>{formatTrack(b.track || track)}</span>
                   </td>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle' }}>
-                    <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#475569' }}>A1 #123</div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#475569' }}>{b.venue || '—'}</div>
                   </td>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle' }}>
                     <div style={{ fontSize: '13.5px', color: '#475569', fontWeight: 600, marginBottom: '2px' }}>{formatDateHeading(toLocalDateIso(b.starts_at))}</div>
@@ -682,7 +691,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                           setNotesSaved(true)
                           setSelectedBooking({ ...selectedBooking, interview_notes: notesValue })
                         } else {
-                          alert(`Failed to save notes: ${res.error}`)
+                          showToast(`Failed to save notes: ${res.error}`, 'error')
                         }
                       }}
                       style={{
@@ -825,7 +834,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                   <div style={{ background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '10px', padding: '12px 14px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#1E40AF', display: 'block', marginBottom: '4px' }}>💡 Available Placeholders</span>
                     <span style={{ fontSize: '12px', color: '#1E40AF', lineHeight: 1.4 }}>
-                      Use <code>{`{name}`}</code> to insert the candidate's full name, and <code>{`{track}`}</code> to insert their position (Facilitator or Game Master). These will update dynamically for each recipient.
+                      Use <code>{`{name}`}</code> to insert the candidate&apos;s full name, and <code>{`{track}`}</code> to insert their position (Facilitator or Game Master). These will update dynamically for each recipient.
                     </span>
                   </div>
                 </div>

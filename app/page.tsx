@@ -2,19 +2,30 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { DEFAULT_ORIENTATION, DEFAULT_ORIENTATION_YEAR } from '@/lib/orientation'
 
 export default async function Home() {
   const profile = await getCurrentProfile()
   if (profile) {
+    if (profile.role === 'applicant') redirect('/book')
     redirect(profile.role === 'committee' || profile.role === 'performance_lead' ? '/practice' : '/head')
   }
 
   const supabase = await createClient()
-  const { data: facSlots } = await supabase.rpc('available_slots', { p_track: 'facilitator' })
-  const { data: gmSlots } = await supabase.rpc('available_slots', { p_track: 'game_master' })
+  // Must match the defaults /book opens with, otherwise the counts advertised
+  // here don't match the slots the applicant actually lands on.
+  const args = { p_orientation: DEFAULT_ORIENTATION, p_year: DEFAULT_ORIENTATION_YEAR }
+  const [{ data: facSlots }, { data: gmSlots }] = await Promise.all([
+    supabase.rpc('available_slots', { p_track: 'facilitator', ...args }),
+    supabase.rpc('available_slots', { p_track: 'game_master', ...args }),
+  ])
 
-  const facCount = facSlots?.length ?? 0
-  const gmCount = gmSlots?.length ?? 0
+  // Only slots that still have a free seat are worth advertising as "open".
+  const countOpen = (slots: { seats_left: number }[] | null) =>
+    slots?.filter((s) => s.seats_left > 0).length ?? 0
+
+  const facCount = countOpen(facSlots)
+  const gmCount = countOpen(gmSlots)
   const totalCount = facCount + gmCount
 
   return (
@@ -32,7 +43,7 @@ export default async function Home() {
               Check booking
             </Link>
             <Link href="/login" style={{ display: 'inline-block', padding: '14px 22px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#fff', color: '#1E293B', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
-              I'm committee
+              I&apos;m committee
             </Link>
           </div>
           <div style={{ display: 'flex', gap: '26px', marginTop: '34px' }}>

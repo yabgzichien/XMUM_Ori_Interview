@@ -7,6 +7,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendInvitationEmail } from '@/lib/email'
 import type { Track, Orientation } from '@/lib/head'
 
+/** The subset of a `head_bookings` row this action actually reads. */
+type ApprovedBookingRow = {
+  applicant_name: string
+  applicant_email: string
+  student_id: string | null
+  interview_status: string | null
+}
+
 type BulkInviteResult = {
   invited: number
   alreadyInvited: number
@@ -49,7 +57,7 @@ export async function bulkInviteApprovedAction(
     return { ...empty, error: bookingsErr.message }
   }
 
-  const approved = ((bookings ?? []) as any[]).filter((b) => b.interview_status === 'approved')
+  const approved = ((bookings ?? []) as ApprovedBookingRow[]).filter((b) => b.interview_status === 'approved')
 
   const admin = createAdminClient()
   const requestHeaders = await headers()

@@ -98,7 +98,7 @@ export async function createSlots(rows: NewSlotRow[]) {
 
 export async function updateSlot(
   id: string,
-  patch: Partial<Pick<HeadSlot, 'capacity' | 'status'>>,
+  patch: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>>,
 ) {
   const supabase = createClient()
   const { data, error } = await supabase.from('slots').update(patch).eq('id', id)
