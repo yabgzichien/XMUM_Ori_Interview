@@ -14,6 +14,7 @@ type BookingInfo = {
   interview_status: string
   status: string
   created_at: string
+  venue?: string
 }
 
 function formatDate(iso: string) {
@@ -136,7 +137,7 @@ function BookingCard({
           </div>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Venue</div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>A1 #123</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{b.venue || 'TBA'}</div>
           </div>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Student ID</div>

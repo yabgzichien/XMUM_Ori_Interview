@@ -32,7 +32,7 @@ export default async function PracticePage() {
           Join a performance practice group for your orientation cycle and keep up with its scheduled sessions.
         </p>
       </div>
-      <PracticeClient />
+      <PracticeClient currentUserId={profile.id} />
     </main>
   )
 }

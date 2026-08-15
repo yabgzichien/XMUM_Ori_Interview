@@ -51,7 +51,7 @@ export default async function HeadPracticePage({
   const visibleOrientations = isRestricted ? ORIENTATIONS.filter(o => o.key === orientation) : ORIENTATIONS
 
   return (
-    <main className="scr head-page-main" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px 48px' }}>
+    <main className="scr head-page-main" style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px' }}>
       <div className="head-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>{orientationLabel} {orientationYear} Practice Groups</h1>
@@ -80,7 +80,7 @@ export default async function HeadPracticePage({
         </div>
       </div>
 
-      <HeadPracticeDashboard orientation={orientation} orientationYear={orientationYear} />
+      <HeadPracticeDashboard orientation={orientation} orientationYear={orientationYear} isAdmin={isAdmin} currentUserId={profile.id} />
     </main>
   )
 }

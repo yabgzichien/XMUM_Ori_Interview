@@ -2836,3 +2836,675 @@ GRANT EXECUTE ON FUNCTION head_practice_groups(orientation, int) TO authenticate
 GRANT EXECUTE ON FUNCTION head_committee_roster(orientation, int) TO authenticated;
 GRANT EXECUTE ON FUNCTION head_create_practice_group(text, orientation, int, uuid, int) TO authenticated;
 
+
+
+-- 0021_committee_positions.sql
+-- Adds an organizational committee "position" (e.g. Treasurer, Secretary,
+-- HOF/HOG) to committee-tier profiles. Distinct from `track` (interview
+-- track) and `role` (account access level) — this is purely a display label
+-- a head/admin assigns, surfaced wherever a group's members are listed.
+
+DO $$ BEGIN
+  ALTER TABLE profiles ADD COLUMN position text;
+EXCEPTION WHEN duplicate_column THEN null; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE profiles ADD CONSTRAINT profiles_position_chk
+    CHECK (position IS NULL OR position IN (
+      'hof', 'hog', 'game_master', 'facilitator', 'treasurer', 'sponsorship',
+      'logistic', 'tech_team', 'organising_chairperson', 'event_planner',
+      'designer', 'pgvg', 'public_relations', 'secretary'
+    ));
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- ---------- head_committee_roster: surface position ----------
+DROP FUNCTION IF EXISTS head_committee_roster(orientation, int);
+CREATE OR REPLACE FUNCTION head_committee_roster(p_orientation orientation, p_year int DEFAULT 2026)
+RETURNS TABLE (id uuid, name text, email text, track track, role user_role, "position" text, leading_group_id uuid)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+BEGIN
+  IF NOT is_head_or_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  RETURN QUERY
+    SELECT pr.id, pr.name, pr.email, pr.track, pr.role, pr.position, g.id
+    FROM profiles pr
+    LEFT JOIN practice_groups g ON g.lead_id = pr.id
+    WHERE pr.orientation = p_orientation AND pr.orientation_year = p_year
+      AND pr.role IN ('committee', 'performance_lead')
+    ORDER BY pr.name;
+END $$;
+
+-- ---------- my_practice_group_members: surface position ----------
+DROP FUNCTION IF EXISTS my_practice_group_members();
+CREATE OR REPLACE FUNCTION my_practice_group_members()
+RETURNS TABLE (member_id uuid, member_name text, "position" text, joined_at timestamptz)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+BEGIN
+  RETURN QUERY
+    SELECT m.member_id, p.name, p.position, m.joined_at
+    FROM practice_group_members m
+    JOIN profiles p ON p.id = m.member_id
+    WHERE m.group_id IN (
+      SELECT g.id FROM practice_groups g
+      WHERE g.lead_id = auth.uid()
+         OR EXISTS (
+           SELECT 1 FROM practice_group_members m2
+           WHERE m2.group_id = g.id AND m2.member_id = auth.uid()
+         )
+    )
+    ORDER BY m.joined_at;
+END $$;
+
+-- ---------- head_set_committee_position: assign/change a position ----------
+CREATE OR REPLACE FUNCTION head_set_committee_position(p_profile_id uuid, p_position text)
+RETURNS profiles
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target profiles;
+  row_out profiles;
+BEGIN
+  IF NOT is_head_or_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT * INTO target FROM profiles WHERE id = p_profile_id FOR UPDATE;
+  IF target IS NULL OR target.role NOT IN ('committee', 'performance_lead') THEN
+    RAISE EXCEPTION 'target must be a committee member';
+  END IF;
+  UPDATE profiles SET position = p_position WHERE id = p_profile_id
+  RETURNING * INTO row_out;
+  RETURN row_out;
+END $$;
+
+-- ---------- Grants ----------
+GRANT EXECUTE ON FUNCTION head_committee_roster(orientation, int) TO authenticated;
+GRANT EXECUTE ON FUNCTION my_practice_group_members() TO authenticated;
+GRANT EXECUTE ON FUNCTION head_set_committee_position(uuid, text) TO authenticated;
+
+-- 0022_position_grants_head_access.sql
+-- Makes the "Head of Facilitator (HOF)" / "Head of Game Master (HOG)"
+-- committee positions functionally grant the matching head_facilitator /
+-- head_gm account role (real /head dashboard access to manage booking slots
+-- and interview notes for that track) — not just a cosmetic label. Assigning
+-- HOF/HOG to a committee member via head_set_committee_position now promotes
+-- their role; moving them off HOF/HOG later reverts it. Every other position
+-- (Treasurer, Secretary, etc.) stays purely cosmetic as before.
+--
+-- Only ever acts on profiles with orientation set (i.e. committee-tier
+-- accounts that went through the committee roster), so the two originally
+-- seeded head_facilitator/head_gm accounts (orientation is null — they were
+-- never part of a committee roster) can never be touched by this function.
+
+-- ---------- prevent_self_role_change: allow head<->committee transitions ----------
+-- The existing trigger let a head flip someone between 'committee' and
+-- 'performance_lead' without an admin. head_set_committee_position below now
+-- also needs to flip into/out of 'head_facilitator'/'head_gm' when a head
+-- (not just an admin) assigns/clears the HOF/HOG position.
+create or replace function prevent_self_role_change() returns trigger
+  language plpgsql security definer set search_path = public as $$
+begin
+  if new.role <> old.role and auth.uid() is not null and not is_admin() then
+    if auth_role() in ('head_facilitator', 'head_gm')
+       and old.role in ('committee', 'performance_lead', 'head_facilitator', 'head_gm')
+       and new.role in ('committee', 'performance_lead', 'head_facilitator', 'head_gm') then
+      return new;
+    end if;
+    raise exception 'only an admin may change a role';
+  end if;
+  return new;
+end $$;
+
+-- ---------- head_committee_roster: keep HOF/HOG-promoted members visible ----------
+DROP FUNCTION IF EXISTS head_committee_roster(orientation, int);
+CREATE OR REPLACE FUNCTION head_committee_roster(p_orientation orientation, p_year int DEFAULT 2026)
+RETURNS TABLE (id uuid, name text, email text, track track, role user_role, "position" text, leading_group_id uuid)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+BEGIN
+  IF NOT is_head_or_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  RETURN QUERY
+    SELECT pr.id, pr.name, pr.email, pr.track, pr.role, pr.position, g.id
+    FROM profiles pr
+    LEFT JOIN practice_groups g ON g.lead_id = pr.id
+    WHERE pr.orientation = p_orientation AND pr.orientation_year = p_year
+      AND pr.role IN ('committee', 'performance_lead', 'head_facilitator', 'head_gm')
+    ORDER BY pr.name;
+END $$;
+
+-- ---------- head_set_committee_position: sync role for HOF/HOG ----------
+CREATE OR REPLACE FUNCTION head_set_committee_position(p_profile_id uuid, p_position text)
+RETURNS profiles
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target profiles;
+  new_role user_role;
+  is_leading boolean;
+  row_out profiles;
+BEGIN
+  IF NOT is_head_or_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT * INTO target FROM profiles WHERE id = p_profile_id FOR UPDATE;
+  IF target IS NULL OR target.orientation IS NULL
+     OR target.role NOT IN ('committee', 'performance_lead', 'head_facilitator', 'head_gm') THEN
+    RAISE EXCEPTION 'target must be a committee member';
+  END IF;
+
+  new_role := target.role;
+
+  IF p_position = 'hof' THEN
+    new_role := 'head_facilitator';
+  ELSIF p_position = 'hog' THEN
+    new_role := 'head_gm';
+  ELSIF target.position IN ('hof', 'hog') AND target.role IN ('head_facilitator', 'head_gm') THEN
+    -- Moving off a HOF/HOG position they were previously auto-promoted into:
+    -- fall back to performance_lead if they still lead a group, else committee.
+    SELECT EXISTS (SELECT 1 FROM practice_groups WHERE lead_id = p_profile_id) INTO is_leading;
+    new_role := CASE WHEN is_leading THEN 'performance_lead' ELSE 'committee' END;
+  END IF;
+
+  UPDATE profiles SET position = p_position, role = new_role WHERE id = p_profile_id
+  RETURNING * INTO row_out;
+  RETURN row_out;
+END $$;
+
+-- ---------- Grants ----------
+GRANT EXECUTE ON FUNCTION head_committee_roster(orientation, int) TO authenticated;
+GRANT EXECUTE ON FUNCTION head_set_committee_position(uuid, text) TO authenticated;
+
+-- 0023_admin_only_practice_governance.sql
+-- Locks committee-position and performance-lead management down to admin
+-- only. Previously any head (facilitator or GM) could grant another
+-- committee member HOF/HOG (and therefore real head-dashboard access) via
+-- head_set_committee_position, and could create/reassign/delete practice
+-- groups and their leads. Group housekeeping (rename/capacity/status) is
+-- also restricted to admin now — heads get view-only access to existing
+-- groups. In exchange, the performance lead gets a new self-service RPC to
+-- edit their own group's name/capacity, alongside the session management
+-- they already had.
+
+-- ---------- head_set_committee_position: admin only ----------
+CREATE OR REPLACE FUNCTION head_set_committee_position(p_profile_id uuid, p_position text)
+RETURNS profiles
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target profiles;
+  new_role user_role;
+  is_leading boolean;
+  row_out profiles;
+BEGIN
+  IF NOT is_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT * INTO target FROM profiles WHERE id = p_profile_id FOR UPDATE;
+  IF target IS NULL OR target.orientation IS NULL
+     OR target.role NOT IN ('committee', 'performance_lead', 'head_facilitator', 'head_gm') THEN
+    RAISE EXCEPTION 'target must be a committee member';
+  END IF;
+
+  new_role := target.role;
+
+  IF p_position = 'hof' THEN
+    new_role := 'head_facilitator';
+  ELSIF p_position = 'hog' THEN
+    new_role := 'head_gm';
+  ELSIF target.position IN ('hof', 'hog') AND target.role IN ('head_facilitator', 'head_gm') THEN
+    SELECT EXISTS (SELECT 1 FROM practice_groups WHERE lead_id = p_profile_id) INTO is_leading;
+    new_role := CASE WHEN is_leading THEN 'performance_lead' ELSE 'committee' END;
+  END IF;
+
+  UPDATE profiles SET position = p_position, role = new_role WHERE id = p_profile_id
+  RETURNING * INTO row_out;
+  RETURN row_out;
+END $$;
+
+-- ---------- head_create_practice_group: admin only ----------
+CREATE OR REPLACE FUNCTION head_create_practice_group(
+  p_name text, p_orientation orientation, p_capacity int, p_lead_profile_id uuid, p_year int DEFAULT 2026
+) RETURNS practice_groups
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  lead_profile profiles;
+  row_out practice_groups;
+BEGIN
+  IF NOT is_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT * INTO lead_profile FROM profiles WHERE id = p_lead_profile_id FOR UPDATE;
+  IF lead_profile IS NULL OR lead_profile.role <> 'committee' OR lead_profile.orientation <> p_orientation OR lead_profile.orientation_year <> p_year THEN
+    RAISE EXCEPTION 'chosen lead must be a committee member in this orientation and year';
+  END IF;
+
+  UPDATE profiles SET role = 'performance_lead' WHERE id = p_lead_profile_id;
+
+  BEGIN
+    INSERT INTO practice_groups (name, orientation, orientation_year, capacity, lead_id, created_by)
+    VALUES (trim(p_name), p_orientation, p_year, p_capacity, p_lead_profile_id, auth.uid())
+    RETURNING * INTO row_out;
+  EXCEPTION WHEN unique_violation THEN
+    RAISE EXCEPTION 'this person already leads a practice group';
+  END;
+
+  RETURN row_out;
+END $$;
+
+-- ---------- head_reassign_practice_lead: admin only ----------
+CREATE OR REPLACE FUNCTION head_reassign_practice_lead(p_group uuid, p_new_lead_profile_id uuid)
+RETURNS practice_groups
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  g practice_groups;
+  new_lead profiles;
+  row_out practice_groups;
+BEGIN
+  IF NOT is_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT * INTO g FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  SELECT * INTO new_lead FROM profiles WHERE id = p_new_lead_profile_id;
+  IF new_lead IS NULL OR new_lead.role <> 'committee' OR new_lead.orientation <> g.orientation THEN
+    RAISE EXCEPTION 'chosen lead must be a committee member in this orientation';
+  END IF;
+
+  UPDATE profiles SET role = 'committee' WHERE id = g.lead_id;
+  UPDATE profiles SET role = 'performance_lead' WHERE id = p_new_lead_profile_id;
+
+  UPDATE practice_groups SET lead_id = p_new_lead_profile_id WHERE id = p_group
+  RETURNING * INTO row_out;
+  RETURN row_out;
+END $$;
+
+-- ---------- head_update_practice_group: admin only ----------
+CREATE OR REPLACE FUNCTION head_update_practice_group(
+  p_group uuid, p_name text, p_capacity int, p_status slot_status
+) RETURNS practice_groups
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  g practice_groups;
+  row_out practice_groups;
+BEGIN
+  IF NOT is_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT * INTO g FROM practice_groups WHERE id = p_group;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  UPDATE practice_groups SET name = trim(p_name), capacity = p_capacity, status = p_status
+  WHERE id = p_group RETURNING * INTO row_out;
+  RETURN row_out;
+END $$;
+
+-- ---------- head_delete_practice_group: admin only ----------
+CREATE OR REPLACE FUNCTION head_delete_practice_group(p_group uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  g practice_groups;
+BEGIN
+  IF NOT is_admin() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT * INTO g FROM practice_groups WHERE id = p_group;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  UPDATE profiles SET role = 'committee' WHERE id = g.lead_id;
+  DELETE FROM practice_groups WHERE id = p_group;
+END $$;
+
+-- ---------- prevent_self_role_change: admin only, no head exception ----------
+CREATE OR REPLACE FUNCTION prevent_self_role_change() RETURNS trigger
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF new.role <> old.role AND auth.uid() IS NOT NULL AND NOT is_admin() THEN
+    RAISE EXCEPTION 'only an admin may change a role';
+  END IF;
+  RETURN new;
+END $$;
+
+-- ---------- lead_update_practice_group: the lead's self-service edit ----------
+CREATE OR REPLACE FUNCTION lead_update_practice_group(p_group uuid, p_name text, p_capacity int)
+RETURNS practice_groups
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  g practice_groups;
+  row_out practice_groups;
+BEGIN
+  SELECT * INTO g FROM practice_groups WHERE id = p_group;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  IF NOT (coalesce(g.lead_id = auth.uid(), false) OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this group';
+  END IF;
+  UPDATE practice_groups SET name = trim(p_name), capacity = p_capacity
+  WHERE id = p_group RETURNING * INTO row_out;
+  RETURN row_out;
+END $$;
+
+-- ---------- Grants ----------
+GRANT EXECUTE ON FUNCTION head_set_committee_position(uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION head_create_practice_group(text, orientation, int, uuid, int) TO authenticated;
+GRANT EXECUTE ON FUNCTION head_reassign_practice_lead(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION head_update_practice_group(uuid, text, int, slot_status) TO authenticated;
+GRANT EXECUTE ON FUNCTION head_delete_practice_group(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION lead_update_practice_group(uuid, text, int) TO authenticated;
+
+-- 0024_available_group_members.sql
+-- Surfaces each open practice group's member names in the browse/join view
+-- (available_practice_groups), so a committee member can see who's already
+-- in a group before deciding to join it.
+
+DROP FUNCTION IF EXISTS available_practice_groups();
+CREATE OR REPLACE FUNCTION available_practice_groups()
+RETURNS TABLE (
+  id uuid, name text, lead_id uuid, lead_name text, capacity int,
+  member_count bigint, seats_left bigint, status slot_status, session_count bigint,
+  member_names text[]
+)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+DECLARE
+  caller_orientation orientation;
+  caller_year int;
+BEGIN
+  IF coalesce(auth_role() NOT IN ('committee', 'performance_lead'), true) THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT orientation, orientation_year INTO caller_orientation, caller_year FROM auth_committee_scope();
+  IF caller_orientation IS NULL THEN
+    RAISE EXCEPTION 'no orientation on this profile';
+  END IF;
+  RETURN QUERY
+    SELECT g.id, g.name, g.lead_id, p.name AS lead_name, g.capacity,
+           count(m.*) AS member_count,
+           g.capacity - count(m.*) AS seats_left,
+           g.status,
+           count(distinct s.id) AS session_count,
+           array_remove(array_agg(distinct mp.name), NULL) AS member_names
+    FROM practice_groups g
+    JOIN profiles p ON p.id = g.lead_id
+    LEFT JOIN practice_group_members m ON m.group_id = g.id
+    LEFT JOIN profiles mp ON mp.id = m.member_id
+    LEFT JOIN practice_sessions s ON s.group_id = g.id
+    WHERE g.orientation = caller_orientation AND g.orientation_year = caller_year
+    GROUP BY g.id, p.name
+    ORDER BY g.name;
+END $$;
+
+GRANT EXECUTE ON FUNCTION available_practice_groups() TO authenticated;
+
+-- 0025_performance_lead_group_self_service.sql
+-- Lets a performance lead (including one who is also a Head, e.g. via the
+-- HOF/HOG position) manage their own group's members, and adds a free-text
+-- location to practice sessions. Mirrors the existing lead_* authorization
+-- pattern: `g.lead_id = auth.uid() OR is_head_or_admin()`.
+
+-- ---------- practice_sessions.location ----------
+ALTER TABLE practice_sessions ADD COLUMN IF NOT EXISTS location text NOT NULL DEFAULT '';
+
+-- ---------- Session RPCs: carry location through ----------
+DROP FUNCTION IF EXISTS lead_create_session(uuid, timestamptz, timestamptz);
+CREATE OR REPLACE FUNCTION lead_create_session(p_group uuid, p_starts_at timestamptz, p_ends_at timestamptz, p_location text DEFAULT '')
+RETURNS practice_sessions
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  g practice_groups;
+  row_out practice_sessions;
+BEGIN
+  SELECT * INTO g FROM practice_groups WHERE id = p_group;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  IF NOT (coalesce(g.lead_id = auth.uid(), false) OR is_head_or_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this group';
+  END IF;
+  INSERT INTO practice_sessions (group_id, starts_at, ends_at, location, created_by)
+  VALUES (p_group, p_starts_at, p_ends_at, trim(p_location), auth.uid())
+  RETURNING * INTO row_out;
+  RETURN row_out;
+END $$;
+
+DROP FUNCTION IF EXISTS lead_update_session(uuid, timestamptz, timestamptz);
+CREATE OR REPLACE FUNCTION lead_update_session(p_session uuid, p_starts_at timestamptz, p_ends_at timestamptz, p_location text DEFAULT '')
+RETURNS practice_sessions
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  s practice_sessions;
+  g practice_groups;
+  row_out practice_sessions;
+BEGIN
+  SELECT * INTO s FROM practice_sessions WHERE id = p_session;
+  IF s IS NULL THEN
+    RAISE EXCEPTION 'session not found';
+  END IF;
+  SELECT * INTO g FROM practice_groups WHERE id = s.group_id;
+  IF NOT (coalesce(g.lead_id = auth.uid(), false) OR is_head_or_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this group';
+  END IF;
+  UPDATE practice_sessions SET starts_at = p_starts_at, ends_at = p_ends_at, location = trim(p_location)
+  WHERE id = p_session RETURNING * INTO row_out;
+  RETURN row_out;
+END $$;
+
+DROP FUNCTION IF EXISTS my_practice_group_sessions();
+CREATE OR REPLACE FUNCTION my_practice_group_sessions()
+RETURNS TABLE (id uuid, starts_at timestamptz, ends_at timestamptz, location text)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not authenticated';
+  END IF;
+  RETURN QUERY
+    SELECT s.id, s.starts_at, s.ends_at, s.location
+    FROM practice_sessions s
+    WHERE s.group_id IN (
+      SELECT g.id FROM practice_groups g
+      WHERE g.lead_id = auth.uid()
+         OR EXISTS (
+           SELECT 1 FROM practice_group_members m
+           WHERE m.group_id = g.id AND m.member_id = auth.uid()
+         )
+    )
+    ORDER BY s.starts_at;
+END $$;
+
+-- ---------- Member management: lead can add/remove members on their own group ----------
+DROP FUNCTION IF EXISTS lead_eligible_members(uuid);
+CREATE OR REPLACE FUNCTION lead_eligible_members(p_group uuid)
+RETURNS TABLE (id uuid, name text, student_id text, email text)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+#variable_conflict use_column
+DECLARE
+  g practice_groups;
+BEGIN
+  SELECT * INTO g FROM practice_groups WHERE id = p_group;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  IF NOT (coalesce(g.lead_id = auth.uid(), false) OR is_head_or_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this group';
+  END IF;
+  RETURN QUERY
+    SELECT pr.id, pr.name, pr.student_id, pr.email
+    FROM profiles pr
+    WHERE pr.role = 'committee'
+      AND pr.orientation = g.orientation
+      AND pr.orientation_year = g.orientation_year
+      AND NOT EXISTS (
+        SELECT 1 FROM practice_group_members m
+        WHERE m.member_id = pr.id AND m.orientation = g.orientation AND m.orientation_year = g.orientation_year
+      )
+    ORDER BY pr.name;
+END $$;
+
+DROP FUNCTION IF EXISTS lead_add_member(uuid, uuid);
+CREATE OR REPLACE FUNCTION lead_add_member(p_group uuid, p_member_id uuid)
+RETURNS practice_group_members
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  g practice_groups;
+  target profiles;
+  taken int;
+  row_out practice_group_members;
+BEGIN
+  SELECT * INTO g FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  IF NOT (coalesce(g.lead_id = auth.uid(), false) OR is_head_or_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this group';
+  END IF;
+  IF g.status <> 'open' THEN
+    RAISE EXCEPTION 'group is closed';
+  END IF;
+
+  SELECT * INTO target FROM profiles WHERE id = p_member_id;
+  IF target IS NULL OR target.role <> 'committee' OR target.orientation <> g.orientation OR target.orientation_year <> g.orientation_year THEN
+    RAISE EXCEPTION 'chosen member must be a committee member in this group''s orientation and year';
+  END IF;
+
+  SELECT count(*) INTO taken FROM practice_group_members WHERE group_id = p_group;
+  IF taken >= g.capacity THEN
+    RAISE EXCEPTION 'group is full';
+  END IF;
+
+  BEGIN
+    INSERT INTO practice_group_members (group_id, member_id, orientation, orientation_year)
+    VALUES (p_group, p_member_id, g.orientation, g.orientation_year)
+    RETURNING * INTO row_out;
+  EXCEPTION WHEN unique_violation THEN
+    RAISE EXCEPTION 'this member already belongs to a practice group for this orientation';
+  END;
+
+  RETURN row_out;
+END $$;
+
+DROP FUNCTION IF EXISTS lead_remove_member(uuid, uuid);
+CREATE OR REPLACE FUNCTION lead_remove_member(p_group uuid, p_member_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  g practice_groups;
+BEGIN
+  SELECT * INTO g FROM practice_groups WHERE id = p_group;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  IF NOT (coalesce(g.lead_id = auth.uid(), false) OR is_head_or_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this group';
+  END IF;
+  DELETE FROM practice_group_members WHERE group_id = p_group AND member_id = p_member_id;
+END $$;
+
+-- ---------- Grants ----------
+GRANT EXECUTE ON FUNCTION lead_create_session(uuid, timestamptz, timestamptz, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION lead_update_session(uuid, timestamptz, timestamptz, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION my_practice_group_sessions() TO authenticated;
+GRANT EXECUTE ON FUNCTION lead_eligible_members(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION lead_add_member(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION lead_remove_member(uuid, uuid) TO authenticated;
+
+-- MIGRATION: 0026_add_venue_to_slots.sql
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS venue text NOT NULL DEFAULT '';
+
+DROP FUNCTION IF EXISTS available_slots(track, orientation);
+DROP FUNCTION IF EXISTS available_slots(track, orientation, int);
+CREATE OR REPLACE FUNCTION available_slots(p_track track, p_orientation orientation, p_year int DEFAULT 2026)
+RETURNS TABLE (
+  id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
+  capacity int, booked_count bigint, seats_left bigint, venue text
+)
+LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
+  SELECT s.id, s.track, s.orientation, s.orientation_year, s.starts_at, s.ends_at, s.capacity,
+         count(b.*) FILTER (WHERE b.status = 'booked') AS booked_count,
+         s.capacity - count(b.*) FILTER (WHERE b.status = 'booked') AS seats_left,
+         s.venue
+  FROM slots s
+  LEFT JOIN bookings b ON b.slot_id = s.id
+  WHERE s.track = p_track AND s.orientation = p_orientation AND s.orientation_year = p_year
+    AND s.status = 'open' AND s.starts_at > now()
+  GROUP BY s.id
+  ORDER BY s.starts_at
+$$;
+GRANT EXECUTE ON FUNCTION available_slots(track, orientation, int) TO anon, authenticated;
+
+DROP FUNCTION IF EXISTS head_slots(track, orientation);
+DROP FUNCTION IF EXISTS head_slots(track, orientation, int);
+CREATE OR REPLACE FUNCTION head_slots(p_track track, p_orientation orientation, p_year int DEFAULT 2026)
+RETURNS TABLE (
+  id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
+  capacity int, status slot_status, booked_count bigint, venue text
+)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+BEGIN
+  IF NOT (auth_managed_track() = p_track OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this track';
+  END IF;
+  RETURN QUERY
+    SELECT s.id, s.track, s.orientation, s.orientation_year, s.starts_at, s.ends_at, s.capacity, s.status,
+           count(b.*) FILTER (WHERE b.status = 'booked') AS booked_count, s.venue
+    FROM slots s
+    LEFT JOIN bookings b ON b.slot_id = s.id
+    WHERE s.track = p_track AND s.orientation = p_orientation AND s.orientation_year = p_year
+    GROUP BY s.id
+    ORDER BY s.starts_at;
+END $$;
+GRANT EXECUTE ON FUNCTION head_slots(track, orientation, int) TO authenticated;
+
+DROP FUNCTION IF EXISTS head_bookings(track, orientation);
+DROP FUNCTION IF EXISTS head_bookings(track, orientation, int);
+CREATE OR REPLACE FUNCTION head_bookings(p_track track, p_orientation orientation, p_year int DEFAULT 2026)
+RETURNS TABLE (
+  booking_id uuid, slot_id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
+  applicant_name text, applicant_email text, student_id text, experiences text,
+  interview_notes text, created_at timestamptz, interview_status text, venue text
+)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+BEGIN
+  IF NOT (auth_managed_track() = p_track OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this track';
+  END IF;
+  RETURN QUERY
+    SELECT b.id, b.slot_id, b.track, b.orientation, b.orientation_year, s.starts_at, s.ends_at,
+           b.applicant_name, b.applicant_email, b.student_id, b.experiences,
+           b.interview_notes, b.created_at, b.interview_status::text, s.venue
+    FROM bookings b
+    JOIN slots s ON s.id = b.slot_id
+    WHERE b.track = p_track AND b.orientation = p_orientation AND b.orientation_year = p_year AND b.status = 'booked'
+    ORDER BY s.starts_at, b.applicant_name;
+END $$;
+GRANT EXECUTE ON FUNCTION head_bookings(track, orientation, int) TO authenticated;
+
+DROP FUNCTION IF EXISTS lookup_booking_public(text);
+CREATE OR REPLACE FUNCTION lookup_booking_public(p_student_id text)
+RETURNS TABLE (
+  booking_id   uuid,
+  track        track,
+  starts_at    timestamptz,
+  ends_at      timestamptz,
+  applicant_name  text,
+  applicant_email text,
+  student_id   text,
+  interview_status text,
+  status       text,
+  created_at   timestamptz,
+  venue        text
+)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN QUERY
+    SELECT b.id, b.track, s.starts_at, s.ends_at,
+           b.applicant_name, b.applicant_email, b.student_id,
+           b.interview_status, b.status::text, b.created_at, s.venue
+    FROM bookings b
+    JOIN slots s ON s.id = b.slot_id
+    WHERE lower(b.student_id) = lower(trim(p_student_id))
+    ORDER BY b.created_at DESC;
+END $$;
+GRANT EXECUTE ON FUNCTION lookup_booking_public(text) TO anon, authenticated;
+

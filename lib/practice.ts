@@ -9,6 +9,43 @@ export type Track = 'facilitator' | 'game_master'
 export type Orientation = 'february' | 'april' | 'december'
 export type GroupStatus = 'open' | 'closed'
 
+export type CommitteePosition =
+  | 'hof'
+  | 'hog'
+  | 'game_master'
+  | 'facilitator'
+  | 'treasurer'
+  | 'sponsorship'
+  | 'logistic'
+  | 'tech_team'
+  | 'organising_chairperson'
+  | 'event_planner'
+  | 'designer'
+  | 'pgvg'
+  | 'public_relations'
+  | 'secretary'
+
+export const POSITIONS: { value: CommitteePosition; label: string }[] = [
+  { value: 'hof', label: 'Head of Facilitator (HOF)' },
+  { value: 'hog', label: 'Head of Game Master (HOG)' },
+  { value: 'game_master', label: 'Game Master' },
+  { value: 'facilitator', label: 'Facilitator' },
+  { value: 'treasurer', label: 'Treasurer' },
+  { value: 'sponsorship', label: 'Sponsorship' },
+  { value: 'logistic', label: 'Logistic' },
+  { value: 'tech_team', label: 'Tech Team' },
+  { value: 'organising_chairperson', label: 'Organising Chair Person' },
+  { value: 'event_planner', label: 'Event Planner' },
+  { value: 'designer', label: 'Designer' },
+  { value: 'pgvg', label: 'PGVG' },
+  { value: 'public_relations', label: 'Public Relation' },
+  { value: 'secretary', label: 'Secretary' },
+]
+
+export function positionLabel(position: string | null): string {
+  return POSITIONS.find((p) => p.value === position)?.label ?? 'No position set'
+}
+
 export type AvailableGroup = {
   id: string
   name: string
@@ -19,6 +56,7 @@ export type AvailableGroup = {
   seats_left: number
   status: GroupStatus
   session_count: number
+  member_names: string[]
 }
 
 export type MyGroup = {
@@ -36,12 +74,21 @@ export type PracticeSession = {
   id: string
   starts_at: string
   ends_at: string
+  location: string
 }
 
 export type GroupMember = {
   member_id: string
   member_name: string
+  position: string | null
   joined_at: string
+}
+
+export type EligibleMember = {
+  id: string
+  name: string
+  student_id: string | null
+  email: string
 }
 
 export type HeadPracticeGroup = {
@@ -62,7 +109,8 @@ export type CommitteeRosterEntry = {
   name: string
   email: string
   track: Track
-  role: 'committee' | 'performance_lead'
+  role: 'committee' | 'performance_lead' | 'head_facilitator' | 'head_gm'
+  position: string | null
   leading_group_id: string | null
 }
 
@@ -107,22 +155,24 @@ export async function leavePracticeGroup() {
 
 // ---------- Performance lead: manage own group's sessions ----------
 
-export async function leadCreateSession(groupId: string, startsAt: string, endsAt: string) {
+export async function leadCreateSession(groupId: string, startsAt: string, endsAt: string, location: string) {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('lead_create_session', {
     p_group: groupId,
     p_starts_at: startsAt,
     p_ends_at: endsAt,
+    p_location: location,
   })
   return { data: (data as PracticeSession | null) ?? null, error }
 }
 
-export async function leadUpdateSession(sessionId: string, startsAt: string, endsAt: string) {
+export async function leadUpdateSession(sessionId: string, startsAt: string, endsAt: string, location: string) {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('lead_update_session', {
     p_session: sessionId,
     p_starts_at: startsAt,
     p_ends_at: endsAt,
+    p_location: location,
   })
   return { data: (data as PracticeSession | null) ?? null, error }
 }
@@ -130,6 +180,34 @@ export async function leadUpdateSession(sessionId: string, startsAt: string, end
 export async function leadDeleteSession(sessionId: string) {
   const supabase = createClient()
   const { error } = await supabase.rpc('lead_delete_session', { p_session: sessionId })
+  return { error }
+}
+
+export async function leadUpdateGroup(groupId: string, name: string, capacity: number) {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('lead_update_practice_group', {
+    p_group: groupId,
+    p_name: name,
+    p_capacity: capacity,
+  })
+  return { data, error }
+}
+
+export async function getLeadEligibleMembers(groupId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('lead_eligible_members', { p_group: groupId })
+  return { data: (data as EligibleMember[] | null) ?? null, error }
+}
+
+export async function leadAddMember(groupId: string, memberId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('lead_add_member', { p_group: groupId, p_member_id: memberId })
+  return { data, error }
+}
+
+export async function leadRemoveMember(groupId: string, memberId: string) {
+  const supabase = createClient()
+  const { error } = await supabase.rpc('lead_remove_member', { p_group: groupId, p_member_id: memberId })
   return { error }
 }
 
@@ -202,6 +280,15 @@ export async function deletePracticeGroup(groupId: string) {
   return { error }
 }
 
+export async function setCommitteePosition(profileId: string, position: string | null) {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('head_set_committee_position', {
+    p_profile_id: profileId,
+    p_position: position,
+  })
+  return { data, error }
+}
+
 // Head/admin dashboard drill-down: plain table reads, covered by the
 // practice_*_select_head_or_admin RLS policies (same pattern as
 // getTrackSettings in lib/head.ts).
@@ -210,7 +297,7 @@ export async function getGroupSessions(groupId: string) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('practice_sessions')
-    .select('id, starts_at, ends_at')
+    .select('id, starts_at, ends_at, location')
     .eq('group_id', groupId)
     .order('starts_at')
   return { data: (data as PracticeSession[] | null) ?? null, error }

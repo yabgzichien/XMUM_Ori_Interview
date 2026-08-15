@@ -9,6 +9,7 @@ type BookingDetails = {
   starts_at: string
   ends_at: string
   created_at: string
+  venue?: string
 }
 
 function formatTrack(track: string | undefined | null): string {
@@ -113,15 +114,9 @@ export async function sendBookingConfirmation(
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding-bottom: 16px;">
-                    <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Venue</div>
-                    <div style="font-size: 14.5px; font-weight: 700; color: #0F172A;">A1 #123</div>
-                  </td>
-                </tr>
-                <tr>
                   <td>
-                    <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Booking Code</div>
-                    <div style="font-size: 14px; font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 700; color: #0F172A;">${details.id}</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Venue</div>
+                    <div style="font-size: 14.5px; font-weight: 700; color: #0F172A;">${details.venue || 'TBA'}</div>
                   </td>
                 </tr>
               </table>

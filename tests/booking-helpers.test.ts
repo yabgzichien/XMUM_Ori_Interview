@@ -12,6 +12,7 @@ function makeSlot(overrides: Partial<AvailableSlot> = {}): AvailableSlot {
   return {
     id: 'slot-1',
     track: 'facilitator',
+    orientation: 'december',
     starts_at: '2026-06-15T18:30:00+08:00',
     ends_at: '2026-06-15T18:45:00+08:00',
     capacity: 2,

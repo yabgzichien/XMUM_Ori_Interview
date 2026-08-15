@@ -415,7 +415,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                 <div style={{ background: '#F8FAFC', borderRadius: '8px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ fontSize: '12.5px', color: '#64748B' }}><span style={{ fontWeight: 600, color: '#334155' }}>Date:</span> {formatDateHeading(toLocalDateIso(b.starts_at))}</div>
                   <div style={{ fontSize: '12.5px', color: '#64748B' }}><span style={{ fontWeight: 600, color: '#334155' }}>Time:</span> {formatTimeRange(b.starts_at, b.ends_at)}</div>
-                  <div style={{ fontSize: '12.5px', color: '#64748B' }}><span style={{ fontWeight: 600, color: '#334155' }}>Venue:</span> A1 #123</div>
+                  <div style={{ fontSize: '12.5px', color: '#64748B' }}><span style={{ fontWeight: 600, color: '#334155' }}>Venue:</span> {b.venue || '—'}</div>
                 </div>
                 {b.experiences && (
                   <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
@@ -565,7 +565,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>Venue</label>
-                      <div style={{ fontSize: '14.5px', color: '#0F172A', fontWeight: 600 }}>A1 #123</div>
+                      <div style={{ fontSize: '14.5px', color: '#0F172A', fontWeight: 600 }}>{selectedBooking.venue || '—'}</div>
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>Interview Time</label>

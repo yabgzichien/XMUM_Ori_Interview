@@ -98,7 +98,7 @@ function SlotRowDesktop({ slot, onChanged }: { slot: HeadSlot; onChanged: () => 
         <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{timeHeading}</div>
       </td>
       <td style={{ padding: '18px 20px' }}>
-        <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#475569' }}>A1 #123</div>
+        <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#475569' }}>{slot.venue || '—'}</div>
       </td>
       <td style={{ padding: '18px 20px' }}>
         <input
@@ -152,7 +152,7 @@ function SlotRowMobile({ slot, onChanged }: { slot: HeadSlot; onChanged: () => v
         <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{dateHeading}</div>
         <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{timeHeading}</div>
         <div style={{ fontSize: '12.5px', color: '#475569', marginTop: '6px', fontWeight: 600 }}>
-          <span style={{ color: '#64748B', fontWeight: 500 }}>Venue:</span> A1 #123
+          <span style={{ color: '#64748B', fontWeight: 500 }}>Venue:</span> {slot.venue || '—'}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
           <div style={{ fontSize: '12.5px' }}>

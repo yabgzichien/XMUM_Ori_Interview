@@ -31,12 +31,12 @@ const ORIENTATION_YEAR = parseInt(process.env.SEED_COMMITTEE_YEAR || '2026', 10)
 // Facilitators and Game Masters practice together in the same group, so this
 // seeds committee members from both tracks to demonstrate that.
 const accounts = [
-  { email: 'committee1.facilitator@xmum.local', name: 'Alice Tan', track: 'facilitator' },
-  { email: 'committee2.facilitator@xmum.local', name: 'Ben Lim', track: 'facilitator' },
-  { email: 'committee3.facilitator@xmum.local', name: 'Chen Wei', track: 'facilitator' },
-  { email: 'committee1.gm@xmum.local', name: 'Dinesh Kumar', track: 'game_master' },
-  { email: 'committee2.gm@xmum.local', name: 'Emily Wong', track: 'game_master' },
-  { email: 'committee3.gm@xmum.local', name: 'Farah Aziz', track: 'game_master' },
+  { email: 'committee1.facilitator@xmum.local', name: 'Alice Tan', track: 'facilitator', position: 'hof' },
+  { email: 'committee2.facilitator@xmum.local', name: 'Ben Lim', track: 'facilitator', position: 'facilitator' },
+  { email: 'committee3.facilitator@xmum.local', name: 'Chen Wei', track: 'facilitator', position: 'secretary' },
+  { email: 'committee1.gm@xmum.local', name: 'Dinesh Kumar', track: 'game_master', position: 'game_master' },
+  { email: 'committee2.gm@xmum.local', name: 'Emily Wong', track: 'game_master', position: 'hog' },
+  { email: 'committee3.gm@xmum.local', name: 'Farah Aziz', track: 'game_master', position: 'treasurer' },
 ].map((a) => ({ ...a, password: process.env.SEED_COMMITTEE_PASSWORD || TEMP_DEFAULT }))
 
 // Find an existing auth user by email (paginates through the admin list).
@@ -79,13 +79,14 @@ async function ensureAccount(acc) {
       email: acc.email,
       role: 'committee',
       track: acc.track,
+      position: acc.position,
       orientation: ORIENTATION,
       orientation_year: ORIENTATION_YEAR,
     },
     { onConflict: 'id' },
   )
   if (upsertErr) throw upsertErr
-  console.log(`  → committee (${acc.track}, ${ORIENTATION} ${ORIENTATION_YEAR})`)
+  console.log(`  → committee (${acc.track}, ${acc.position}, ${ORIENTATION} ${ORIENTATION_YEAR})`)
 }
 
 async function main() {

@@ -18,6 +18,7 @@ export type HeadSlot = {
   capacity: number
   status: 'open' | 'closed'
   booked_count: number
+  venue?: string
 }
 
 export type HeadBooking = {
@@ -35,6 +36,7 @@ export type HeadBooking = {
   interview_notes: string | null
   created_at: string
   interview_status: 'pending' | 'failed' | 'approved'
+  venue?: string
 }
 
 export type TrackSettings = {
@@ -55,6 +57,7 @@ export type NewSlotRow = {
   capacity: number
   status: 'open'
   created_by: string
+  venue?: string
 }
 
 export async function getHeadSlots(track: Track, orientation: Orientation, orientationYear: number = 2026) {

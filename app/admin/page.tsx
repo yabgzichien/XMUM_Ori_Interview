@@ -13,7 +13,7 @@ export default async function AdminPage() {
   }
 
   return (
-    <main className="scr" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px 48px' }}>
+    <main className="scr" style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>Committee Management</h1>

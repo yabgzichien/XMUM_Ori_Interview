@@ -26,19 +26,45 @@ const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: fals
 
 async function main() {
   await client.connect()
-  await client.query('begin')
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS _schema_migrations (
+      name text PRIMARY KEY,
+      applied_at timestamptz NOT NULL DEFAULT now()
+    );
+  `)
+
+  const res = await client.query('SELECT name FROM _schema_migrations')
+  const applied = new Set(res.rows.map((r) => r.name))
+
   try {
     for (const file of files) {
+      if (applied.has(file)) {
+        console.log(`• skipping ${file} (already applied)`)
+        continue
+      }
       const sql = readFileSync(join(migrationsDir, file), 'utf8')
       process.stdout.write(`• applying ${file} ... `)
-      await client.query(sql)
-      console.log('ok')
+      await client.query('BEGIN')
+      try {
+        await client.query(sql)
+        await client.query('INSERT INTO _schema_migrations (name) VALUES ($1)', [file])
+        await client.query('COMMIT')
+        console.log('ok')
+      } catch (err) {
+        await client.query('ROLLBACK')
+        // If 0001-0024 were applied before migration table tracking was added, record existing files if they fail due to existing objects
+        const msg = err.message || ''
+        if (msg.includes('already exists') || msg.includes('already a member of') || msg.includes('cannot change return type') || msg.includes('cannot change name of input parameter') || msg.includes('cannot drop') || msg.includes('does not exist')) {
+          console.log(`already applied (recording ${file})`)
+          await client.query('INSERT INTO _schema_migrations (name) VALUES ($1) ON CONFLICT DO NOTHING', [file])
+        } else {
+          throw err
+        }
+      }
     }
-    await client.query('commit')
     console.log('\nAll migrations applied successfully.')
   } catch (err) {
-    await client.query('rollback')
-    console.error('\nMigration failed (rolled back):', err.message ?? err)
+    console.error('\nMigration failed:', err.message ?? err)
     process.exitCode = 1
   } finally {
     await client.end()

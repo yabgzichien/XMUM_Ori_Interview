@@ -48,7 +48,9 @@ supabase.txt
 # IDE / Assistant configs
 .claude/
 
-# Handoff context documentation for AI agents
+# Handoff & Demo Accounts context documentation
 HANDOFF.md
 handoff.md
+DEMO_ACCOUNTS.md
+demo_accounts.md
 

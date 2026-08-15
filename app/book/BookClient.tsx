@@ -21,8 +21,8 @@ const ORIENTATIONS: { key: Orientation; label: string; icon: string }[] = [
 ]
 
 type Confirmation = {
-  reference: string
   name: string
+  studentId: string
   track: Track
   slot: AvailableSlot
 }
@@ -94,8 +94,8 @@ export function BookClient() {
     setSubmitting(false)
     if (data) {
       setConfirmation({
-        reference: data.id.slice(0, 8).toUpperCase(),
         name: data.applicant_name,
+        studentId,
         track,
         slot: selectedSlot,
       })
@@ -380,8 +380,9 @@ export function BookClient() {
             <h2 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>You're booked!</h2>
             <p style={{ color: '#64748B', fontSize: '14px', margin: '0 0 18px', lineHeight: 1.55 }}>We've emailed a confirmation to <strong style={{ color: '#334155' }}>{email}</strong>. Bring your student ID on the day.</p>
             <div style={{ background: '#F8FAFC', border: '1px solid #EAEEF4', borderRadius: '14px', padding: '14px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: '#94A3B8', marginBottom: '6px' }}>Reference code</div>
-              <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '24px', fontWeight: 600, letterSpacing: '.06em', color: '#2563EB' }}>{confirmation.reference}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: '#94A3B8', marginBottom: '6px' }}>Student ID</div>
+              <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '24px', fontWeight: 600, letterSpacing: '.06em', color: '#2563EB' }}>{confirmation.studentId}</div>
+              <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '6px' }}>Use this to look up your booking anytime at /my-booking.</div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', textAlign: 'left', marginBottom: '18px' }}>
               <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '13px 15px' }}><div style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600, marginBottom: '2px' }}>Track</div><div style={{ fontSize: '14px', fontWeight: 700 }}>{track === 'facilitator' ? 'Facilitator' : 'Game Master'}</div></div>

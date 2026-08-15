@@ -1,0 +1,35 @@
+flowchart TD
+    Start(["Applicant visits site"]) --> BookPage["/book — choose track\n(Facilitator / Game Master)"]
+    BookPage --> SlotList["View open slots\n(available_slots RPC)"]
+    SlotList --> Fill["Fill booking form\nname, student ID, email, experience"]
+    Fill --> Submit["Submit booking"]
+
+    Submit --> Checks{"Window open?\nSlot has capacity?\nNo existing booking?"}
+    Checks -- "No" --> Error["Show error\n(closed / full / duplicate)"]
+    Error --> BookPage
+    Checks -- "Yes" --> Save[("Booking saved")]
+    Save --> Email["Confirmation email sent"]
+    Email --> Confirmed(["Booking confirmed"])
+
+    Confirmed --> Later["Applicant returns later"]
+    Later --> MyBooking["/my-booking — enter\nstudent ID"]
+    MyBooking --> Action{"Cancel or reschedule?"}
+    Action -- "Cancel" --> Cancel["Booking cancelled"]
+    Action -- "Reschedule" --> Reschedule["Pick a new slot\n(before cutoff)"]
+
+    Confirmed -.-> HeadReview
+    subgraph HEAD["Head / Admin side"]
+        HeadReview["Head views bookings\non /head dashboard"]
+        HeadReview --> Interview["Conducts interview"]
+        Interview --> Status["Marks status:\npending → approved / failed"]
+    end
+
+    classDef applicant fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef head fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef decision fill:#f3f4f6,stroke:#6b7280,color:#111827
+    classDef db fill:#dcfce7,stroke:#16a34a,color:#14532d
+
+    class BookPage,SlotList,Fill,Submit,MyBooking,Later,Cancel,Reschedule applicant
+    class HeadReview,Interview,Status head
+    class Checks,Action decision
+    class Save db

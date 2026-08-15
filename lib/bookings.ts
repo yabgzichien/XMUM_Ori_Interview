@@ -27,6 +27,7 @@ export type PublicBooking = {
   student_id: string | null
   experiences: string | null
   created_at: string
+  venue?: string
 }
 
 export async function getAvailableSlots(track: Track, orientation: Orientation) {

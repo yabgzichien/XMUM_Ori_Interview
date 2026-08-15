@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { positionLabel } from '@/lib/practice'
 
 const roleLabels: Record<string, string> = {
   applicant: 'Applicant',
@@ -13,17 +14,31 @@ const roleLabels: Record<string, string> = {
   performance_lead: 'Performance Lead',
 }
 
+// An assigned committee position (HOF, Treasurer, etc.) is shown instead of
+// the generic account role whenever one is set — including after HOF/HOG
+// promotes someone to head_facilitator/head_gm, so the abbreviated position
+// label stays visible rather than reverting to the generic role name.
+function displayRoleLabel(profile: { role: string; position?: string | null }): string {
+  if (profile.position) {
+    return positionLabel(profile.position)
+  }
+  return roleLabels[profile.role] || profile.role
+}
+
 export function NavClient({ profile }: { profile: any }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   if (profile) {
-    const initials = profile.email?.slice(0, 2).toUpperCase() || 'SC'
+    const initials = (profile.name?.trim()
+      ? profile.name.trim().split(/\s+/).map((part: string) => part[0]).slice(0, 2).join('')
+      : profile.email?.slice(0, 2) || 'SC'
+    ).toUpperCase()
     const isStaff = profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin'
     const practiceHref = isStaff ? '/head/practice' : '/practice'
     return (
       <header style={{ background: '#fff', borderBottom: '1px solid #EAEEF4', position: 'relative', zIndex: 100 }}>
-        <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '16px' }}>X</div>
@@ -32,7 +47,7 @@ export function NavClient({ profile }: { profile: any }) {
             <nav className="nav-links flex gap-[4px]">
               {isStaff && (
                 <Link href="/head" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname === '/head' ? '#EFF4FF' : 'transparent', color: pathname === '/head' ? '#2563EB' : '#64748B' }}>
-                  Dashboard
+                  Interview
                 </Link>
               )}
               <Link href={practiceHref} style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? '#2563EB' : '#64748B' }}>
@@ -47,9 +62,14 @@ export function NavClient({ profile }: { profile: any }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Role pill — hidden on very small screens */}
+            {/* Name + role pill — hidden on very small screens */}
+            {profile.name && (
+              <span className="nav-links" style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+                {profile.name}
+              </span>
+            )}
             <span className="nav-links" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 11px', borderRadius: '99px', background: '#EFF4FF', color: '#2563EB', fontSize: '12px', fontWeight: 700, border: '1px solid #DBE6FF' }}>
-              {roleLabels[profile.role] || profile.role}
+              {displayRoleLabel(profile)}
             </span>
             <div style={{ width: '34px', height: '34px', borderRadius: '99px', background: '#EEF2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: '#475569' }}>
               {initials}
@@ -80,7 +100,7 @@ export function NavClient({ profile }: { profile: any }) {
         <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
           {isStaff && (
             <Link href="/head" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/head' ? '#EFF4FF' : 'transparent', color: pathname === '/head' ? '#2563EB' : '#334155' }}>
-              📊 Dashboard
+              📊 Interview
             </Link>
           )}
           <Link href={practiceHref} onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? '#2563EB' : '#334155' }}>
@@ -91,8 +111,11 @@ export function NavClient({ profile }: { profile: any }) {
               👥 Committee
             </Link>
           )}
-          <div style={{ borderTop: '1px solid #EAEEF4', marginTop: '4px', paddingTop: '8px', fontSize: '12px', color: '#94A3B8', fontWeight: 600, padding: '8px 12px 4px' }}>
-            {roleLabels[profile.role] || profile.role}
+          <div style={{ borderTop: '1px solid #EAEEF4', marginTop: '4px', paddingTop: '8px', padding: '8px 12px 4px' }}>
+            {profile.name && (
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{profile.name}</div>
+            )}
+            <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>{displayRoleLabel(profile)}</div>
           </div>
         </div>
       </header>
@@ -101,7 +124,7 @@ export function NavClient({ profile }: { profile: any }) {
 
   return (
     <header style={{ background: '#fff', borderBottom: '1px solid #EAEEF4', position: 'relative', zIndex: 100 }}>
-      <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
         <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '11px' }}>
           <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '17px', boxShadow: '0 4px 12px -3px rgba(37,99,235,.5)' }}>X</div>
           <div style={{ lineHeight: 1.15 }}>

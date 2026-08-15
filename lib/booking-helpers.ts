@@ -10,6 +10,7 @@ export type AvailableSlot = {
   capacity: number
   booked_count: number
   seats_left: number
+  venue?: string
 }
 
 /** Returns the local calendar date (YYYY-MM-DD) for an ISO timestamp. */

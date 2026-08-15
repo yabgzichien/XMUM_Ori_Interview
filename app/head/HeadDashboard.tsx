@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { WindowForm } from '@/app/head/WindowForm'
 import { BulkCreateForm } from '@/app/head/BulkCreateForm'
 import { SlotsTable } from '@/app/head/SlotsTable'
 import { BookingsTable } from '@/app/head/BookingsTable'
@@ -84,8 +83,7 @@ export function HeadDashboard({ track, orientation, orientationYear = 2026, prof
         </div>
       </div>
 
-      <div className="grid-2 mt-8" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-        <WindowForm track={track} orientation={orientation} orientationYear={orientationYear} />
+      <div style={{ marginTop: '24px', marginBottom: '20px' }}>
         <BulkCreateForm track={track} orientation={orientation} orientationYear={orientationYear} profileId={profileId} onCreated={refreshSlots} />
       </div>
 
