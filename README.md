@@ -13,16 +13,30 @@ Next.js 16 (App Router, TypeScript) · Tailwind v4 + shadcn/ui · Supabase (Post
 Vitest. Booking concurrency is enforced in Postgres via a locking RPC (`book_slot`), so a
 slot can never be overbooked.
 
-## Roles
+## Role-Based Access Control
 
-| Who | Can |
-|---|---|
-| Interviewee (no account) | Browse + book a slot by entering name, student ID, email, experiences |
-| `head_facilitator` / `head_gm` | Manage slots/bookings + window for their own track; cancel a booking |
-| `admin` | Everything, both tracks |
+### Interview booking
 
-Interviewees do **not** log in. Only staff (Heads/Admin) have accounts. At most one
-active booking per email per track; changes/cancellations are done by a Head.
+| Role | Account? | Primary route | Key permissions | Scope |
+|---|---|---|---|---|
+| Interviewee | No account | `/book`, `/my-booking` | Book a slot; look up, cancel, or reschedule own booking by Student ID | Own booking only |
+| `head_facilitator` / `head_gm` | Login required | `/head` | Manage slots, booking window, bookings, interview status/notes, cancel bookings; bulk-invite approved interviewees onto the committee | Own track only (+ own orientation/year if set) |
+| `admin` | Login required | `/head`, `/admin` | Everything Heads can do, unscoped, plus invite Head/Admin accounts | Both tracks, all orientations |
+
+### Performance practice
+
+| Role | Account? | Primary route | Key permissions | Scope |
+|---|---|---|---|---|
+| `committee` | Login required | `/practice` | Join/leave a practice group; view own group's roster and sessions | Own group only |
+| `performance_lead` | Login required | `/practice` | Everything `committee` can do, plus edit own group's name/capacity and create/edit/delete its practice sessions | Own group only |
+| `head_facilitator` / `head_gm` | Login required | `/head/practice` | View all groups and the committee roster; create/edit sessions for any group | Own track only (view-only on group governance) |
+| `admin` | Login required | `/head/practice` | Everything Heads can do, plus create/rename/delete groups, reassign leads, and assign committee positions (HOF/HOG etc.) | Both tracks, all orientations |
+
+Interviewees do **not** log in — booking, lookup, and cancellation all run through public,
+Student-ID-scoped functions. Only committee/staff have accounts; new staff profiles start
+as a placeholder `applicant` role until a Head or Admin assigns their real role. At most one
+active booking per applicant per track. Practice group governance (create/rename/delete a
+group, reassign its lead) is admin-only — Heads get view access plus session management.
 
 ## Routes
 
