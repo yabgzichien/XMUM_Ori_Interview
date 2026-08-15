@@ -54,3 +54,6 @@ handoff.md
 DEMO_ACCOUNTS.md
 demo_accounts.md
 
+# Flowchart source/renders — embedded directly in README.md instead
+docs/diagrams/
+

@@ -26,7 +26,7 @@ active booking per email per track; changes/cancellations are done by a Head.
 
 ## Routes
 
-- `/book` — public, no login: track tabs → pick a slot → enter details → confirmation + reference
+- `/book` — public, no login: track tabs → pick a slot → enter details → confirmation
 - `/my-booking` — public, no login: search active bookings by Student ID and cancel them if active
 - `/login` — committee sign-in (Heads/Admin)
 - `/register` — committee activation: a pre-invited committee member sets a password (email + invite code)
@@ -113,6 +113,226 @@ Follow these simple steps to hook up your own Supabase project:
 `cancel_booking` / `reschedule_booking` (owner-checked, cutoff-gated) ·
 `available_slots` (open future slots + seats-left, counts only) ·
 `head_slots` / `head_bookings` (track-gated reads incl. applicant identity for Heads).
+
+## Flowcharts
+
+### Interview booking flow
+
+```mermaid
+flowchart TD
+    Start(["Applicant visits site"]) --> BookPage["/book — choose track\n(Facilitator / Game Master)"]
+    BookPage --> SlotList["View open slots\n(available_slots RPC)"]
+    SlotList --> Fill["Fill booking form\nname, student ID, email, experience"]
+    Fill --> Submit["Submit booking"]
+
+    Submit --> Checks{"Window open?\nSlot has capacity?\nNo existing booking?"}
+    Checks -- "No" --> Error["Show error\n(closed / full / duplicate)"]
+    Error --> BookPage
+    Checks -- "Yes" --> Save[("Booking saved")]
+    Save --> Email["Confirmation email sent"]
+    Email --> Confirmed(["Booking confirmed"])
+
+    Confirmed --> Later["Applicant returns later"]
+    Later --> MyBooking["/my-booking — enter\nstudent ID"]
+    MyBooking --> Action{"Cancel or reschedule?"}
+    Action -- "Cancel" --> Cancel["Booking cancelled"]
+    Action -- "Reschedule" --> Reschedule["Pick a new slot\n(before cutoff)"]
+
+    Confirmed -.-> HeadReview
+    subgraph HEAD["Head / Admin side"]
+        HeadReview["Head views bookings\non /head dashboard"]
+        HeadReview --> Interview["Conducts interview"]
+        Interview --> Status["Marks status:\npending → approved / failed"]
+    end
+
+    classDef applicant fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef head fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef decision fill:#f3f4f6,stroke:#6b7280,color:#111827
+    classDef db fill:#dcfce7,stroke:#16a34a,color:#14532d
+
+    class BookPage,SlotList,Fill,Submit,MyBooking,Later,Cancel,Reschedule applicant
+    class HeadReview,Interview,Status head
+    class Checks,Action decision
+    class Save db
+```
+
+### Practice group flow
+
+```mermaid
+flowchart TD
+    Head["Head/Admin creates\npractice groups"] --> SetGroup["Set name, capacity,\nassign a performance lead"]
+    SetGroup --> Groups[("Practice groups\nopen for signup")]
+
+    Committee(["Committee member logs in"]) --> Practice["/practice page"]
+    Practice --> HasGroup{"Already in a group?"}
+
+    HasGroup -- "No" --> Browse["Browse open groups\n(name, lead, seats left)"]
+    Browse --> Join{"Seats available?"}
+    Join -- "No" --> Full["Show as Full"]
+    Join -- "Yes" --> JoinGroup["Join group"]
+    JoinGroup --> Groups
+
+    HasGroup -- "Yes" --> MyGroup["View my group:\nsessions + members"]
+    MyGroup --> LeaveChoice{"Leave group?"}
+    LeaveChoice -- "Yes" --> Leave["Leave group\n(seat freed up)"]
+    Leave --> Browse
+
+    MyGroup --> IsLead{"Is performance lead\nof this group?"}
+    IsLead -- "Yes" --> ManageSessions["Create / edit / delete\npractice sessions\n(date, time)"]
+    ManageSessions --> MyGroup
+
+    classDef head fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef committee fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef decision fill:#f3f4f6,stroke:#6b7280,color:#111827
+    classDef db fill:#dcfce7,stroke:#16a34a,color:#14532d
+
+    class Head,SetGroup head
+    class Practice,Browse,JoinGroup,MyGroup,Leave,ManageSessions committee
+    class HasGroup,Join,LeaveChoice,IsLead decision
+    class Groups db
+```
+
+### Full system map
+
+```mermaid
+flowchart TD
+    %% ===== ENTRY =====
+    Start(["Visitor loads site"]) --> Home["/ (Landing Page)"]
+
+    Home --> IsAuth{"Logged in?"}
+    IsAuth -- "No" --> PublicChoice{"What do they want?"}
+    IsAuth -- "Yes: applicant" --> BookPage
+    IsAuth -- "Yes: committee / performance_lead" --> Practice["/practice — Practice Group View"]
+    IsAuth -- "Yes: head_facilitator / head_gm / admin" --> Head["/head — Head Dashboard"]
+
+    PublicChoice -- "Book an interview" --> BookPage["/book — Choose Track & Slot"]
+    PublicChoice -- "Check existing booking" --> MyBooking["/my-booking — Lookup by Student ID"]
+    PublicChoice -- "Staff / Committee login" --> Login["/(auth)/login"]
+    PublicChoice -- "Have invite code" --> Register["/(auth)/register — Self-Activation"]
+
+    %% ===== APPLICANT BOOKING FLOW =====
+    subgraph APPLICANT["Applicant Booking Flow (no login required)"]
+        BookPage --> TrackTabs["TrackTabs: Facilitator / Game Master"]
+        TrackTabs --> SlotList["SlotList\nRPC: available_slots(track, orientation, year)"]
+        SlotList --> PickSlot["Applicant fills form:\nname, student ID, email,\nexperience, links"]
+        PickSlot --> BookAction["bookSlotAction (server action)"]
+        BookAction --> BookRPC["RPC: book_slot_public\n(SECURITY DEFINER)"]
+        BookRPC --> Checks{"Lock slot row →\nwindow open?\ncapacity left?\nno active dup booking?"}
+        Checks -- "Fail" --> BookError["Show error\n(closed / full / duplicate)"]
+        BookError --> BookPage
+        Checks -- "Pass" --> InsertBooking[("INSERT bookings")]
+        InsertBooking --> ConfirmEmail["sendBookingConfirmation()\n(nodemailer, async)"]
+        ConfirmEmail --> BookDone(["Booking confirmed"])
+    end
+
+    BookDone -.-> MyBooking
+
+    subgraph LOOKUP["Applicant Self-Service"]
+        MyBooking --> LookupForm["Enter student ID"]
+        LookupForm --> LookupRPC["RPC: lookup_booking_public"]
+        LookupRPC --> LookupAction{"Cancel or reschedule?"}
+        LookupAction -- "Cancel" --> CancelRPC["RPC: cancel_booking\n(0004)"]
+        LookupAction -- "Reschedule" --> RescheduleRPC["RPC: reschedule\n(subject to cutoff hours)"]
+        CancelRPC --> LookupDone(["Updated / cancelled"])
+        RescheduleRPC --> LookupDone
+    end
+
+    %% ===== AUTH FLOW =====
+    subgraph AUTH["Staff / Committee Auth"]
+        Login --> LoginForm["LoginForm → Supabase Auth"]
+        LoginForm --> RoleRoute{"profiles.role"}
+        RoleRoute -- "committee / performance_lead" --> Practice
+        RoleRoute -- "head_facilitator / head_gm / admin" --> Head
+
+        Register --> RegForm["RegisterForm\nvalidates invite code"]
+        RegForm --> RegAPI["POST /api/staff/register"]
+        RegAPI --> ClaimInvite[("UPDATE staff_invites\nSET claimed_at")]
+        ClaimInvite --> CreateProfile["handle_new_user() trigger\ncreates profiles row"]
+        CreateProfile --> RoleRoute
+    end
+
+    %% ===== MIDDLEWARE =====
+    Head -.->|"middleware.ts:\nprotected route,\nno session → /login?next=..."| Login
+    Practice -.->|"middleware.ts:\nprotected route"| Login
+
+    %% ===== HEAD DASHBOARD =====
+    subgraph HEADFLOW["/head — Head/Admin Dashboard"]
+        Head --> HeadRoleCheck{"role check"}
+        HeadRoleCheck -- "applicant" --> BookPage
+        HeadRoleCheck -- "committee/performance_lead" --> Practice
+        HeadRoleCheck -- "head_facilitator/head_gm/admin" --> HeadTabs["SlotsTable / BookingsTable /\nBulkCreateForm / WindowForm"]
+
+        HeadTabs --> ManageSlots["Create/bulk-create slots\n(blocked if past or has bookings)"]
+        HeadTabs --> ManageWindow["Set booking window\n(track_settings)"]
+        HeadTabs --> ManageBookings["View bookings\nRPC: head_bookings"]
+        ManageBookings --> UpdateStatus["RPC: head_update_interview_status\n(pending/failed/approved)"]
+        ManageBookings --> SaveNotes["saveNotesAction →\ninterview_notes"]
+        ManageBookings --> HeadCancel["RPC: head_cancel_booking"]
+
+        Head --> HeadPractice["/head/practice —\nHeadPracticeDashboard"]
+        HeadPractice --> ManageGroups["RPC: head_create_practice_group /\nupdate / delete /\nhead_reassign_practice_lead"]
+    end
+
+    %% ===== ADMIN =====
+    subgraph ADMINFLOW["/admin — Admin Only"]
+        Head -.->|"admin role"| AdminPage["/admin — AdminStaff"]
+        AdminPage --> CreateInvite["Create staff invite\n(email, role, track,\norientation, year)"]
+        CreateInvite --> InsertInvite[("INSERT staff_invites\n+ generate code")]
+        InsertInvite --> InviteEmail["inviteAction /\ninviteCommitteeAction\nsends email with code"]
+        InviteEmail --> Register
+    end
+
+    %% ===== PRACTICE GROUPS =====
+    subgraph PRACTICEFLOW["/practice — Committee / Performance Lead"]
+        Practice --> PracticeRoleCheck{"role check"}
+        PracticeRoleCheck -- "head_* / admin" --> HeadPractice
+        PracticeRoleCheck -- "committee / performance_lead" --> PracticeClient["PracticeClient"]
+
+        PracticeClient --> ViewGroups["RPC: available_practice_groups\n(scoped by auth_committee_scope)"]
+        ViewGroups --> JoinGroup["RPC: join_practice_group /\nleave_practice_group"]
+
+        PracticeClient --> LeadCheck{"is performance_lead\nof a group?"}
+        LeadCheck -- "Yes" --> ManageSessions["RPC: lead_create_session /\nupdate_session / delete_session"]
+    end
+
+    %% ===== DATABASE LAYER =====
+    subgraph DB["Supabase Postgres (RLS-protected)"]
+        TblProfiles[("profiles\nrole, track, orientation,\norientation_year")]
+        TblSlots[("slots\ntrack, orientation, year,\ncapacity, status")]
+        TblBookings[("bookings\napplicant info, status,\ninterview_status")]
+        TblSettings[("track_settings\nwindow_open/close,\nreschedule_cutoff")]
+        TblInvites[("staff_invites\ncode, claimed_at")]
+        TblGroups[("practice_groups /\npractice_group_members /\npractice_sessions")]
+        TblNotes[("interview_notes")]
+    end
+
+    InsertBooking --> TblBookings
+    BookRPC -.-> TblSlots
+    ManageSlots --> TblSlots
+    ManageWindow --> TblSettings
+    UpdateStatus --> TblBookings
+    SaveNotes --> TblNotes
+    InsertInvite --> TblInvites
+    ClaimInvite --> TblInvites
+    CreateProfile --> TblProfiles
+    ManageGroups --> TblGroups
+    JoinGroup --> TblGroups
+    ManageSessions --> TblGroups
+    ViewGroups -.-> TblGroups
+
+    %% ===== STYLES =====
+    classDef publicPage fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef staffPage fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef adminPage fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    classDef dbNode fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef decision fill:#f3f4f6,stroke:#6b7280,color:#111827
+
+    class Home,BookPage,MyBooking,Login,Register publicPage
+    class Head,HeadPractice,Practice,PracticeClient staffPage
+    class AdminPage adminPage
+    class TblProfiles,TblSlots,TblBookings,TblSettings,TblInvites,TblGroups,TblNotes dbNode
+    class IsAuth,PublicChoice,Checks,LookupAction,RoleRoute,HeadRoleCheck,PracticeRoleCheck,LeadCheck decision
+```
 
 ## Core Features Built
 
