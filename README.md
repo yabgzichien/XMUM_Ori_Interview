@@ -29,14 +29,18 @@ slot can never be overbooked.
 |---|---|---|---|---|
 | `committee` | Login required | `/practice` | Join/leave a practice group; view own group's roster and sessions | Own group only |
 | `performance_lead` | Login required | `/practice` | Everything `committee` can do, plus edit own group's name/capacity and create/edit/delete its practice sessions | Own group only |
-| `head_facilitator` / `head_gm` | Login required | `/head/practice` | View all groups and the committee roster; create/edit sessions for any group | Own track only (view-only on group governance) |
-| `admin` | Login required | `/head/practice` | Everything Heads can do, plus create/rename/delete groups, reassign leads, and assign committee positions (HOF/HOG etc.) | Both tracks, all orientations |
+| `head_facilitator` / `head_gm` | Login required | `/practice` | Same as `committee` (or `performance_lead` if they lead a group) — HOF/HOG carries no extra practice privileges; no visibility into other groups, the committee roster, or another group's members | Own group only |
+| `admin` | Login required | `/head/practice` | View all groups and the committee roster; create/rename/delete groups, reassign leads, and assign committee positions (HOF/HOG etc.) | Both tracks, all orientations |
 
 Interviewees do **not** log in — booking, lookup, and cancellation all run through public,
 Student-ID-scoped functions. Only committee/staff have accounts; new staff profiles start
 as a placeholder `applicant` role until a Head or Admin assigns their real role. At most one
-active booking per applicant per track. Practice group governance (create/rename/delete a
-group, reassign its lead) is admin-only — Heads get view access plus session management.
+active booking per applicant per track. Practice group governance and cross-group visibility
+(view all groups, the committee roster, or any group's members; create/rename/delete a group;
+reassign its lead) is admin-only. HOF/HOG grants real `/head` dashboard access for interview
+booking (see above) but, for the practice-group feature specifically, is purely a cosmetic
+committee position — a HOF/HOG account uses `/practice` exactly like any other committee
+member.
 
 ## Routes
 
@@ -283,7 +287,7 @@ flowchart TD
         ManageBookings --> SaveNotes["saveNotesAction →\ninterview_notes"]
         ManageBookings --> HeadCancel["RPC: head_cancel_booking"]
 
-        Head --> HeadPractice["/head/practice —\nHeadPracticeDashboard"]
+        Head -.->|"admin only"| HeadPractice["/head/practice —\nHeadPracticeDashboard (admin only)"]
         HeadPractice --> ManageGroups["RPC: head_create_practice_group /\nupdate / delete /\nhead_reassign_practice_lead"]
     end
 
@@ -297,10 +301,10 @@ flowchart TD
     end
 
     %% ===== PRACTICE GROUPS =====
-    subgraph PRACTICEFLOW["/practice — Committee / Performance Lead"]
+    subgraph PRACTICEFLOW["/practice — Committee / Performance Lead / HOF / HOG"]
         Practice --> PracticeRoleCheck{"role check"}
-        PracticeRoleCheck -- "head_* / admin" --> HeadPractice
-        PracticeRoleCheck -- "committee / performance_lead" --> PracticeClient["PracticeClient"]
+        PracticeRoleCheck -- "admin" --> HeadPractice
+        PracticeRoleCheck -- "committee / performance_lead /\nhead_facilitator / head_gm" --> PracticeClient["PracticeClient"]
 
         PracticeClient --> ViewGroups["RPC: available_practice_groups\n(scoped by auth_committee_scope)"]
         ViewGroups --> JoinGroup["RPC: join_practice_group /\nleave_practice_group"]

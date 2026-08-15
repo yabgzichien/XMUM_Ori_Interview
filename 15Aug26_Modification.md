@@ -10,6 +10,7 @@
 - **New "My Group" panel**: Practice group leads and members get a dedicated panel to view/manage their own group.
 - **Documentation diagrams added**: New flowcharts (booking, interview booking, performance booking) added under `docs/` for reference.
 - **Minor fixes**: Small tweaks to email formatting, migration scripts, and test coverage to match the above changes.
+- **HOF/HOG scoped down for practice groups**: Committee members promoted to Head of Facilitator (HOF) or Head of Game Master (HOG) now use `/practice` exactly like a normal committee member — the position no longer grants visibility into every group, the committee roster, or another group's members. That cross-group view (and group governance) stays admin-only. HOF/HOG still grants real `/head` dashboard access for interview booking, unaffected.
 
 ## Where
 All changes are committed to `main` and pushed to GitHub (commit `67e818c`).

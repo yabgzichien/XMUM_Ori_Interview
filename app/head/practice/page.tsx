@@ -31,24 +31,16 @@ export default async function HeadPracticePage({
     redirect('/book')
   }
 
-  if (profile.role === 'committee' || profile.role === 'performance_lead') {
+  if (profile.role !== 'admin') {
     redirect('/practice')
   }
 
-  const isAdmin = profile.role === 'admin'
-  const isRestricted = !isAdmin && !!profile.orientation
   const params = await searchParams
 
-  const orientation: Orientation = isRestricted && profile.orientation
-    ? profile.orientation
-    : isOrientation(params.orientation) ? params.orientation : 'december'
-
-  const orientationYear: number = isRestricted && profile.orientation_year
-    ? profile.orientation_year
-    : (params.year ? parseInt(String(params.year), 10) || 2026 : 2026)
+  const orientation: Orientation = isOrientation(params.orientation) ? params.orientation : 'december'
+  const orientationYear: number = params.year ? parseInt(String(params.year), 10) || 2026 : 2026
 
   const orientationLabel = ORIENTATIONS.find(o => o.key === orientation)?.label || 'February'
-  const visibleOrientations = isRestricted ? ORIENTATIONS.filter(o => o.key === orientation) : ORIENTATIONS
 
   return (
     <main className="scr head-page-main" style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px' }}>
@@ -61,7 +53,7 @@ export default async function HeadPracticePage({
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {visibleOrientations.map(o => (
+          {ORIENTATIONS.map(o => (
             <Link
               key={o.key}
               href={`/head/practice?orientation=${o.key}&year=${orientationYear}`}
@@ -80,7 +72,7 @@ export default async function HeadPracticePage({
         </div>
       </div>
 
-      <HeadPracticeDashboard orientation={orientation} orientationYear={orientationYear} isAdmin={isAdmin} currentUserId={profile.id} />
+      <HeadPracticeDashboard orientation={orientation} orientationYear={orientationYear} isAdmin currentUserId={profile.id} />
     </main>
   )
 }

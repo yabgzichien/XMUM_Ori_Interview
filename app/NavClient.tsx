@@ -35,7 +35,7 @@ export function NavClient({ profile }: { profile: any }) {
       : profile.email?.slice(0, 2) || 'SC'
     ).toUpperCase()
     const isStaff = profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin'
-    const practiceHref = isStaff ? '/head/practice' : '/practice'
+    const practiceHref = profile.role === 'admin' ? '/head/practice' : '/practice'
     return (
       <header style={{ background: '#fff', borderBottom: '1px solid #EAEEF4', position: 'relative', zIndex: 100 }}>
         <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>

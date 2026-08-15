@@ -3508,3 +3508,89 @@ BEGIN
 END $$;
 GRANT EXECUTE ON FUNCTION lookup_booking_public(text) TO anon, authenticated;
 
+-- MIGRATION: 0027_hof_hog_practice_committee_parity.sql
+CREATE OR REPLACE FUNCTION is_head_or_admin() RETURNS boolean
+  LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
+  SELECT is_admin()
+$$;
+
+CREATE OR REPLACE FUNCTION available_practice_groups()
+RETURNS TABLE (
+  id uuid, name text, lead_id uuid, lead_name text, capacity int,
+  member_count bigint, seats_left bigint, status slot_status, session_count bigint,
+  member_names text[]
+)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+DECLARE
+  caller_orientation orientation;
+  caller_year int;
+BEGIN
+  IF coalesce(auth_role() NOT IN ('committee', 'performance_lead', 'head_facilitator', 'head_gm'), true) THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT orientation, orientation_year INTO caller_orientation, caller_year FROM auth_committee_scope();
+  IF caller_orientation IS NULL THEN
+    RAISE EXCEPTION 'no orientation on this profile';
+  END IF;
+  RETURN QUERY
+    SELECT g.id, g.name, g.lead_id, p.name AS lead_name, g.capacity,
+           count(m.*) AS member_count,
+           g.capacity - count(m.*) AS seats_left,
+           g.status,
+           count(distinct s.id) AS session_count,
+           array_remove(array_agg(distinct mp.name), NULL) AS member_names
+    FROM practice_groups g
+    JOIN profiles p ON p.id = g.lead_id
+    LEFT JOIN practice_group_members m ON m.group_id = g.id
+    LEFT JOIN profiles mp ON mp.id = m.member_id
+    LEFT JOIN practice_sessions s ON s.group_id = g.id
+    WHERE g.orientation = caller_orientation AND g.orientation_year = caller_year
+    GROUP BY g.id, p.name
+    ORDER BY g.name;
+END $$;
+
+CREATE OR REPLACE FUNCTION join_practice_group(p_group uuid)
+RETURNS practice_group_members
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  g practice_groups;
+  taken int;
+  caller_orientation orientation;
+  caller_year int;
+  row_out practice_group_members;
+BEGIN
+  IF coalesce(auth_role() NOT IN ('committee', 'head_facilitator', 'head_gm'), true) THEN
+    RAISE EXCEPTION 'only committee members may join a group';
+  END IF;
+  SELECT orientation, orientation_year INTO caller_orientation, caller_year FROM auth_committee_scope();
+  IF caller_orientation IS NULL THEN
+    RAISE EXCEPTION 'no orientation on this profile';
+  END IF;
+
+  SELECT * INTO g FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF g IS NULL THEN
+    RAISE EXCEPTION 'group not found';
+  END IF;
+  IF g.orientation <> caller_orientation OR g.orientation_year <> caller_year THEN
+    RAISE EXCEPTION 'group is not in your orientation';
+  END IF;
+  IF g.status <> 'open' THEN
+    RAISE EXCEPTION 'group is closed';
+  END IF;
+
+  SELECT count(*) INTO taken FROM practice_group_members WHERE group_id = p_group;
+  IF taken >= g.capacity THEN
+    RAISE EXCEPTION 'group is full';
+  END IF;
+
+  BEGIN
+    INSERT INTO practice_group_members (group_id, member_id, orientation, orientation_year)
+    VALUES (p_group, auth.uid(), g.orientation, g.orientation_year)
+    RETURNING * INTO row_out;
+  EXCEPTION WHEN unique_violation THEN
+    RAISE EXCEPTION 'you have already joined a practice group for this orientation';
+  END;
+
+  RETURN row_out;
+END $$;
+

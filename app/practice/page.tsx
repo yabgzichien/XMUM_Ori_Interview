@@ -13,7 +13,7 @@ export default async function PracticePage() {
     redirect('/book')
   }
 
-  if (profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin') {
+  if (profile.role === 'admin') {
     redirect('/head/practice')
   }
 
