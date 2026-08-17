@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import { formatDateHeading, formatTimeRange, toLocalDateIso } from './booking-helpers'
 import { errorMessage } from './utils'
+import { positionLabel } from './practice'
 
 type BookingDetails = {
   id: string
@@ -302,9 +303,10 @@ Once again, welcome onboard! We are excited to work with you.`
 }
 
 export async function sendInvitationEmail(
-  details: { name: string; email: string; code: string; activationLink: string }
+  details: { name: string; email: string; code: string; activationLink: string; position?: string | null }
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const { transporter, from } = await getTransporter()
+  const position = details.position ? positionLabel(details.position) : null
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -332,7 +334,8 @@ export async function sendInvitationEmail(
           <tr>
             <td style="padding: 40px;">
               <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #334155;">Hi <strong>${details.name}</strong>,</p>
-              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #52617A;">You have been invited to join the <strong>XMUM Orientation Committee</strong>. To activate your account and set up your dashboard password, click the button below:</p>
+              <p style="margin: 0 0 ${position ? '16px' : '24px'} 0; font-size: 15px; line-height: 1.6; color: #52617A;">You have been invited to join the <strong>XMUM Orientation Committee</strong>. To activate your account and set up your dashboard password, click the button below:</p>
+              ${position ? `<p style="margin: 0 0 24px 0;"><span style="display: inline-block; padding: 5px 12px; border-radius: 99px; background: #EFF4FF; color: #2563EB; font-size: 12.5px; font-weight: 700; border: 1px solid #DBE6FF;">Position: ${position}</span></p>` : ''}
 
               <!-- Call to Action Button -->
               <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 32px; text-align: center;">

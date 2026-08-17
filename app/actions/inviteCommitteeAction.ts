@@ -124,6 +124,7 @@ export async function bulkInviteApprovedAction(
       email,
       code: created.code,
       activationLink,
+      position: created.position,
     })
 
     if (res.success) {
@@ -187,7 +188,7 @@ export async function inviteApprovedBookingAction(
 
   const { data: existing } = await admin
     .from('staff_invites')
-    .select('id, name, code, claimed_at')
+    .select('id, name, code, claimed_at, position')
     .eq('email', email)
     .maybeSingle()
 
@@ -205,6 +206,7 @@ export async function inviteApprovedBookingAction(
       email,
       code: existing.code,
       activationLink: resendLink,
+      position: existing.position,
     })
 
     if (!resendRes.success) {
@@ -242,6 +244,7 @@ export async function inviteApprovedBookingAction(
     email,
     code: created.code,
     activationLink,
+    position: created.position,
   })
 
   if (!res.success) {

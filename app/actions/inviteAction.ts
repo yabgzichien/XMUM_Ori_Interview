@@ -72,6 +72,7 @@ export async function addInviteAction(input: {
     email: invite.email,
     code: invite.code,
     activationLink,
+    position: invite.position,
   }).then((res) => {
     if (res.success) {
       console.log(`Invitation email sent to ${invite.email}. MessageId: ${res.messageId}`)
