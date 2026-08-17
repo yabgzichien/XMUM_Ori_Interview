@@ -27,16 +27,16 @@ slot can never be overbooked.
 
 | Role | Account? | Primary route | Key permissions | Scope |
 |---|---|---|---|---|
-| `committee` | Login required | `/practice` | Join/leave a practice group; view own group's roster and sessions | Own group only |
+| `committee` | Login required | `/practice` | Join/leave a practice group; view own group's members and sessions | Own group only |
 | `performance_lead` | Login required | `/practice` | Everything `committee` can do, plus edit own group's name/capacity and create/edit/delete its practice sessions | Own group only |
-| `head_facilitator` / `head_gm` | Login required | `/practice` | Same as `committee` (or `performance_lead` if they lead a group) — HOF/HOG carries no extra practice privileges; no visibility into other groups, the committee roster, or another group's members | Own group only |
-| `admin` | Login required | `/head/practice` | View all groups and the committee roster; create/rename/delete groups, reassign leads, and assign committee positions (HOF/HOG etc.) | Both tracks, all orientations |
+| `head_facilitator` / `head_gm` | Login required | `/practice` | Same as `committee` (or `performance_lead` if they lead a group) — HOF/HOG carries no extra practice privileges; no visibility into other groups or their members | Own group only |
+| `admin` | Login required | `/head/practice` | View all groups and their members; create/rename/delete groups, reassign leads, and assign committee positions (HOF/HOG etc.) | Both tracks, all orientations |
 
 Interviewees do **not** log in — booking, lookup, and cancellation all run through public,
 Student-ID-scoped functions. Only committee/staff have accounts; new staff profiles start
 as a placeholder `applicant` role until a Head or Admin assigns their real role. At most one
 active booking per applicant per track. Practice group governance and cross-group visibility
-(view all groups, the committee roster, or any group's members; create/rename/delete a group;
+(view all groups or any group's members; create/rename/delete a group;
 reassign its lead) is admin-only. HOF/HOG grants real `/head` dashboard access for interview
 booking (see above) but, for the practice-group feature specifically, is purely a cosmetic
 committee position — a HOF/HOG account uses `/practice` exactly like any other committee
