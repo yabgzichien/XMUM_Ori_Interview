@@ -102,6 +102,10 @@ export async function bulkInviteApprovedAction(
         email,
         role: 'committee',
         track,
+        // 'facilitator' / 'game_master' are pre-seeded committee_positions
+        // values (0028) whose labels are exactly "Facilitator" / "Game
+        // Master" — the title matches the track they were approved for.
+        position: track,
         orientation,
         orientation_year: orientationYear,
       })
@@ -217,6 +221,10 @@ export async function inviteApprovedBookingAction(
       email,
       role: 'committee',
       track,
+      // 'facilitator' / 'game_master' are pre-seeded committee_positions
+      // values (0028) whose labels are exactly "Facilitator" / "Game
+      // Master" — the title matches the track they were approved for.
+      position: track,
       orientation,
       orientation_year: orientationYear,
     })
