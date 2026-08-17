@@ -1,10 +1,10 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { getCurrentProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendInvitationEmail } from '@/lib/email'
+import { getSiteUrl } from '@/lib/site'
 import type { Track, Orientation } from '@/lib/head'
 
 /** The subset of a `head_bookings` row this action actually reads. */
@@ -25,7 +25,7 @@ type BulkInviteResult = {
 }
 
 type SingleInviteResult = {
-  status: 'invited' | 'already_invited' | 'already_claimed'
+  status: 'invited' | 'resent' | 'already_claimed'
   error: string | null
 }
 
@@ -68,9 +68,7 @@ export async function bulkInviteApprovedAction(
   // Attributed to the head/admin who triggered the bulk invite, so the activity
   // log names them rather than the anonymous service role.
   const admin = createAdminClient(profile.id)
-  const requestHeaders = await headers()
-  const host = requestHeaders.get('host') || 'localhost:3000'
-  const protocol = host.startsWith('localhost') ? 'http' : 'https'
+  const siteUrl = await getSiteUrl()
 
   let invited = 0
   let alreadyInvited = 0
@@ -115,7 +113,7 @@ export async function bulkInviteApprovedAction(
       continue
     }
 
-    const activationLink = `${protocol}://${host}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(created.code)}`
+    const activationLink = `${siteUrl}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(created.code)}`
 
     const res = await sendInvitationEmail({
       name: created.name,
@@ -134,10 +132,11 @@ export async function bulkInviteApprovedAction(
   return { invited, alreadyInvited, alreadyClaimed, failed, error: null }
 }
 
-// Invites a single approved interviewee onto the committee. Same auth +
-// staff_invites flow as bulkInviteApprovedAction, but re-derives just the one
-// booking (by id) from the head_bookings RPC rather than trusting client-supplied
-// applicant data.
+// Invites a single approved interviewee onto the committee, or re-sends the
+// existing invite email (same code) if one was already sent and not yet
+// claimed. Same auth + staff_invites flow as bulkInviteApprovedAction, but
+// re-derives just the one booking (by id) from the head_bookings RPC rather
+// than trusting client-supplied applicant data.
 export async function inviteApprovedBookingAction(
   bookingId: string,
   track: Track,
@@ -180,15 +179,34 @@ export async function inviteApprovedBookingAction(
   }
 
   const admin = createAdminClient(profile.id)
+  const siteUrl = await getSiteUrl()
 
   const { data: existing } = await admin
     .from('staff_invites')
-    .select('id, claimed_at')
+    .select('id, name, code, claimed_at')
     .eq('email', email)
     .maybeSingle()
 
   if (existing) {
-    return { status: existing.claimed_at ? 'already_claimed' : 'already_invited', error: null }
+    if (existing.claimed_at) {
+      return { status: 'already_claimed', error: null }
+    }
+
+    // Re-send with the same code rather than minting a new one — the
+    // applicant may have the original email around, and either one still
+    // works to claim the same invite row.
+    const resendLink = `${siteUrl}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(existing.code)}`
+    const resendRes = await sendInvitationEmail({
+      name: existing.name,
+      email,
+      code: existing.code,
+      activationLink: resendLink,
+    })
+
+    if (!resendRes.success) {
+      return { status: 'resent', error: resendRes.error || 'Failed to resend invitation email.' }
+    }
+    return { status: 'resent', error: null }
   }
 
   const { data: created, error: insertErr } = await admin
@@ -209,10 +227,7 @@ export async function inviteApprovedBookingAction(
     return { status: 'invited', error: insertErr?.message || 'Failed to create invite.' }
   }
 
-  const requestHeaders = await headers()
-  const host = requestHeaders.get('host') || 'localhost:3000'
-  const protocol = host.startsWith('localhost') ? 'http' : 'https'
-  const activationLink = `${protocol}://${host}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(created.code)}`
+  const activationLink = `${siteUrl}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(created.code)}`
 
   const res = await sendInvitationEmail({
     name: created.name,

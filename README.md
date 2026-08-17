@@ -82,6 +82,13 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key # Keep secret, never expose to browser
 
+# Canonical site URL used to build links in outbound emails (invite
+# activation, etc). Without this, links fall back to whatever Host header
+# the server action happens to run behind — e.g. localhost:3000 if triggered
+# from a local dev server — which is wrong for anything mailed to a real
+# applicant/staffer. Set this to the deployed URL below.
+SITE_URL=https://xmum-ori-interview.vercel.app
+
 # SMTP Email Configuration (Nodemailer)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -122,8 +129,11 @@ Follow these simple steps to hook up your own Supabase project:
 
 ## Deploy (Vercel)
 
+Live at **https://xmum-ori-interview.vercel.app**.
+
 1. Push this repo to GitHub and import it at https://vercel.com.
-2. Add the three env vars (same as `.env.local`) in the Vercel project settings.
+2. Add the env vars (same as `.env.local`, including `SITE_URL` set to the deployed URL
+   above) in the Vercel project settings.
 3. Deploy. For the live recruitment window with ~250 concurrent users, consider
    temporarily upgrading Supabase to Pro for that period.
 

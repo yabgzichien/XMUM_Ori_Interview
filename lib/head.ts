@@ -37,6 +37,11 @@ export type HeadBooking = {
   created_at: string
   interview_status: 'pending' | 'failed' | 'approved'
   venue?: string
+  // From a left join on staff_invites in the head_bookings RPC (0031). Null
+  // until a committee invite is sent; invite_claimed_at is null until the
+  // applicant actually registers (sets a password) with that invite.
+  invited_at: string | null
+  invite_claimed_at: string | null
 }
 
 export type TrackSettings = {

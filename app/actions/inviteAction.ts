@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { headers } from 'next/headers'
+import { getSiteUrl } from '@/lib/site'
 import { sendInvitationEmail } from '@/lib/email'
 import type { StaffRole, StaffInvite } from '@/lib/admin'
 import type { Orientation } from '@/lib/orientation'
@@ -61,11 +61,10 @@ export async function addInviteAction(input: {
 
   const invite = data as StaffInvite
 
-  // 2. Fetch host for direct link construction
-  const requestHeaders = await headers()
-  const host = requestHeaders.get('host') || 'localhost:3000'
-  const protocol = host.startsWith('localhost') ? 'http' : 'https'
-  const activationLink = `${protocol}://${host}/register?email=${encodeURIComponent(invite.email)}&code=${encodeURIComponent(invite.code)}`
+  // 2. Build the activation link against the deployed site, not wherever
+  // this action happens to be running.
+  const siteUrl = await getSiteUrl()
+  const activationLink = `${siteUrl}/register?email=${encodeURIComponent(invite.email)}&code=${encodeURIComponent(invite.code)}`
 
   // 3. Dispatch invitation email asynchronously
   sendInvitationEmail({

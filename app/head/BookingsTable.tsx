@@ -42,6 +42,17 @@ const inviteOneBtnStyle: React.CSSProperties = {
   transition: 'background .15s',
 }
 
+const registeredBadgeStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '8px 14px',
+  borderRadius: '8px',
+  background: '#ECFDF3',
+  color: '#15803D',
+  fontWeight: 700,
+  fontSize: '13px',
+}
+
 function formatTrack(track: string | undefined | null): string {
   if (!track) return '-'
   if (track === 'game_master') return 'Game Master'
@@ -59,6 +70,19 @@ function cycleStatus(current: string | undefined | null): 'pending' | 'approved'
   if (s === 'pending') return 'approved'
   if (s === 'approved') return 'failed'
   return 'pending'
+}
+
+type InviteState = 'not_invited' | 'pending' | 'registered'
+
+function inviteState(b: HeadBooking): InviteState {
+  if (b.invite_claimed_at) return 'registered'
+  if (b.invited_at) return 'pending'
+  return 'not_invited'
+}
+
+function inviteButtonLabel(state: InviteState, busy: boolean): string {
+  if (busy) return 'Sending...'
+  return state === 'pending' ? 'Send Invite Again' : 'Invite'
 }
 
 export function BookingsTable({ bookings, loading, error, track, orientation, orientationYear = 2026, onChanged }: Props) {
@@ -132,7 +156,11 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   }
 
   async function handleInviteOne(b: HeadBooking) {
-    if (!window.confirm(`Send a committee invite code to ${b.applicant_name}?`)) return
+    const alreadySent = inviteState(b) === 'pending'
+    const confirmMsg = alreadySent
+      ? `Resend the committee invite code to ${b.applicant_name}?`
+      : `Send a committee invite code to ${b.applicant_name}?`
+    if (!window.confirm(confirmMsg)) return
     setInvitingBookingId(b.booking_id)
     try {
       const res = await inviteApprovedBookingAction(b.booking_id, track, orientation, orientationYear)
@@ -140,10 +168,18 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
         showToast(`Failed to invite ${b.applicant_name}: ${res.error}`, 'error')
       } else if (res.status === 'already_claimed') {
         showToast(`${b.applicant_name} already activated their committee account.`, 'info')
-      } else if (res.status === 'already_invited') {
-        showToast(`${b.applicant_name} was already invited.`, 'info')
+      } else if (res.status === 'resent') {
+        showToast(`Invite code resent to ${b.applicant_name}.`, 'success')
       } else {
         showToast(`Invite code sent to ${b.applicant_name}.`, 'success')
+      }
+      if (!res.error) {
+        onChanged()
+        // Reflect the send immediately so an open modal's button flips to
+        // "Send Invite Again" without waiting on the background refetch.
+        if (res.status !== 'already_claimed' && selectedBooking?.booking_id === b.booking_id && !selectedBooking.invited_at) {
+          setSelectedBooking({ ...selectedBooking, invited_at: new Date().toISOString() })
+        }
       }
     } catch (err: unknown) {
       showToast(`Failed to invite ${b.applicant_name}: ${errorMessage(err)}`, 'error')
@@ -344,17 +380,21 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle', textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', gap: '8px' }}>
                       {b.interview_status === 'approved' && (
-                        <button
-                          type="button"
-                          disabled={invitingBookingId === b.booking_id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleInviteOne(b)
-                          }}
-                          style={inviteOneBtnStyle}
-                        >
-                          {invitingBookingId === b.booking_id ? 'Inviting...' : 'Invite'}
-                        </button>
+                        inviteState(b) === 'registered' ? (
+                          <span style={registeredBadgeStyle}>✓ Registered</span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={invitingBookingId === b.booking_id}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleInviteOne(b)
+                            }}
+                            style={inviteOneBtnStyle}
+                          >
+                            {inviteButtonLabel(inviteState(b), invitingBookingId === b.booking_id)}
+                          </button>
+                        )
                       )}
                       <button
                         type="button"
@@ -434,17 +474,21 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                   </div>
                   <div style={{ display: 'inline-flex', gap: '8px' }}>
                     {b.interview_status === 'approved' && (
-                      <button
-                        type="button"
-                        disabled={invitingBookingId === b.booking_id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleInviteOne(b)
-                        }}
-                        style={inviteOneBtnStyle}
-                      >
-                        {invitingBookingId === b.booking_id ? 'Inviting...' : 'Invite'}
-                      </button>
+                      inviteState(b) === 'registered' ? (
+                        <span style={registeredBadgeStyle}>✓ Registered</span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={invitingBookingId === b.booking_id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleInviteOne(b)
+                          }}
+                          style={inviteOneBtnStyle}
+                        >
+                          {inviteButtonLabel(inviteState(b), invitingBookingId === b.booking_id)}
+                        </button>
+                      )
                     )}
                     <button
                       type="button"
@@ -727,25 +771,33 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                       Cancel Booking
                     </button>
                     {selectedBooking.interview_status === 'approved' && (
-                      <button
-                        type="button"
-                        disabled={invitingBookingId === selectedBooking.booking_id}
-                        onClick={() => handleInviteOne(selectedBooking)}
-                        style={{
-                          padding: '10px 16px',
-                          borderRadius: '10px',
-                          border: 'none',
-                          background: '#EFF6FF',
-                          color: '#2563EB',
-                          fontWeight: 700,
-                          fontSize: '13.5px',
-                          cursor: invitingBookingId === selectedBooking.booking_id ? 'not-allowed' : 'pointer',
-                          transition: 'background 0.15s',
-                          opacity: invitingBookingId === selectedBooking.booking_id ? 0.7 : 1,
-                        }}
-                      >
-                        {invitingBookingId === selectedBooking.booking_id ? 'Inviting...' : 'Invite to Committee'}
-                      </button>
+                      inviteState(selectedBooking) === 'registered' ? (
+                        <span style={registeredBadgeStyle}>✓ Registered</span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={invitingBookingId === selectedBooking.booking_id}
+                          onClick={() => handleInviteOne(selectedBooking)}
+                          style={{
+                            padding: '10px 16px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            background: '#EFF6FF',
+                            color: '#2563EB',
+                            fontWeight: 700,
+                            fontSize: '13.5px',
+                            cursor: invitingBookingId === selectedBooking.booking_id ? 'not-allowed' : 'pointer',
+                            transition: 'background 0.15s',
+                            opacity: invitingBookingId === selectedBooking.booking_id ? 0.7 : 1,
+                          }}
+                        >
+                          {invitingBookingId === selectedBooking.booking_id
+                            ? 'Sending...'
+                            : inviteState(selectedBooking) === 'pending'
+                              ? 'Send Invite Again'
+                              : 'Invite to Committee'}
+                        </button>
+                      )
                     )}
                   </div>
                   <button

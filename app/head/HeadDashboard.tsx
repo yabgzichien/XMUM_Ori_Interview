@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { BulkCreateForm } from '@/app/head/BulkCreateForm'
 import { SlotsTable } from '@/app/head/SlotsTable'
 import { BookingsTable } from '@/app/head/BookingsTable'
+import { InvitesTable } from '@/app/head/InvitesTable'
 import { getHeadSlots, getHeadBookings, type HeadBooking, type HeadSlot, type Track, type Orientation } from '@/lib/head'
 import { isPastSlot } from '@/lib/booking-helpers'
 
@@ -24,7 +25,7 @@ export function HeadDashboard({ track, orientation, orientationYear = 2026, prof
   const [bookingsLoading, setBookingsLoading] = useState(true)
   const [bookingsError, setBookingsError] = useState<string | null>(null)
 
-  const [activeTab, setActiveTab] = useState<'slots' | 'bookings'>('slots')
+  const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'invites'>('slots')
 
   // Each list reloads when its token bumps. The effects own cancellation so a
   // slow response for one track can't land after the head switched to another.
@@ -95,6 +96,9 @@ export function HeadDashboard({ track, orientation, orientationYear = 2026, prof
     { label: 'Applicants', value: String(bookings.length), hint: 'active bookings' },
   ]
 
+  const invitedBookings = bookings.filter((b) => b.invited_at)
+  const registeredCount = invitedBookings.filter((b) => b.invite_claimed_at).length
+
   return (
     <>
       <div className="stats-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
@@ -117,17 +121,25 @@ export function HeadDashboard({ track, orientation, orientationYear = 2026, prof
             <span>📅</span> Available Slots
             <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'slots' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{slots.length}</span>
           </button>
-          <button type="button" onClick={() => setActiveTab('bookings')} style={{ flex: 1, padding: '16px 20px', border: 'none', background: activeTab === 'bookings' ? '#fff' : 'transparent', color: activeTab === 'bookings' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderBottom: activeTab === 'bookings' ? 'none' : '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'background 0.2s' }}>
+          <button type="button" onClick={() => setActiveTab('bookings')} style={{ flex: 1, padding: '16px 20px', border: 'none', background: activeTab === 'bookings' ? '#fff' : 'transparent', color: activeTab === 'bookings' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderBottom: activeTab === 'bookings' ? 'none' : '1px solid #EAEEF4', borderRight: '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'background 0.2s' }}>
             <span>👤</span> Booked Applicants
             <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'bookings' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{bookings.length}</span>
+          </button>
+          <button type="button" onClick={() => setActiveTab('invites')} style={{ flex: 1, padding: '16px 20px', border: 'none', background: activeTab === 'invites' ? '#fff' : 'transparent', color: activeTab === 'invites' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderBottom: activeTab === 'invites' ? 'none' : '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'background 0.2s' }}>
+            <span>📋</span> Registration
+            <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'invites' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{registeredCount}/{invitedBookings.length}</span>
           </button>
         </div>
 
         <div style={{ padding: '0', overflowX: 'auto' }}>
-          {activeTab === 'slots' ? (
+          {activeTab === 'slots' && (
             <SlotsTable slots={slots} loading={slotsLoading} error={slotsError} onChanged={refreshSlots} />
-          ) : (
+          )}
+          {activeTab === 'bookings' && (
             <BookingsTable bookings={bookings} loading={bookingsLoading} error={bookingsError} track={track} orientation={orientation} orientationYear={orientationYear} onChanged={refreshBookings} />
+          )}
+          {activeTab === 'invites' && (
+            <InvitesTable bookings={bookings} loading={bookingsLoading} error={bookingsError} track={track} orientation={orientation} orientationYear={orientationYear} onChanged={refreshBookings} />
           )}
         </div>
       </div>
