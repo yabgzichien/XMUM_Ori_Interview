@@ -31,6 +31,7 @@ export type NavProfile = {
   name?: string | null
   email?: string | null
   position?: string | null
+  avatar_url?: string | null
 }
 
 export function NavClient({ profile }: { profile: NavProfile | null }) {
@@ -84,9 +85,20 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
             <span className="nav-links" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 11px', borderRadius: '99px', background: '#EFF4FF', color: '#2563EB', fontSize: '12px', fontWeight: 700, border: '1px solid #DBE6FF' }}>
               {displayRoleLabel(profile)}
             </span>
-            <div style={{ width: '34px', height: '34px', borderRadius: '99px', background: '#EEF2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: '#475569' }}>
-              {initials}
-            </div>
+            <Link href="/profile" aria-label="Your profile" style={{ display: 'block', flexShrink: 0 }}>
+              {profile.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.avatar_url}
+                  alt=""
+                  style={{ width: '34px', height: '34px', borderRadius: '99px', objectFit: 'cover', border: '1px solid #EAEEF4' }}
+                />
+              ) : (
+                <div style={{ width: '34px', height: '34px', borderRadius: '99px', background: '#EEF2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: '#475569' }}>
+                  {initials}
+                </div>
+              )}
+            </Link>
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
@@ -129,12 +141,22 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
               🧾 Activity Log
             </Link>
           )}
-          <div style={{ borderTop: '1px solid #EAEEF4', marginTop: '4px', paddingTop: '8px', padding: '8px 12px 4px' }}>
-            {profile.name && (
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{profile.name}</div>
+          <Link href="/profile" onClick={() => setMobileOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1px solid #EAEEF4', marginTop: '4px', paddingTop: '10px', padding: '10px 12px 4px', color: 'inherit', textDecoration: 'none' }}>
+            {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar_url} alt="" style={{ width: '32px', height: '32px', borderRadius: '99px', objectFit: 'cover', border: '1px solid #EAEEF4' }} />
+            ) : (
+              <div style={{ width: '32px', height: '32px', borderRadius: '99px', background: '#EEF2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', color: '#475569' }}>
+                {initials}
+              </div>
             )}
-            <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>{displayRoleLabel(profile)}</div>
-          </div>
+            <div>
+              {profile.name && (
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{profile.name}</div>
+              )}
+              <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>{displayRoleLabel(profile)}</div>
+            </div>
+          </Link>
         </div>
       </header>
     )

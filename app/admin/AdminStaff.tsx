@@ -461,6 +461,31 @@ export function AdminStaff() {
   )
 }
 
+function initialsFor(name: string, email: string): string {
+  return (name.trim()
+    ? name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('')
+    : email.slice(0, 2) || 'SC'
+  ).toUpperCase()
+}
+
+function MemberAvatar({ name, email, avatarUrl }: { name: string; email: string; avatarUrl: string | null }) {
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt=""
+        style={{ width: '36px', height: '36px', borderRadius: '99px', objectFit: 'cover', border: '1px solid #EAEEF4', flexShrink: 0 }}
+      />
+    )
+  }
+  return (
+    <div style={{ width: '36px', height: '36px', borderRadius: '99px', background: '#EEF2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: '#475569', flexShrink: 0 }}>
+      {initialsFor(name, email)}
+    </div>
+  )
+}
+
 const memberRoleLabels: Record<CommitteeMember['role'], string> = {
   committee: 'Committee Member',
   performance_lead: 'Performance Lead',
@@ -554,7 +579,9 @@ function CommitteeMembersPanel({ positions }: { positions: CommitteePositionOpti
         const permanent = !m.orientation
         return (
           <div key={m.id} style={{ padding: '14px 20px', borderBottom: '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
-            <div style={{ minWidth: '180px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '180px' }}>
+              <MemberAvatar name={m.name} email={m.email} avatarUrl={m.avatar_url} />
+              <div>
               {renamingId === m.id ? (
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <input
@@ -575,6 +602,7 @@ function CommitteeMembersPanel({ positions }: { positions: CommitteePositionOpti
               )}
               <div style={{ fontSize: '12.5px', color: '#64748B' }}>
                 {memberRoleLabels[m.role]}{m.orientation ? ` · ${m.orientation}` : ' · permanent'} · {m.email}
+              </div>
               </div>
             </div>
 

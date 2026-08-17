@@ -22,6 +22,7 @@ export type CommitteeMember = {
   position: string | null
   orientation: Orientation | null
   orientation_year: number | null
+  avatar_url: string | null
 }
 
 export type StaffInvite = {
@@ -82,7 +83,7 @@ export async function listCommitteeMembers() {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, email, student_id, role, position, orientation, orientation_year')
+    .select('id, name, email, student_id, role, position, orientation, orientation_year, avatar_url')
     .in('role', ['committee', 'performance_lead', 'head_facilitator', 'head_gm'])
     .order('name')
   return { data: (data as CommitteeMember[] | null) ?? null, error }
