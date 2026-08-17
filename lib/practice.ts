@@ -24,10 +24,15 @@ export type CommitteePosition =
   | 'pgvg'
   | 'public_relations'
   | 'secretary'
+  | 'general_affairs'
 
+// Seeded defaults — mirrors the rows `0028_committee_positions_table.sql`
+// inserts into `committee_positions`. Used as a synchronous fallback (e.g.
+// positionLabel) since the full, admin-editable list lives in the database;
+// see getCommitteePositions below for the live source of truth.
 export const POSITIONS: { value: CommitteePosition; label: string }[] = [
   { value: 'hof', label: 'Head of Facilitator (HOF)' },
-  { value: 'hog', label: 'Head of Game Master (HOG)' },
+  { value: 'hog', label: 'Head of Game Master (HOGM)' },
   { value: 'game_master', label: 'Game Master' },
   { value: 'facilitator', label: 'Facilitator' },
   { value: 'treasurer', label: 'Treasurer' },
@@ -40,10 +45,59 @@ export const POSITIONS: { value: CommitteePosition; label: string }[] = [
   { value: 'pgvg', label: 'PGVG' },
   { value: 'public_relations', label: 'Public Relation' },
   { value: 'secretary', label: 'Secretary' },
+  { value: 'general_affairs', label: 'General Affairs' },
 ]
 
 export function positionLabel(position: string | null): string {
-  return POSITIONS.find((p) => p.value === position)?.label ?? 'No position set'
+  if (!position) return 'No position set'
+  const known = POSITIONS.find((p) => p.value === position)
+  if (known) return known.label
+  // An admin-added position not in the static fallback above — title-case
+  // the raw value (e.g. "marketing_lead" -> "Marketing Lead") rather than
+  // silently showing nothing.
+  return position.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+export type CommitteePositionOption = { value: string; label: string }
+
+// Live, admin-editable list backing every position picker in the app
+// (invite screen, head's committee-position assigner). Falls back to the
+// static POSITIONS above only if this fetch fails.
+export async function getCommitteePositions() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('committee_positions')
+    .select('value, label')
+    .order('label')
+  return { data: (data as CommitteePositionOption[] | null) ?? null, error }
+}
+
+function slugifyPosition(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+export async function addCommitteePosition(label: string) {
+  const value = slugifyPosition(label)
+  if (!value) {
+    return { data: null, error: { message: 'Enter a role name.' } as { message: string } }
+  }
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('committee_positions')
+    .insert({ value, label: label.trim() })
+    .select('value, label')
+    .single()
+  return { data: (data as CommitteePositionOption | null) ?? null, error }
+}
+
+export async function deleteCommitteePosition(value: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('committee_positions').delete().eq('value', value)
+  return { error }
 }
 
 export type AvailableGroup = {
@@ -108,7 +162,7 @@ export type CommitteeRosterEntry = {
   id: string
   name: string
   email: string
-  track: Track
+  track: Track | null
   role: 'committee' | 'performance_lead' | 'head_facilitator' | 'head_gm'
   position: string | null
   leading_group_id: string | null

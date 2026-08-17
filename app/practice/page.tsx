@@ -23,7 +23,7 @@ export default async function PracticePage() {
   const orientationYear = profile.orientation_year || 2026
 
   return (
-    <main className="scr" style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 16px 48px' }}>
+    <main className="scr" style={{ width: '100%', maxWidth: '1000px', margin: '0 auto', padding: '32px 16px 48px', boxSizing: 'border-box' }}>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>
           {orientationLabel} {orientationYear} Practice Groups

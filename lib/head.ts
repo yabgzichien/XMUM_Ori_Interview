@@ -111,6 +111,21 @@ export async function deleteSlot(id: string) {
   return { data, error }
 }
 
+export async function bulkUpdateSlots(
+  ids: string[],
+  patch: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>>,
+) {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('slots').update(patch).in('id', ids)
+  return { data, error }
+}
+
+export async function bulkDeleteSlots(ids: string[]) {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('slots').delete().in('id', ids)
+  return { data, error }
+}
+
 export async function updateTrackWindow(
   track: Track,
   orientation: Orientation,

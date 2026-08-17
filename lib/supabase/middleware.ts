@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Only staff/committee areas require a login. /book is public (no-login interviewees).
-const PROTECTED = ['/head', '/practice']
+const PROTECTED = ['/head', '/practice', '/admin']
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -26,7 +26,15 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // `getClaims` verifies the access token locally against the project's
+  // asymmetric (ES256) signing key — no network call on the happy path, where
+  // `getUser` would spend ~140ms round-tripping to the Auth server on *every*
+  // request the matcher below covers, including each client-side navigation.
+  // Session refresh is unaffected: `getClaims` still reads the session (and
+  // renews an expired one) through `getSession`, so `setAll` above keeps
+  // writing refreshed cookies.
+  const { data: claims } = await supabase.auth.getClaims()
+  const user = claims?.claims.sub
 
   if (!user && PROTECTED.some((p) => request.nextUrl.pathname.startsWith(p))) {
     const redirectUrl = request.nextUrl.clone()

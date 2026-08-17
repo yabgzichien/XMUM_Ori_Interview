@@ -29,7 +29,7 @@ export default async function Home() {
   const totalCount = facCount + gmCount
 
   return (
-    <main className="scr page-main" style={{ maxWidth: '1120px', margin: '0 auto', padding: '56px 22px 80px' }}>
+    <main className="scr page-main" style={{ width: '100%', maxWidth: '1120px', margin: '0 auto', padding: '56px 22px 80px', boxSizing: 'border-box' }}>
       <div className="hero-2" style={{ display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: '48px', alignItems: 'center' }}>
         <div>
           <h1 className="hero-h1" style={{ fontSize: '48px', lineHeight: 1.04, letterSpacing: '-.03em', fontWeight: 800, margin: '0 0 18px', textWrap: 'balance' }}>

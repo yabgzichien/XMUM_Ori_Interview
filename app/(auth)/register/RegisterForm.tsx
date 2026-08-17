@@ -58,7 +58,7 @@ export function RegisterForm() {
   }
 
   return (
-    <main className="scr register-container" style={{ maxWidth: '1120px', margin: '0 auto', padding: '64px 22px', display: 'flex', justifyContent: 'center' }}>
+    <main className="scr register-container" style={{ width: '100%', maxWidth: '1120px', margin: '0 auto', padding: '64px 22px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <div style={{ width: '100%', maxWidth: '480px' }}>
         <style>{`
           .register-card {

@@ -38,6 +38,17 @@ export async function POST(request: Request) {
     )
   }
 
+  // Every non-admin role is scoped to an orientation cycle; an invite missing
+  // one would activate into a profile that can't load any orientation-scoped
+  // page (practice groups, bookings, etc). The invite form always sets this,
+  // but guard here too in case a row was inserted outside that form.
+  if (invite.role !== 'admin' && !invite.orientation) {
+    return NextResponse.json(
+      { error: 'This invite is missing an orientation and cannot be activated. Ask an admin to recreate it.' },
+      { status: 400 },
+    )
+  }
+
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
     password,
@@ -60,6 +71,7 @@ export async function POST(request: Request) {
       student_id: invite.student_id,
       email,
       role: invite.role,
+      position: invite.position ?? null,
       track: invite.track ?? null,
       orientation: invite.orientation ?? null,
       orientation_year: invite.orientation_year ?? 2026,

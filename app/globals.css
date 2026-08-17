@@ -149,6 +149,37 @@
   animation: fadeUp .35s ease;
 }
 
+/* ─── Route loading skeletons ─────────────────────────────────────────────
+   Rendered by each route's loading.tsx while its server component resolves.
+   Kept deliberately plain so the real screen's fadeUp doesn't read as a
+   second, competing animation. */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .45; }
+}
+
+.sk {
+  background: #E7ECF3;
+  border-radius: 8px;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
+/* Skeletons only earn their keep once the wait is perceptible; showing one
+   instantly makes a fast navigation flash. */
+.sk-delay {
+  animation: skeletonFadeIn .2s ease .15s both;
+}
+@keyframes skeletonFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk { animation: none; }
+  .sk-delay { animation: none; }
+  .scr { animation: none; }
+}
+
 input:focus, textarea:focus, select:focus {
   border-color: #2563EB !important;
   box-shadow: 0 0 0 3px rgba(37,99,235,.16) !important;

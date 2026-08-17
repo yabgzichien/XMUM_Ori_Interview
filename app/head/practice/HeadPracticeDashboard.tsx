@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   getHeadPracticeGroups,
   getHeadCommitteeRoster,
@@ -12,10 +13,11 @@ import {
   getGroupSessions,
   getGroupMembers,
   setCommitteePosition,
-  POSITIONS,
+  getCommitteePositions,
   positionLabel,
   type HeadPracticeGroup,
   type CommitteeRosterEntry,
+  type CommitteePositionOption,
   type PracticeSession,
   type MyGroup,
   type GroupStatus,
@@ -38,7 +40,8 @@ type MemberWithProfile = {
   profiles: { name: string; email: string } | null
 }
 
-function trackLabel(track: Track): string {
+function trackLabel(track: Track | null): string | null {
+  if (!track) return null
   return track === 'game_master' ? 'Game Master' : 'Facilitator'
 }
 
@@ -51,6 +54,7 @@ const dangerBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius:
 export function HeadPracticeDashboard({ orientation, orientationYear = 2026, isAdmin, currentUserId }: Props) {
   const [groups, setGroups] = useState<HeadPracticeGroup[]>([])
   const [roster, setRoster] = useState<CommitteeRosterEntry[]>([])
+  const [positions, setPositions] = useState<CommitteePositionOption[]>([])
   const [myGroup, setMyGroup] = useState<MyGroup | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -64,15 +68,17 @@ export function HeadPracticeDashboard({ orientation, orientationYear = 2026, isA
     let active = true
 
     async function run() {
-      const [{ data: g, error: gErr }, { data: r, error: rErr }, { data: mg, error: mgErr }] = await Promise.all([
+      const [{ data: g, error: gErr }, { data: r, error: rErr }, { data: mg, error: mgErr }, { data: p }] = await Promise.all([
         getHeadPracticeGroups(orientation, orientationYear),
         getHeadCommitteeRoster(orientation, orientationYear),
         getMyPracticeGroup(),
+        getCommitteePositions(),
       ])
       if (!active) return
       setError(gErr?.message ?? rErr?.message ?? mgErr?.message ?? null)
       setGroups(g ?? [])
       setRoster(r ?? [])
+      setPositions(p ?? [])
       const userMyGroup = mg && mg.is_lead ? mg : null
       setMyGroup(userMyGroup)
       if (!userMyGroup) {
@@ -125,7 +131,7 @@ export function HeadPracticeDashboard({ orientation, orientationYear = 2026, isA
       {!loading && !error && activeTab === 'groups' && (
         <>
           {isAdmin && (
-            <NewGroupForm orientation={orientation} orientationYear={orientationYear} availableLeads={availableLeads} onCreated={load} />
+            <NewGroupForm orientation={orientation} orientationYear={orientationYear} availableLeads={availableLeads} onRefreshLeads={load} onCreated={load} />
           )}
 
           {groups.length === 0 && (
@@ -144,6 +150,7 @@ export function HeadPracticeDashboard({ orientation, orientationYear = 2026, isA
                   key={g.id}
                   group={g}
                   availableLeads={availableLeads}
+                  onRefreshLeads={load}
                   isAdmin={isAdmin}
                   expanded={expandedId === g.id}
                   onToggle={() => setExpandedId(expandedId === g.id ? null : g.id)}
@@ -157,7 +164,7 @@ export function HeadPracticeDashboard({ orientation, orientationYear = 2026, isA
       )}
 
       {!loading && !error && activeTab === 'members' && (
-        <CommitteeRosterPanel roster={roster} isAdmin={isAdmin} onChanged={load} />
+        <CommitteeRosterPanel roster={roster} positions={positions} isAdmin={isAdmin} onChanged={load} />
       )}
 
       {!loading && !error && activeTab === 'mygroup' && myGroup && (
@@ -167,10 +174,118 @@ export function HeadPracticeDashboard({ orientation, orientationYear = 2026, isA
   )
 }
 
-function NewGroupForm({ orientation, orientationYear = 2026, availableLeads, onCreated }: {
+function CommitteeMemberPicker({ options, value, onChange, onOpen, placeholder = 'Select a committee member...', disabled, width = '260px' }: {
+  options: CommitteeRosterEntry[]
+  value: string
+  onChange: (id: string) => void
+  onOpen?: () => void
+  placeholder?: string
+  disabled?: boolean
+  width?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const selected = options.find((m) => m.id === value) ?? null
+
+  function updateCoords() {
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    setCoords({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+  }
+
+  useEffect(() => {
+    if (!open) return
+    updateCoords()
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node
+      if (containerRef.current?.contains(target) || menuRef.current?.contains(target)) return
+      setOpen(false)
+      setQuery('')
+    }
+    function handleReposition() {
+      updateCoords()
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleReposition, true)
+    window.addEventListener('resize', handleReposition)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleReposition, true)
+      window.removeEventListener('resize', handleReposition)
+    }
+  }, [open])
+
+  const filtered = options.filter((m) => {
+    const q = query.trim().toLowerCase()
+    if (!q) return true
+    return m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
+  })
+
+  function handleOpen() {
+    if (disabled || open) return
+    updateCoords()
+    setOpen(true)
+    setQuery('')
+    onOpen?.()
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width }}>
+      <input
+        type="text"
+        disabled={disabled}
+        value={open ? query : selected ? `${selected.name} (${selected.email})` : ''}
+        placeholder={placeholder}
+        onFocus={handleOpen}
+        onClick={handleOpen}
+        onChange={(e) => setQuery(e.target.value)}
+        style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
+      />
+      {open && coords && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', zIndex: 1000, top: coords.top, left: coords.left, width: coords.width, background: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(16,24,40,.12)', maxHeight: '260px', overflowY: 'auto' }}
+        >
+          {value && (
+            <div
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { onChange(''); setOpen(false); setQuery('') }}
+              style={{ padding: '8px 12px', fontSize: '12.5px', color: '#94A3B8', cursor: 'pointer', borderBottom: '1px solid #F1F5F9' }}
+            >
+              Clear selection
+            </div>
+          )}
+          {filtered.length === 0 && (
+            <div style={{ padding: '10px 12px', fontSize: '13px', color: '#94A3B8' }}>No matching committee members.</div>
+          )}
+          {filtered.map((m) => (
+            <div
+              key={m.id}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { onChange(m.id); setOpen(false); setQuery('') }}
+              style={{ padding: '9px 12px', fontSize: '13.5px', color: '#0F172A', cursor: 'pointer', background: m.id === value ? '#EFF4FF' : 'transparent' }}
+            >
+              <div style={{ fontWeight: 600 }}>{m.name}{trackLabel(m.track) ? ` · ${trackLabel(m.track)}` : ''}</div>
+              <div style={{ fontSize: '12px', color: '#64748B' }}>{m.email}</div>
+            </div>
+          ))}
+        </div>,
+        document.body,
+      )}
+    </div>
+  )
+}
+
+function NewGroupForm({ orientation, orientationYear = 2026, availableLeads, onRefreshLeads, onCreated }: {
   orientation: Orientation
   orientationYear?: number
   availableLeads: CommitteeRosterEntry[]
+  onRefreshLeads: () => void
   onCreated: () => void
 }) {
   const [name, setName] = useState('')
@@ -208,12 +323,7 @@ function NewGroupForm({ orientation, orientationYear = 2026, availableLeads, onC
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <label style={labelStyle}>Performance lead</label>
-        <select required value={leadId} onChange={(e) => setLeadId(e.target.value)} style={{ ...inputStyle, width: '240px' }}>
-          <option value="">Select a committee member...</option>
-          {availableLeads.map((m) => (
-            <option key={m.id} value={m.id}>{m.name} · {trackLabel(m.track)} ({m.email})</option>
-          ))}
-        </select>
+        <CommitteeMemberPicker options={availableLeads} value={leadId} onChange={setLeadId} onOpen={onRefreshLeads} width="260px" />
       </div>
       <button type="submit" disabled={saving || !name.trim() || !leadId} style={primaryBtnStyle}>
         {saving ? 'Creating...' : '+ New group'}
@@ -228,7 +338,7 @@ function NewGroupForm({ orientation, orientationYear = 2026, availableLeads, onC
   )
 }
 
-function CommitteeRosterPanel({ roster, isAdmin, onChanged }: { roster: CommitteeRosterEntry[]; isAdmin: boolean; onChanged: () => void }) {
+function CommitteeRosterPanel({ roster, positions, isAdmin, onChanged }: { roster: CommitteeRosterEntry[]; positions: CommitteePositionOption[]; isAdmin: boolean; onChanged: () => void }) {
   const [savingId, setSavingId] = useState<string | null>(null)
 
   async function handleChange(memberId: string, position: string) {
@@ -253,7 +363,7 @@ function CommitteeRosterPanel({ roster, isAdmin, onChanged }: { roster: Committe
         <div key={m.id} style={{ padding: '14px 20px', borderBottom: '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontWeight: 600, fontSize: '14px', color: '#0F172A' }}>{m.name}</div>
-            <div style={{ fontSize: '12.5px', color: '#64748B' }}>{trackLabel(m.track)} · {m.email}</div>
+            <div style={{ fontSize: '12.5px', color: '#64748B' }}>{trackLabel(m.track) ? `${trackLabel(m.track)} · ` : ''}{m.email}</div>
           </div>
           {isAdmin ? (
             <select
@@ -263,7 +373,7 @@ function CommitteeRosterPanel({ roster, isAdmin, onChanged }: { roster: Committe
               style={{ ...inputStyle, width: '240px' }}
             >
               <option value="">No position set</option>
-              {POSITIONS.map((p) => (
+              {positions.map((p) => (
                 <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
@@ -278,11 +388,12 @@ function CommitteeRosterPanel({ roster, isAdmin, onChanged }: { roster: Committe
   )
 }
 
-function GroupRow({ group, expanded, onToggle, availableLeads, isAdmin, onChanged, currentUserId }: {
+function GroupRow({ group, expanded, onToggle, availableLeads, onRefreshLeads, isAdmin, onChanged, currentUserId }: {
   group: HeadPracticeGroup
   expanded: boolean
   onToggle: () => void
   availableLeads: CommitteeRosterEntry[]
+  onRefreshLeads: () => void
   isAdmin: boolean
   onChanged: () => void
   currentUserId?: string
@@ -384,12 +495,7 @@ function GroupRow({ group, expanded, onToggle, availableLeads, isAdmin, onChange
             ) : (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <button type="button" onClick={() => setEditing(true)} style={secondaryBtnStyle}>Edit</button>
-                <select value={reassignId} onChange={(e) => setReassignId(e.target.value)} style={inputStyle}>
-                  <option value="">Reassign lead to...</option>
-                  {availableLeads.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name} · {trackLabel(m.track)}</option>
-                  ))}
-                </select>
+                <CommitteeMemberPicker options={availableLeads} value={reassignId} onChange={setReassignId} onOpen={onRefreshLeads} placeholder="Reassign lead to..." width="220px" />
                 <button type="button" disabled={!reassignId} onClick={handleReassign} style={secondaryBtnStyle}>Reassign</button>
                 <button type="button" onClick={handleDelete} style={dangerBtnStyle}>Delete group</button>
               </div>
@@ -432,7 +538,7 @@ function GroupDetails({ groupId }: { groupId: string }) {
   return (
     <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
       <div style={{ flex: '1 1 220px' }}>
-        <div style={{ ...labelStyle, marginBottom: '8px', display: 'block' }}>Roster</div>
+        <div style={{ ...labelStyle, marginBottom: '8px', display: 'block' }}>Group members</div>
         {members.length === 0 && <div style={{ fontSize: '13px', color: '#94A3B8' }}>No members yet.</div>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {members.map((m) => (

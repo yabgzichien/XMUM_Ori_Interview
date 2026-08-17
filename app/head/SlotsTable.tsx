@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { formatDateHeading, formatTimeRange, isPastSlot, toLocalDateIso } from '@/lib/booking-helpers'
-import { deleteSlot, updateSlot, type HeadSlot } from '@/lib/head'
+import { bulkDeleteSlots, bulkUpdateSlots, deleteSlot, updateSlot, type HeadSlot } from '@/lib/head'
 import { DateRangePicker, type DateRange } from '@/components/DateRangePicker'
+import { useToast } from '@/components/Toast'
 
 type Props = {
   slots: HeadSlot[]
@@ -86,6 +87,11 @@ function useSlotActions(slot: HeadSlot, onChanged: () => void) {
 
   async function handleSaveVenue() {
     const next = venue.trim()
+    if (!next) {
+      setFeedback('Venue cannot be empty.')
+      setVenue(slot.venue ?? '')
+      return
+    }
     if (next === (slot.venue ?? '')) return
     if (!(await patch({ venue: next }))) setVenue(slot.venue ?? '')
   }
@@ -178,12 +184,28 @@ function RowActions({
   )
 }
 
-function SlotRowDesktop({ slot, onChanged }: { slot: HeadSlot; onChanged: () => void }) {
+function SlotRowDesktop({
+  slot, onChanged, selected, onToggleSelect,
+}: {
+  slot: HeadSlot
+  onChanged: () => void
+  selected: boolean
+  onToggleSelect: () => void
+}) {
   const a = useSlotActions(slot, onChanged)
 
   return (
     <>
-      <tr style={{ borderBottom: a.feedback ? 'none' : '1px solid #EAEEF4', opacity: a.isPast ? 0.62 : 1 }}>
+      <tr style={{ borderBottom: a.feedback ? 'none' : '1px solid #EAEEF4', opacity: a.isPast ? 0.62 : 1, background: selected ? '#F5F8FF' : 'transparent' }}>
+        <td style={{ padding: '16px 12px 16px 20px', width: '32px' }}>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggleSelect}
+            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            aria-label="Select slot"
+          />
+        </td>
         <td style={{ padding: '16px 20px' }}>
           <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
             {formatDateHeading(toLocalDateIso(slot.starts_at))}
@@ -196,7 +218,7 @@ function SlotRowDesktop({ slot, onChanged }: { slot: HeadSlot; onChanged: () => 
           <input
             type="text"
             value={a.venue}
-            placeholder="—"
+            placeholder="Venue required"
             onChange={(e) => a.setVenue(e.target.value)}
             onBlur={a.handleSaveVenue}
             disabled={a.busy || a.isPast}
@@ -226,7 +248,7 @@ function SlotRowDesktop({ slot, onChanged }: { slot: HeadSlot; onChanged: () => 
       </tr>
       {a.feedback && (
         <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
-          <td colSpan={6} style={{ padding: '0 20px 12px' }}>
+          <td colSpan={7} style={{ padding: '0 20px 12px' }}>
             <div style={{ fontSize: '12.5px', color: '#B91C1C', fontWeight: 600, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '7px 10px' }}>
               {a.feedback}
             </div>
@@ -237,18 +259,34 @@ function SlotRowDesktop({ slot, onChanged }: { slot: HeadSlot; onChanged: () => 
   )
 }
 
-function SlotRowMobile({ slot, onChanged }: { slot: HeadSlot; onChanged: () => void }) {
+function SlotRowMobile({
+  slot, onChanged, selected, onToggleSelect,
+}: {
+  slot: HeadSlot
+  onChanged: () => void
+  selected: boolean
+  onToggleSelect: () => void
+}) {
   const a = useSlotActions(slot, onChanged)
 
   return (
-    <div style={{ borderBottom: '1px solid #EAEEF4', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: a.isPast ? 0.62 : 1 }}>
+    <div style={{ borderBottom: '1px solid #EAEEF4', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: a.isPast ? 0.62 : 1, background: selected ? '#F5F8FF' : 'transparent' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-        <div>
-          <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
-            {formatDateHeading(toLocalDateIso(slot.starts_at))}
-          </div>
-          <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
-            {formatTimeRange(slot.starts_at, slot.ends_at)}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggleSelect}
+            style={{ width: '16px', height: '16px', cursor: 'pointer', marginTop: '3px' }}
+            aria-label="Select slot"
+          />
+          <div>
+            <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
+              {formatDateHeading(toLocalDateIso(slot.starts_at))}
+            </div>
+            <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+              {formatTimeRange(slot.starts_at, slot.ends_at)}
+            </div>
           </div>
         </div>
         <StatusPill status={slot.status} isPast={a.isPast} />
@@ -260,7 +298,7 @@ function SlotRowMobile({ slot, onChanged }: { slot: HeadSlot; onChanged: () => v
           <input
             type="text"
             value={a.venue}
-            placeholder="—"
+            placeholder="Venue required"
             onChange={(e) => a.setVenue(e.target.value)}
             onBlur={a.handleSaveVenue}
             disabled={a.busy || a.isPast}
@@ -295,10 +333,167 @@ function SlotRowMobile({ slot, onChanged }: { slot: HeadSlot; onChanged: () => v
   )
 }
 
+function BulkEditModal({
+  count, onClose, onApply,
+}: {
+  count: number
+  onClose: () => void
+  onApply: (patch: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>>) => Promise<void>
+}) {
+  const [applyCapacity, setApplyCapacity] = useState(false)
+  const [capacity, setCapacity] = useState('')
+  const [applyVenue, setApplyVenue] = useState(false)
+  const [venue, setVenue] = useState('')
+  const [status, setStatus] = useState<'no-change' | 'open' | 'closed'>('no-change')
+  const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const nothingToApply = !applyCapacity && !applyVenue && status === 'no-change'
+
+  async function handleApply() {
+    setFormError(null)
+    const patch: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>> = {}
+
+    if (applyCapacity) {
+      const next = Number(capacity)
+      if (!Number.isFinite(next) || next < 1) {
+        setFormError('Capacity must be at least 1.')
+        return
+      }
+      patch.capacity = next
+    }
+    if (applyVenue) {
+      if (!venue.trim()) {
+        setFormError('Venue cannot be empty.')
+        return
+      }
+      patch.venue = venue.trim()
+    }
+    if (status !== 'no-change') patch.status = status
+
+    setBusy(true)
+    await onApply(patch)
+    setBusy(false)
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 999, padding: '20px',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '440px',
+          boxShadow: '0 20px 25px -5px rgba(0,0,0,.1), 0 10px 10px -5px rgba(0,0,0,.04)',
+          border: '1px solid #EAEEF4', overflow: 'hidden',
+        }}
+      >
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #EAEEF4' }}>
+          <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', margin: '0 0 2px' }}>Bulk edit slots</h3>
+          <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>Applies to {count} selected slot{count === 1 ? '' : 's'}. Leave a field off to keep it unchanged.</p>
+        </div>
+
+        <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={applyCapacity} onChange={(e) => setApplyCapacity(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+              <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#334155' }}>Set capacity</span>
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+              disabled={!applyCapacity}
+              placeholder="e.g. 2"
+              style={{ ...cellInputStyle, width: '100%', opacity: applyCapacity ? 1 : 0.5 }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={applyVenue} onChange={(e) => setApplyVenue(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+              <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#334155' }}>Set venue</span>
+            </label>
+            <input
+              type="text"
+              value={venue}
+              onChange={(e) => setVenue(e.target.value)}
+              disabled={!applyVenue}
+              placeholder="e.g. A1#G02"
+              style={{ ...cellInputStyle, width: '100%', opacity: applyVenue ? 1 : 0.5 }}
+            />
+          </div>
+
+          <div>
+            <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '8px' }}>Set status</span>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {([
+                { value: 'no-change', label: 'No change' },
+                { value: 'open', label: 'Open' },
+                { value: 'closed', label: 'Closed' },
+              ] as const).map((opt) => {
+                const active = status === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setStatus(opt.value)}
+                    style={{
+                      padding: '8px 14px', borderRadius: '8px', border: `1px solid ${active ? '#2563EB' : '#E2E8F0'}`,
+                      background: active ? '#EFF4FF' : '#fff', color: active ? '#2563EB' : '#64748B',
+                      fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {formError && (
+            <div style={{ fontSize: '12.5px', color: '#B91C1C', fontWeight: 600, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '7px 10px' }}>
+              {formError}
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #EAEEF4', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button type="button" onClick={onClose} disabled={busy} style={{ ...actionBtnBase, padding: '10px 16px', background: '#F1F5F9', color: '#475569' }}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleApply}
+            disabled={busy || nothingToApply}
+            style={{
+              ...actionBtnBase, padding: '10px 16px', background: nothingToApply ? '#CBD5E1' : '#2563EB', color: '#fff',
+              cursor: busy || nothingToApply ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {busy ? 'Applying…' : `Apply to ${count} slot${count === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function SlotsTable({ slots, loading, error, onChanged }: Props) {
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
   const [showPast, setShowPast] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showBulkEdit, setShowBulkEdit] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const { showToast, toastElement } = useToast()
 
   const filteredSlots = useMemo(() => {
     return slots.filter((slot) => {
@@ -314,6 +509,76 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
   }, [slots, dateRange, showPast, statusFilter])
 
   const hiddenCount = slots.length - filteredSlots.length
+
+  // Selection can only ever reference slots that are still on screen — prune
+  // anything that fell out of the current filter or was deleted elsewhere.
+  useEffect(() => {
+    const visibleIds = new Set(filteredSlots.map((s) => s.id))
+    setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => visibleIds.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [filteredSlots])
+
+  const selectedSlots = useMemo(() => filteredSlots.filter((s) => selectedIds.has(s.id)), [filteredSlots, selectedIds])
+  const deletableSelected = useMemo(() => selectedSlots.filter((s) => s.booked_count === 0), [selectedSlots])
+  const editableSelected = useMemo(() => selectedSlots.filter((s) => !isPastSlot(s.ends_at)), [selectedSlots])
+
+  const allVisibleSelected = filteredSlots.length > 0 && filteredSlots.every((s) => selectedIds.has(s.id))
+  const someVisibleSelected = filteredSlots.some((s) => selectedIds.has(s.id))
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) return new Set()
+      return new Set(filteredSlots.map((s) => s.id))
+    })
+  }
+
+  function toggleSelectOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set())
+  }
+
+  async function handleBulkEdit(patch: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>>) {
+    const ids = editableSelected.map((s) => s.id)
+    const { error: err } = await bulkUpdateSlots(ids, patch)
+    if (err) {
+      showToast(err.message, 'error')
+      return
+    }
+    showToast(`Updated ${ids.length} slot${ids.length === 1 ? '' : 's'}.`, 'success')
+    setShowBulkEdit(false)
+    clearSelection()
+    onChanged()
+  }
+
+  async function handleBulkDelete() {
+    if (deletableSelected.length === 0) return
+    const skipped = selectedSlots.length - deletableSelected.length
+    const confirmMsg = skipped > 0
+      ? `Delete ${deletableSelected.length} slot(s)? ${skipped} selected slot(s) have bookings and will be skipped.`
+      : `Delete ${deletableSelected.length} slot(s)? This disappears from the public booking page.`
+    if (!window.confirm(confirmMsg)) return
+
+    setBulkDeleting(true)
+    const { error: err } = await bulkDeleteSlots(deletableSelected.map((s) => s.id))
+    setBulkDeleting(false)
+    if (err) {
+      showToast(err.message, 'error')
+      return
+    }
+    showToast(`Deleted ${deletableSelected.length} slot${deletableSelected.length === 1 ? '' : 's'}.`, 'success')
+    clearSelection()
+    onChanged()
+  }
 
   if (loading) return <div style={{ padding: '28px 20px', color: '#64748B', fontSize: '14px' }}>Loading slots…</div>
   if (error) return <div style={{ padding: '28px 20px', color: '#B91C1C', fontSize: '14px' }}>{error}</div>
@@ -389,12 +654,57 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
           </label>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '38px' }}>
+          <input
+            type="checkbox"
+            id="select-all-toggle"
+            checked={allVisibleSelected}
+            ref={(el) => { if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected }}
+            onChange={toggleSelectAll}
+            disabled={filteredSlots.length === 0}
+            style={{ width: '16px', height: '16px', cursor: filteredSlots.length === 0 ? 'default' : 'pointer' }}
+          />
+          <label htmlFor="select-all-toggle" style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155', cursor: filteredSlots.length === 0 ? 'default' : 'pointer' }}>
+            Select all
+          </label>
+        </div>
+
         {hiddenCount > 0 && (
           <span style={{ fontSize: '12.5px', color: '#94A3B8', fontWeight: 600, marginLeft: 'auto', alignSelf: 'center' }}>
             {hiddenCount} hidden by filters
           </span>
         )}
       </div>
+
+      {/* Bulk action toolbar */}
+      {selectedSlots.length > 0 && (
+        <div style={{ padding: '10px 20px', borderBottom: '1px solid #EAEEF4', background: '#EFF4FF', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#1E3A8A' }}>
+            {selectedSlots.length} selected
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowBulkEdit(true)}
+            disabled={editableSelected.length === 0}
+            title={editableSelected.length === 0 ? 'Selected slots are all past and cannot be edited' : undefined}
+            style={{ ...actionBtnBase, padding: '7px 14px', background: editableSelected.length === 0 ? '#E2E8F0' : '#2563EB', color: editableSelected.length === 0 ? '#94A3B8' : '#fff', cursor: editableSelected.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            Edit selected{editableSelected.length !== selectedSlots.length ? ` (${editableSelected.length})` : ''}
+          </button>
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting || deletableSelected.length === 0}
+            title={deletableSelected.length === 0 ? 'Selected slots all have bookings' : undefined}
+            style={{ ...deleteBtnStyle, padding: '7px 14px', opacity: deletableSelected.length === 0 ? 0.5 : 1, cursor: bulkDeleting || deletableSelected.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            {bulkDeleting ? 'Deleting…' : `Delete selected${deletableSelected.length !== selectedSlots.length ? ` (${deletableSelected.length})` : ''}`}
+          </button>
+          <button type="button" onClick={clearSelection} style={{ ...neutralBtnStyle, padding: '7px 14px', marginLeft: 'auto' }}>
+            Clear selection
+          </button>
+        </div>
+      )}
 
       {filteredSlots.length === 0 ? (
         <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>
@@ -405,6 +715,7 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
           <table className="slots-tbl-desk" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
+                <th style={{ padding: '14px 12px 14px 20px', width: '32px' }} />
                 {['Date & time', 'Venue', 'Seats', 'Booked', 'Status'].map((heading) => (
                   <th key={heading} style={{ padding: '14px 20px', fontSize: '12.5px', fontWeight: 600, color: '#64748B', letterSpacing: '.02em' }}>
                     {heading}
@@ -415,18 +726,40 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
             </thead>
             <tbody>
               {filteredSlots.map((slot) => (
-                <SlotRowDesktop key={slot.id} slot={slot} onChanged={onChanged} />
+                <SlotRowDesktop
+                  key={slot.id}
+                  slot={slot}
+                  onChanged={onChanged}
+                  selected={selectedIds.has(slot.id)}
+                  onToggleSelect={() => toggleSelectOne(slot.id)}
+                />
               ))}
             </tbody>
           </table>
 
           <div className="slots-tbl-mob">
             {filteredSlots.map((slot) => (
-              <SlotRowMobile key={slot.id} slot={slot} onChanged={onChanged} />
+              <SlotRowMobile
+                key={slot.id}
+                slot={slot}
+                onChanged={onChanged}
+                selected={selectedIds.has(slot.id)}
+                onToggleSelect={() => toggleSelectOne(slot.id)}
+              />
             ))}
           </div>
         </>
       )}
+
+      {showBulkEdit && (
+        <BulkEditModal
+          count={editableSelected.length}
+          onClose={() => setShowBulkEdit(false)}
+          onApply={handleBulkEdit}
+        />
+      )}
+
+      {toastElement}
     </div>
   )
 }

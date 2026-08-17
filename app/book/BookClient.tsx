@@ -207,7 +207,7 @@ export function BookClient() {
   }
 
   return (
-    <main className="scr" style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px 48px' }}>
+    <main className="scr" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 24px 48px', boxSizing: 'border-box' }}>
       <style>{`
         .book-orientations { display: flex; gap: 10px; }
         .book-tracks { display: flex; gap: 10px; margin-bottom: 14px; }
@@ -334,11 +334,11 @@ export function BookClient() {
             </div>
           )}
 
-          <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
             {loading ? (
-              <div style={{ gridColumn: 'span 2', fontSize: '14px', color: '#64748B', padding: '20px' }}>Loading slots…</div>
+              <div style={{ gridColumn: '1 / -1', fontSize: '14px', color: '#64748B', padding: '20px' }}>Loading slots…</div>
             ) : filteredSlots.length === 0 ? (
-              <div style={{ gridColumn: 'span 2', padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px', background: '#F8FAFC', borderRadius: '14px', border: '1px dashed #E2E8F0' }}>
+              <div style={{ gridColumn: '1 / -1', padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px', background: '#F8FAFC', borderRadius: '14px', border: '1px dashed #E2E8F0' }}>
                 {slots.length === 0
                   ? 'No interview slots are open for this track yet. Check back soon.'
                   : 'No slots on that date. Try another date or clear the filter.'}

@@ -65,7 +65,10 @@ export async function sendBulkWelcomeEmailsAction(
 ): Promise<{ successCount: number; failCount: number }> {
   const { sendWelcomeEmail } = await import('@/lib/email')
   const { createAdminClient } = await import('@/lib/supabase/admin')
-  const adminDb = createAdminClient()
+  const { getCurrentProfile } = await import('@/lib/auth')
+  // Attribution only — the send itself is unchanged when there is no session.
+  const profile = await getCurrentProfile()
+  const adminDb = createAdminClient(profile?.id)
   
   let successCount = 0
   let failCount = 0

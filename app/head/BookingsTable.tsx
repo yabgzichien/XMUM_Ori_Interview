@@ -3,26 +3,10 @@ import { formatDateHeading, formatTimeRange, isPastSlot, toLocalDateIso } from '
 import { cancelBooking, updateInterviewStatus, type HeadBooking } from '@/lib/head'
 import type { Orientation } from '@/lib/head'
 import { DateRangePicker, type DateRange } from '@/components/DateRangePicker'
-import { sendBulkWelcomeEmailsAction } from '@/app/actions/bookingAction'
 import { saveInterviewNotesAction } from '@/app/actions/saveNotesAction'
-import { bulkInviteApprovedAction } from '@/app/actions/inviteCommitteeAction'
+import { bulkInviteApprovedAction, inviteApprovedBookingAction } from '@/app/actions/inviteCommitteeAction'
 import { errorMessage } from '@/lib/utils'
 import { useToast } from '@/components/Toast'
-
-const DEFAULT_SUBJECT = `[XMUM Orientation] Welcome to the Committee! - {track}`
-const DEFAULT_BODY = `Dear {name},
-
-Congratulations! We are absolutely thrilled to inform you that you have been approved to join the XMUM Orientation Committee as a {track}!
-
-The recruitment team was incredibly impressed by your interview performance, experiences, and enthusiasm. We believe you will be a fantastic addition to the team.
-
-What's Next?
-
-1. Onboarding Session: Keep an eye on your inbox for our official onboarding invitation, where we will share the project timeline and introduce the subcommittee leads.
-2. Committee Chat: We will invite you to the main Committee communication channels (WhatsApp/Discord) within the next few days.
-3. Get Ready: Get ready for an exciting journey of planning, teamwork, and welcoming the new freshmen!
-
-Once again, welcome onboard! We are excited to work with you.`
 
 type Props = {
   bookings: HeadBooking[]
@@ -40,6 +24,18 @@ const cancelBtnStyle: React.CSSProperties = {
   border: 'none',
   background: '#F1F5F9',
   color: '#475569',
+  fontWeight: 700,
+  fontSize: '13px',
+  cursor: 'pointer',
+  transition: 'background .15s',
+}
+
+const inviteOneBtnStyle: React.CSSProperties = {
+  padding: '8px 14px',
+  borderRadius: '8px',
+  border: 'none',
+  background: '#EFF6FF',
+  color: '#2563EB',
   fontWeight: 700,
   fontSize: '13px',
   cursor: 'pointer',
@@ -71,8 +67,8 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   const [selectedBooking, setSelectedBooking] = useState<HeadBooking | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
   const [showPast, setShowPast] = useState<boolean>(true)
-  const [sendingBulk, setSendingBulk] = useState(false)
   const [invitingCommittee, setInvitingCommittee] = useState(false)
+  const [invitingBookingId, setInvitingBookingId] = useState<string | null>(null)
   const [notesValue, setNotesValue] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
@@ -111,43 +107,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
     })
   }, [bookings, filter, dateRange, showPast])
 
-  const [showEmailEditor, setShowEmailEditor] = useState(false)
-  const [customSubject, setCustomSubject] = useState('')
-  const [customBody, setCustomBody] = useState('')
-
-  async function handleBulkEmail() {
-    if (approvedBookings.length === 0) return
-    setCustomSubject(DEFAULT_SUBJECT)
-    setCustomBody(DEFAULT_BODY)
-    setShowEmailEditor(true)
-  }
-
-  async function executeBulkEmailSend() {
-    setSendingBulk(true)
-    try {
-      const res = await sendBulkWelcomeEmailsAction(
-        approvedBookings.map((b) => ({
-          booking_id: b.booking_id,
-          applicant_name: b.applicant_name,
-          applicant_email: b.applicant_email,
-          track: b.track,
-        })),
-        customSubject,
-        customBody
-      )
-      showToast(
-        `Sent ${res.successCount} welcome email${res.successCount === 1 ? '' : 's'}.${res.failCount > 0 ? ` ${res.failCount} failed.` : ''}`,
-        res.failCount > 0 ? 'info' : 'success',
-      )
-      setShowEmailEditor(false)
-      onChanged()
-    } catch (err: unknown) {
-      showToast(`Failed to send welcome emails: ${errorMessage(err)}`, 'error')
-    } finally {
-      setSendingBulk(false)
-    }
-  }
-
   async function handleInviteCommittee() {
     if (approvedBookings.length === 0) return
     if (!window.confirm(`Invite ${approvedBookings.length} approved applicant(s) to the committee?`)) return
@@ -169,6 +128,27 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
       showToast(`Failed to invite to committee: ${errorMessage(err)}`, 'error')
     } finally {
       setInvitingCommittee(false)
+    }
+  }
+
+  async function handleInviteOne(b: HeadBooking) {
+    if (!window.confirm(`Send a committee invite code to ${b.applicant_name}?`)) return
+    setInvitingBookingId(b.booking_id)
+    try {
+      const res = await inviteApprovedBookingAction(b.booking_id, track, orientation, orientationYear)
+      if (res.error) {
+        showToast(`Failed to invite ${b.applicant_name}: ${res.error}`, 'error')
+      } else if (res.status === 'already_claimed') {
+        showToast(`${b.applicant_name} already activated their committee account.`, 'info')
+      } else if (res.status === 'already_invited') {
+        showToast(`${b.applicant_name} was already invited.`, 'info')
+      } else {
+        showToast(`Invite code sent to ${b.applicant_name}.`, 'success')
+      }
+    } catch (err: unknown) {
+      showToast(`Failed to invite ${b.applicant_name}: ${errorMessage(err)}`, 'error')
+    } finally {
+      setInvitingBookingId(null)
     }
   }
 
@@ -254,29 +234,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
               }}
             >
               <span>🎭</span> {invitingCommittee ? 'Inviting...' : `Invite Approved to Committee (${approvedBookings.length})`}
-            </button>
-            <button
-              type="button"
-              onClick={handleBulkEmail}
-              disabled={sendingBulk}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                background: '#10B981',
-                color: '#fff',
-                fontSize: '13.5px',
-                fontWeight: 700,
-                cursor: sendingBulk ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 12px -3px rgba(16,185,129,.35)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-                opacity: sendingBulk ? 0.7 : 1,
-              }}
-            >
-              <span>✉️</span> {sendingBulk ? 'Sending...' : `Bulk Email Approved (${approvedBookings.length})`}
             </button>
           </div>
         )}
@@ -385,17 +342,32 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                     </button>
                   </td>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle', textAlign: 'right' }}>
-                    <button
-                      type="button"
-                      disabled={cancellingId === b.booking_id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleCancel(b)
-                      }}
-                      style={cancelBtnStyle}
-                    >
-                      {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '8px' }}>
+                      {b.interview_status === 'approved' && (
+                        <button
+                          type="button"
+                          disabled={invitingBookingId === b.booking_id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleInviteOne(b)
+                          }}
+                          style={inviteOneBtnStyle}
+                        >
+                          {invitingBookingId === b.booking_id ? 'Inviting...' : 'Invite'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={cancellingId === b.booking_id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCancel(b)
+                        }}
+                        style={cancelBtnStyle}
+                      >
+                        {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -460,17 +432,32 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                       {formatStatusText(b.interview_status)}
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    disabled={cancellingId === b.booking_id}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleCancel(b)
-                    }}
-                    style={cancelBtnStyle}
-                  >
-                    {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
-                  </button>
+                  <div style={{ display: 'inline-flex', gap: '8px' }}>
+                    {b.interview_status === 'approved' && (
+                      <button
+                        type="button"
+                        disabled={invitingBookingId === b.booking_id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleInviteOne(b)
+                        }}
+                        style={inviteOneBtnStyle}
+                      >
+                        {invitingBookingId === b.booking_id ? 'Inviting...' : 'Invite'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={cancellingId === b.booking_id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCancel(b)
+                      }}
+                      style={cancelBtnStyle}
+                    >
+                      {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -716,28 +703,51 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
 
                 {/* Modal Footer */}
                 <div style={{ padding: '20px 28px 24px', borderTop: '1px solid #EAEEF4', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    disabled={cancellingId === selectedBooking.booking_id}
-                    onClick={async () => {
-                      const b = selectedBooking
-                      setSelectedBooking(null)
-                      await handleCancel(b)
-                    }}
-                    style={{
-                      padding: '10px 16px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      background: '#FEE2E2',
-                      color: '#EF4444',
-                      fontWeight: 700,
-                      fontSize: '13.5px',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s',
-                    }}
-                  >
-                    Cancel Booking
-                  </button>
+                  <div style={{ display: 'inline-flex', gap: '10px' }}>
+                    <button
+                      type="button"
+                      disabled={cancellingId === selectedBooking.booking_id}
+                      onClick={async () => {
+                        const b = selectedBooking
+                        setSelectedBooking(null)
+                        await handleCancel(b)
+                      }}
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: '#FEE2E2',
+                        color: '#EF4444',
+                        fontWeight: 700,
+                        fontSize: '13.5px',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      Cancel Booking
+                    </button>
+                    {selectedBooking.interview_status === 'approved' && (
+                      <button
+                        type="button"
+                        disabled={invitingBookingId === selectedBooking.booking_id}
+                        onClick={() => handleInviteOne(selectedBooking)}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: '#EFF6FF',
+                          color: '#2563EB',
+                          fontWeight: 700,
+                          fontSize: '13.5px',
+                          cursor: invitingBookingId === selectedBooking.booking_id ? 'not-allowed' : 'pointer',
+                          transition: 'background 0.15s',
+                          opacity: invitingBookingId === selectedBooking.booking_id ? 0.7 : 1,
+                        }}
+                      >
+                        {invitingBookingId === selectedBooking.booking_id ? 'Inviting...' : 'Invite to Committee'}
+                      </button>
+                    )}
+                  </div>
                   <button
                     onClick={() => setSelectedBooking(null)}
                     style={{
@@ -753,119 +763,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                     }}
                   >
                     Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          {/* Custom Welcome Email Editor Modal */}
-          {showEmailEditor && (
-            <div className="email-editor-modal-overlay" style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(15, 23, 42, 0.6)',
-              backdropFilter: 'blur(4px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              padding: '20px',
-              animation: 'fadeIn 0.18s ease-out',
-            }}>
-              <div className="email-editor-modal-inner" style={{
-                background: '#fff',
-                border: '1px solid #EAEEF4',
-                borderRadius: '20px',
-                width: '100%',
-                maxWidth: '680px',
-                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
-                overflow: 'hidden',
-                animation: 'scaleIn 0.18s ease-out',
-                display: 'flex',
-                flexDirection: 'column',
-                maxHeight: '90vh',
-              }}>
-                {/* Header */}
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid #EAEEF4', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: '#0F172A' }}>Customize Welcome Email</h3>
-                    <p style={{ fontSize: '12.5px', color: '#64748B', margin: '2px 0 0 0' }}>Edit the template to welcome {approvedBookings.length} approved applicant(s)</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowEmailEditor(false)}
-                    style={{ background: 'none', border: 'none', fontSize: '20px', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {/* Form */}
-                <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-                  {/* Subject */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>Subject Line</label>
-                    <input
-                      type="text"
-                      value={customSubject}
-                      onChange={(e) => setCustomSubject(e.target.value)}
-                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '14.5px', fontFamily: 'inherit', color: '#0F172A', outline: 'none' }}
-                    />
-                  </div>
-
-                  {/* Body */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>Email Message</label>
-                      <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>Supports double-newlines for paragraphs</span>
-                    </div>
-                    <textarea
-                      value={customBody}
-                      onChange={(e) => setCustomBody(e.target.value)}
-                      rows={10}
-                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '14px', fontFamily: 'inherit', color: '#0F172A', outline: 'none', resize: 'vertical', lineHeight: 1.5 }}
-                    />
-                  </div>
-
-                  {/* Tips / Variables */}
-                  <div style={{ background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '10px', padding: '12px 14px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#1E40AF', display: 'block', marginBottom: '4px' }}>💡 Available Placeholders</span>
-                    <span style={{ fontSize: '12px', color: '#1E40AF', lineHeight: 1.4 }}>
-                      Use <code>{`{name}`}</code> to insert the candidate&apos;s full name, and <code>{`{track}`}</code> to insert their position (Facilitator or Game Master). These will update dynamically for each recipient.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div style={{ padding: '16px 24px', borderTop: '1px solid #EAEEF4', background: '#F8FAFC', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowEmailEditor(false)}
-                    style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={executeBulkEmailSend}
-                    disabled={sendingBulk || !customSubject.trim() || !customBody.trim()}
-                    style={{
-                      padding: '10px 22px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      background: '#10B981',
-                      cursor: (sendingBulk || !customSubject.trim() || !customBody.trim()) ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 4px 12px -3px rgba(16,185,129,.35)',
-                      opacity: (sendingBulk || !customSubject.trim() || !customBody.trim()) ? 0.7 : 1
-                    }}
-                  >
-                    {sendingBulk ? 'Sending Welcomes...' : `Send Welcomes (${approvedBookings.length})`}
                   </button>
                 </div>
               </div>

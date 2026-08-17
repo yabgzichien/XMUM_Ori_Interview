@@ -62,8 +62,13 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
                 Practice Groups
               </Link>
               {profile.role === 'admin' && (
-                <Link href="/admin" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/admin') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/admin') ? '#2563EB' : '#64748B' }}>
+                <Link href="/admin" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname === '/admin' ? '#EFF4FF' : 'transparent', color: pathname === '/admin' ? '#2563EB' : '#64748B' }}>
                   Committee
+                </Link>
+              )}
+              {profile.role === 'admin' && (
+                <Link href="/admin/logs" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/admin/logs') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/admin/logs') ? '#2563EB' : '#64748B' }}>
+                  Activity Log
                 </Link>
               )}
             </nav>
@@ -115,8 +120,13 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
             🎭 Practice Groups
           </Link>
           {profile.role === 'admin' && (
-            <Link href="/admin" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/admin') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/admin') ? '#2563EB' : '#334155' }}>
+            <Link href="/admin" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/admin' ? '#EFF4FF' : 'transparent', color: pathname === '/admin' ? '#2563EB' : '#334155' }}>
               👥 Committee
+            </Link>
+          )}
+          {profile.role === 'admin' && (
+            <Link href="/admin/logs" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/admin/logs') ? '#EFF4FF' : 'transparent', color: pathname.startsWith('/admin/logs') ? '#2563EB' : '#334155' }}>
+              🧾 Activity Log
             </Link>
           )}
           <div style={{ borderTop: '1px solid #EAEEF4', marginTop: '4px', paddingTop: '8px', padding: '8px 12px 4px' }}>

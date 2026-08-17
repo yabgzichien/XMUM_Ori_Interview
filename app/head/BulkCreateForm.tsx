@@ -116,6 +116,7 @@ export function BulkCreateForm({
   const timeRangeInvalid = Boolean(startTime && endTime && endTime <= startTime)
   const intervalInvalid = !Number.isFinite(intervalMinutes) || intervalMinutes < 1
   const capacityInvalid = !Number.isFinite(capacity) || capacity < 1
+  const venueInvalid = !venue.trim()
 
   /** Every slot the current settings would produce, annotated with clashes. */
   const planned = useMemo<PlannedSlot[]>(() => {
@@ -172,7 +173,7 @@ export function BulkCreateForm({
     setError(null)
     setCreatedCount(null)
 
-    if (dates.length === 0 || timeRangeInvalid || intervalInvalid || capacityInvalid) return
+    if (dates.length === 0 || timeRangeInvalid || intervalInvalid || capacityInvalid || venueInvalid) return
     if (windowTooShort) return
     if (toCreate.length === 0) {
       setError(
@@ -358,15 +359,17 @@ export function BulkCreateForm({
                   </div>
                   <div>
                     <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }}>
-                      Venue <span style={{ color: '#94A3B8', fontWeight: 400 }}>— shown to applicants and emailed to them</span>
+                      Venue <span style={{ color: '#E11D48', fontWeight: 700 }}>*</span> <span style={{ color: '#94A3B8', fontWeight: 400 }}>— shown to applicants and emailed to them</span>
                     </span>
                     <input
                       type="text"
                       value={venue}
                       onChange={(e) => setVenue(e.target.value)}
                       placeholder="e.g. A1 #123"
+                      required
                       style={inputStyle}
                     />
+                    {touched && venueInvalid && fieldError('Venue is required.')}
                   </div>
                 </div>
                 {capacityInvalid && fieldError('Each slot needs at least one seat.')}
@@ -493,7 +496,7 @@ export function BulkCreateForm({
 
               <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
                 <span style={{ fontWeight: 600, color: '#334155' }}>Venue</span>
-                <span>{venue.trim() || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Not set — applicants will see “TBA”</span>}</span>
+                <span>{venue.trim()}</span>
               </div>
 
               {(pastCount > 0 || (skipConflicts && conflictCount > 0)) && (

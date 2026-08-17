@@ -9,6 +9,7 @@ import type { Track, Orientation } from '@/lib/head'
 
 /** The subset of a `head_bookings` row this action actually reads. */
 type ApprovedBookingRow = {
+  booking_id: string
   applicant_name: string
   applicant_email: string
   student_id: string | null
@@ -20,6 +21,11 @@ type BulkInviteResult = {
   alreadyInvited: number
   alreadyClaimed: number
   failed: number
+  error: string | null
+}
+
+type SingleInviteResult = {
+  status: 'invited' | 'already_invited' | 'already_claimed'
   error: string | null
 }
 
@@ -59,7 +65,9 @@ export async function bulkInviteApprovedAction(
 
   const approved = ((bookings ?? []) as ApprovedBookingRow[]).filter((b) => b.interview_status === 'approved')
 
-  const admin = createAdminClient()
+  // Attributed to the head/admin who triggered the bulk invite, so the activity
+  // log names them rather than the anonymous service role.
+  const admin = createAdminClient(profile.id)
   const requestHeaders = await headers()
   const host = requestHeaders.get('host') || 'localhost:3000'
   const protocol = host.startsWith('localhost') ? 'http' : 'https'
@@ -124,4 +132,98 @@ export async function bulkInviteApprovedAction(
   }
 
   return { invited, alreadyInvited, alreadyClaimed, failed, error: null }
+}
+
+// Invites a single approved interviewee onto the committee. Same auth +
+// staff_invites flow as bulkInviteApprovedAction, but re-derives just the one
+// booking (by id) from the head_bookings RPC rather than trusting client-supplied
+// applicant data.
+export async function inviteApprovedBookingAction(
+  bookingId: string,
+  track: Track,
+  orientation: Orientation,
+  orientationYear: number = 2026,
+): Promise<SingleInviteResult> {
+  const profile = await getCurrentProfile()
+  if (!profile) {
+    return { status: 'invited', error: 'Not signed in.' }
+  }
+  const authorized =
+    profile.role === 'admin' ||
+    (profile.role === 'head_facilitator' && track === 'facilitator') ||
+    (profile.role === 'head_gm' && track === 'game_master')
+  if (!authorized) {
+    return { status: 'invited', error: 'Not authorized for this track.' }
+  }
+
+  const supabase = await createClient()
+  const { data: bookings, error: bookingsErr } = await supabase.rpc('head_bookings', {
+    p_track: track,
+    p_orientation: orientation,
+    p_year: orientationYear,
+  })
+  if (bookingsErr) {
+    return { status: 'invited', error: bookingsErr.message }
+  }
+
+  const b = ((bookings ?? []) as ApprovedBookingRow[]).find((row) => row.booking_id === bookingId)
+  if (!b) {
+    return { status: 'invited', error: 'Booking not found.' }
+  }
+  if (b.interview_status !== 'approved') {
+    return { status: 'invited', error: 'Applicant is not approved.' }
+  }
+
+  const email = b.applicant_email?.trim().toLowerCase()
+  if (!email) {
+    return { status: 'invited', error: 'Applicant has no email on file.' }
+  }
+
+  const admin = createAdminClient(profile.id)
+
+  const { data: existing } = await admin
+    .from('staff_invites')
+    .select('id, claimed_at')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (existing) {
+    return { status: existing.claimed_at ? 'already_claimed' : 'already_invited', error: null }
+  }
+
+  const { data: created, error: insertErr } = await admin
+    .from('staff_invites')
+    .insert({
+      name: b.applicant_name,
+      student_id: b.student_id,
+      email,
+      role: 'committee',
+      track,
+      orientation,
+      orientation_year: orientationYear,
+    })
+    .select('*')
+    .single()
+
+  if (insertErr || !created) {
+    return { status: 'invited', error: insertErr?.message || 'Failed to create invite.' }
+  }
+
+  const requestHeaders = await headers()
+  const host = requestHeaders.get('host') || 'localhost:3000'
+  const protocol = host.startsWith('localhost') ? 'http' : 'https'
+  const activationLink = `${protocol}://${host}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(created.code)}`
+
+  const res = await sendInvitationEmail({
+    name: created.name,
+    email,
+    code: created.code,
+    activationLink,
+  })
+
+  if (!res.success) {
+    return { status: 'invited', error: res.error || 'Failed to send invitation email.' }
+  }
+
+  return { status: 'invited', error: null }
 }
