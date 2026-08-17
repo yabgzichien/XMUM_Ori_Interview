@@ -12,6 +12,9 @@ import {
   deletePracticeGroup,
   getGroupSessions,
   getGroupMembers,
+  getLeadEligibleMembers,
+  leadAddMember,
+  leadRemoveMember,
   setCommitteePosition,
   getCommitteePositions,
   positionLabel,
@@ -23,6 +26,7 @@ import {
   type GroupStatus,
   type Track,
   type Orientation,
+  type EligibleMember,
 } from '@/lib/practice'
 import { formatDateHeading, formatTimeRange, toLocalDateIso } from '@/lib/booking-helpers'
 import { MyGroupPanel } from '@/app/practice/MyGroupPanel'
@@ -502,17 +506,24 @@ function GroupRow({ group, expanded, onToggle, availableLeads, onRefreshLeads, i
             )
           )}
 
-          <GroupDetails groupId={group.id} />
+          <GroupDetails groupId={group.id} capacity={group.capacity} isAdmin={isAdmin} onChanged={onChanged} />
         </div>
       )}
     </div>
   )
 }
 
-function GroupDetails({ groupId }: { groupId: string }) {
+function GroupDetails({ groupId, capacity, isAdmin, onChanged }: {
+  groupId: string
+  capacity: number
+  isAdmin: boolean
+  onChanged: () => void
+}) {
   const [sessions, setSessions] = useState<PracticeSession[]>([])
   const [members, setMembers] = useState<MemberWithProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const [removingId, setRemovingId] = useState<string | null>(null)
+  const [memberReloadToken, setMemberReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -529,7 +540,20 @@ function GroupDetails({ groupId }: { groupId: string }) {
     return () => {
       cancelled = true
     }
-  }, [groupId])
+  }, [groupId, memberReloadToken])
+
+  async function handleRemove(memberId: string, name: string) {
+    if (!window.confirm(`Remove ${name} from this group?`)) return
+    setRemovingId(memberId)
+    const { error } = await leadRemoveMember(groupId, memberId)
+    setRemovingId(null)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    setMemberReloadToken((n) => n + 1)
+    onChanged()
+  }
 
   if (loading) {
     return <div style={{ fontSize: '13px', color: '#94A3B8' }}>Loading details...</div>
@@ -537,16 +561,37 @@ function GroupDetails({ groupId }: { groupId: string }) {
 
   return (
     <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-      <div style={{ flex: '1 1 220px' }}>
+      <div style={{ flex: '1 1 260px' }}>
         <div style={{ ...labelStyle, marginBottom: '8px', display: 'block' }}>Group members</div>
         {members.length === 0 && <div style={{ fontSize: '13px', color: '#94A3B8' }}>No members yet.</div>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {members.map((m) => (
-            <span key={m.member_id} style={{ padding: '5px 11px', borderRadius: '99px', background: '#F1F5F9', color: '#334155', fontSize: '12.5px', fontWeight: 600 }}>
+            <span key={m.member_id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px 5px 11px', borderRadius: '99px', background: '#F1F5F9', color: '#334155', fontSize: '12.5px', fontWeight: 600 }}>
               {m.profiles?.name ?? m.member_id}
+              {isAdmin && (
+                <button
+                  type="button"
+                  disabled={removingId === m.member_id}
+                  onClick={() => handleRemove(m.member_id, m.profiles?.name ?? 'this member')}
+                  aria-label={`Remove ${m.profiles?.name ?? 'member'}`}
+                  style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', borderRadius: '99px', width: '16px', height: '16px', lineHeight: '16px', textAlign: 'center', fontSize: '10px', fontWeight: 700, cursor: removingId === m.member_id ? 'not-allowed' : 'pointer', padding: 0 }}
+                >
+                  ×
+                </button>
+              )}
             </span>
           ))}
         </div>
+        {isAdmin && (
+          <AdminAddMemberForm
+            groupId={groupId}
+            seatsLeft={capacity - members.length}
+            onAdded={() => {
+              setMemberReloadToken((n) => n + 1)
+              onChanged()
+            }}
+          />
+        )}
       </div>
       <div style={{ flex: '1 1 220px' }}>
         <div style={{ ...labelStyle, marginBottom: '8px', display: 'block' }}>Sessions</div>
@@ -558,6 +603,109 @@ function GroupDetails({ groupId }: { groupId: string }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function AdminAddMemberForm({ groupId, seatsLeft, onAdded }: {
+  groupId: string
+  seatsLeft: number
+  onAdded: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [candidates, setCandidates] = useState<EligibleMember[]>([])
+  const [search, setSearch] = useState('')
+  const [addingId, setAddingId] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  async function handleOpen() {
+    setOpen(true)
+    setLoading(true)
+    setFormError(null)
+    const { data, error } = await getLeadEligibleMembers(groupId)
+    setLoading(false)
+    if (error) {
+      setFormError(error.message)
+      setOpen(false)
+      return
+    }
+    setCandidates(data ?? [])
+  }
+
+  async function handleAdd(memberId: string) {
+    setAddingId(memberId)
+    setFormError(null)
+    const { error } = await leadAddMember(groupId, memberId)
+    setAddingId(null)
+    if (error) {
+      setFormError(error.message)
+      return
+    }
+    setCandidates((prev) => prev.filter((c) => c.id !== memberId))
+    onAdded()
+  }
+
+  if (!open) {
+    return (
+      <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={handleOpen}
+          disabled={seatsLeft === 0}
+          style={{ ...secondaryBtnStyle, opacity: seatsLeft === 0 ? 0.5 : 1, cursor: seatsLeft === 0 ? 'not-allowed' : 'pointer' }}
+        >
+          + Add member
+        </button>
+        <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>
+          {seatsLeft === 0 ? 'Group is full — raise the capacity to add more.' : `${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} left`}
+        </span>
+      </div>
+    )
+  }
+
+  const query = search.trim().toLowerCase()
+  const filtered = query
+    ? candidates.filter((c) => c.name.toLowerCase().includes(query) || (c.student_id ?? '').toLowerCase().includes(query))
+    : candidates
+
+  return (
+    <div style={{ marginTop: '10px', padding: '12px', background: '#F8FAFC', border: '1px solid #EAEEF4', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          type="text"
+          placeholder="Search by name or student ID..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ ...inputStyle, flex: '1 1 180px' }}
+        />
+        <button type="button" onClick={() => setOpen(false)} style={secondaryBtnStyle}>Close</button>
+      </div>
+      {formError && <span style={{ color: '#B91C1C', fontSize: '12.5px' }}>{formError}</span>}
+      {loading && <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>Loading eligible members...</div>}
+      {!loading && filtered.length === 0 && (
+        <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>
+          {candidates.length === 0
+            ? 'No eligible committee members — everyone in this orientation is already in a group.'
+            : 'No matches.'}
+        </div>
+      )}
+      {!loading && filtered.map((c) => (
+        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '8px 10px', background: '#fff', border: '1px solid #EAEEF4', borderRadius: '8px' }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '13px', color: '#0F172A' }}>{c.name}</div>
+            <div style={{ fontSize: '11.5px', color: '#64748B' }}>{c.student_id ?? 'No student ID'} · {c.email}</div>
+          </div>
+          <button
+            type="button"
+            disabled={addingId === c.id || seatsLeft === 0}
+            onClick={() => handleAdd(c.id)}
+            style={{ ...primaryBtnStyle, padding: '6px 12px', fontSize: '12px' }}
+          >
+            {addingId === c.id ? 'Adding...' : 'Add'}
+          </button>
+        </div>
+      ))}
     </div>
   )
 }
