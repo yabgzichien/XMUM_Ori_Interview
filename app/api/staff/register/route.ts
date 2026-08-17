@@ -25,11 +25,24 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
 
-  const { data: invite } = await admin
+  const { data: invite, error: inviteErr } = await admin
     .from('staff_invites')
     .select('*')
     .eq('email', email)
     .maybeSingle()
+
+  // A misconfigured SUPABASE_SERVICE_ROLE_KEY/NEXT_PUBLIC_SUPABASE_URL on this
+  // deployment would otherwise fail silently here — the query would error out,
+  // `invite` would end up null, and the code below would report the generic
+  // "no matching invite" message even though a real invite exists. Surface the
+  // underlying error instead so a deploy/env issue is distinguishable from an
+  // actually-wrong email/code.
+  if (inviteErr) {
+    return NextResponse.json(
+      { error: `Could not look up the invite (${inviteErr.message}). This looks like a server configuration issue, not a wrong code — contact an admin.` },
+      { status: 500 },
+    )
+  }
 
   if (!invite || invite.code !== code || invite.claimed_at) {
     return NextResponse.json(
