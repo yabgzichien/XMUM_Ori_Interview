@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getMyPracticeGroup,
   getAvailablePracticeGroups,
@@ -11,11 +11,21 @@ import {
 } from '@/lib/practice'
 import { MyGroupPanel } from '@/app/practice/MyGroupPanel'
 
-export function PracticeClient({ currentUserId }: { currentUserId: string }) {
-  const [loading, setLoading] = useState(true)
+type PracticeClientProps = {
+  currentUserId: string
+  initialMyGroup?: MyGroup | null
+  initialAvailableGroups?: AvailableGroup[]
+}
+
+export function PracticeClient({
+  currentUserId,
+  initialMyGroup = null,
+  initialAvailableGroups = [],
+}: PracticeClientProps) {
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [myGroup, setMyGroup] = useState<MyGroup | null>(null)
-  const [availableGroups, setAvailableGroups] = useState<AvailableGroup[]>([])
+  const [myGroup, setMyGroup] = useState<MyGroup | null>(initialMyGroup)
+  const [availableGroups, setAvailableGroups] = useState<AvailableGroup[]>(initialAvailableGroups)
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null)
@@ -26,14 +36,18 @@ export function PracticeClient({ currentUserId }: { currentUserId: string }) {
   const [reloadToken, setReloadToken] = useState(0)
   const load = useCallback(() => setReloadToken((n) => n + 1), [])
 
+  const isInitialMount = useRef(true)
+
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      if (initialMyGroup !== null || initialAvailableGroups.length > 0) return
+    }
+
     let active = true
 
     async function run() {
-      // Both requests go out together rather than waiting to learn whether the
-      // user already has a group. The joinable-groups result is simply unused
-      // when they do — worth one redundant query to spare everyone who doesn't
-      // a second serial round trip before the screen can paint.
+      setLoading(true)
       const [
         { data: group, error: groupErr },
         { data: groups, error: groupsErr },

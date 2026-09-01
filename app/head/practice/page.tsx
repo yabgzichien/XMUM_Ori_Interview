@@ -16,6 +16,9 @@ const ORIENTATIONS: { key: Orientation; label: string; icon: string }[] = [
   { key: 'december', label: 'December', icon: '❄️' },
 ]
 
+import { createClient } from '@/lib/supabase/server'
+import type { HeadPracticeGroup, CommitteeRosterEntry, CommitteePositionOption, MyGroup } from '@/lib/practice'
+
 export default async function HeadPracticePage({
   searchParams,
 }: {
@@ -41,6 +44,21 @@ export default async function HeadPracticePage({
   const orientationYear: number = params.year ? parseInt(String(params.year), 10) || 2026 : 2026
 
   const orientationLabel = ORIENTATIONS.find(o => o.key === orientation)?.label || 'February'
+
+  // Pre-fetch practice data in parallel on the server
+  const supabase = await createClient()
+  const [groupsRes, rosterRes, myGroupRes, positionsRes] = await Promise.all([
+    supabase.rpc('head_practice_groups', { p_orientation: orientation, p_year: orientationYear }),
+    supabase.rpc('head_committee_roster', { p_orientation: orientation, p_year: orientationYear }),
+    supabase.rpc('my_practice_group'),
+    supabase.from('committee_positions').select('value, label').order('label'),
+  ])
+
+  const initialGroups = (groupsRes.data as HeadPracticeGroup[] | null) ?? []
+  const initialRoster = (rosterRes.data as CommitteeRosterEntry[] | null) ?? []
+  const myGroupRows = (myGroupRes.data as MyGroup[] | null) ?? []
+  const initialMyGroup = myGroupRows && myGroupRows.length > 0 ? myGroupRows[0] : null
+  const initialPositions = (positionsRes.data as CommitteePositionOption[] | null) ?? []
 
   return (
     <main className="scr head-page-main" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px', boxSizing: 'border-box' }}>
@@ -72,7 +90,16 @@ export default async function HeadPracticePage({
         </div>
       </div>
 
-      <HeadPracticeDashboard orientation={orientation} orientationYear={orientationYear} isAdmin currentUserId={profile.id} />
+      <HeadPracticeDashboard
+        orientation={orientation}
+        orientationYear={orientationYear}
+        isAdmin
+        currentUserId={profile.id}
+        initialGroups={initialGroups}
+        initialRoster={initialRoster}
+        initialMyGroup={initialMyGroup}
+        initialPositions={initialPositions}
+      />
     </main>
   )
 }

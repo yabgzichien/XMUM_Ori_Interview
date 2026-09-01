@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { AuditLogClient } from '@/app/admin/logs/AuditLogClient'
+import { createClient } from '@/lib/supabase/server'
+import { COLUMNS, AUDIT_PAGE_SIZE, type AuditEntry } from '@/lib/auditLog'
 
 export default async function AdminLogsPage() {
   const profile = await getCurrentProfile()
@@ -12,6 +14,17 @@ export default async function AdminLogsPage() {
   if (profile.role !== 'admin') {
     redirect('/head')
   }
+
+  // Pre-fetch initial page of audit logs on server
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('audit_log')
+    .select(COLUMNS)
+    .order('id', { ascending: false })
+    .range(0, AUDIT_PAGE_SIZE - 1)
+
+  const initialEntries = (data as AuditEntry[] | null) ?? []
+  const initialHasMore = initialEntries.length === AUDIT_PAGE_SIZE
 
   return (
     <main className="scr" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px', boxSizing: 'border-box' }}>
@@ -31,7 +44,10 @@ export default async function AdminLogsPage() {
         </Link>
       </div>
 
-      <AuditLogClient />
+      <AuditLogClient
+        initialEntries={initialEntries}
+        initialHasMore={initialHasMore}
+      />
     </main>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   deleteInvite,
   listInvites,
@@ -33,12 +33,22 @@ const roleLabels: Record<StaffRole, string> = {
 export const fieldLabelStyle: React.CSSProperties = { fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }
 export const fieldStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: '9px', fontSize: '14px', fontFamily: 'inherit', color: '#475569', backgroundColor: '#fff' }
 
-export function AdminStaff() {
-  const [invites, setInvites] = useState<StaffInvite[]>([])
-  const [loading, setLoading] = useState(true)
+type AdminStaffProps = {
+  initialInvites?: StaffInvite[]
+  initialMembers?: CommitteeMember[]
+  initialPositions?: CommitteePositionOption[]
+}
+
+export function AdminStaff({
+  initialInvites = [],
+  initialMembers = [],
+  initialPositions = [],
+}: AdminStaffProps = {}) {
+  const [invites, setInvites] = useState<StaffInvite[]>(initialInvites)
+  const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  const [positions, setPositions] = useState<CommitteePositionOption[]>([])
+  const [positions, setPositions] = useState<CommitteePositionOption[]>(initialPositions)
   const [positionsError, setPositionsError] = useState<string | null>(null)
 
   const [name, setName] = useState('')
@@ -68,6 +78,9 @@ export function AdminStaff() {
   const [reloadToken, setReloadToken] = useState(0)
   const load = useCallback(() => setReloadToken((n) => n + 1), [])
 
+  const isInitialInvitesMount = useRef(true)
+  const isInitialPositionsMount = useRef(true)
+
   const loadPositions = useCallback(async () => {
     const { data, error } = await getCommitteePositions()
     if (error) {
@@ -79,9 +92,15 @@ export function AdminStaff() {
   }, [])
 
   useEffect(() => {
+    if (isInitialInvitesMount.current) {
+      isInitialInvitesMount.current = false
+      if (initialInvites.length > 0) return
+    }
+
     let active = true
 
     async function run() {
+      setLoading(true)
       const { data, error } = await listInvites()
       if (!active) return
       setLoading(false)
@@ -101,6 +120,10 @@ export function AdminStaff() {
   }, [reloadToken])
 
   useEffect(() => {
+    if (isInitialPositionsMount.current) {
+      isInitialPositionsMount.current = false
+      if (initialPositions.length > 0) return
+    }
     loadPositions()
   }, [loadPositions])
 
@@ -346,7 +369,7 @@ export function AdminStaff() {
         )}
       </div>
 
-      <CommitteeMembersPanel positions={positions} />
+      <CommitteeMembersPanel positions={positions} initialMembers={initialMembers} />
 
       {/* Invites Table Card */}
       <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
@@ -493,14 +516,22 @@ const memberRoleLabels: Record<CommitteeMember['role'], string> = {
   head_gm: 'Head of Game Masters',
 }
 
-function CommitteeMembersPanel({ positions }: { positions: CommitteePositionOption[] }) {
-  const [members, setMembers] = useState<CommitteeMember[]>([])
-  const [loading, setLoading] = useState(true)
+function CommitteeMembersPanel({
+  positions,
+  initialMembers = [],
+}: {
+  positions: CommitteePositionOption[]
+  initialMembers?: CommitteeMember[]
+}) {
+  const [members, setMembers] = useState<CommitteeMember[]>(initialMembers)
+  const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
+
+  const isInitialMembersMount = useRef(true)
 
   const load = useCallback(async () => {
     const { data, error } = await listCommitteeMembers()
@@ -514,6 +545,10 @@ function CommitteeMembersPanel({ positions }: { positions: CommitteePositionOpti
   }, [])
 
   useEffect(() => {
+    if (isInitialMembersMount.current) {
+      isInitialMembersMount.current = false
+      if (initialMembers.length > 0) return
+    }
     load()
   }, [load])
 

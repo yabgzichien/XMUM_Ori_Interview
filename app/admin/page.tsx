@@ -2,6 +2,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { AdminStaff } from '@/app/admin/AdminStaff'
+import { createClient } from '@/lib/supabase/server'
+import type { StaffInvite, CommitteeMember } from '@/lib/admin'
+import type { CommitteePositionOption } from '@/lib/practice'
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile()
@@ -12,6 +15,18 @@ export default async function AdminPage() {
   if (profile.role !== 'admin') {
     redirect('/head')
   }
+
+  // Pre-fetch all admin data in parallel on the server
+  const supabase = await createClient()
+  const [invitesRes, membersRes, positionsRes] = await Promise.all([
+    supabase.from('staff_invites').select('*').order('created_at', { ascending: false }),
+    supabase.from('profiles').select('id, name, email, student_id, role, position, orientation, orientation_year, avatar_url').in('role', ['committee', 'performance_lead', 'head_facilitator', 'head_gm']).order('name'),
+    supabase.from('committee_positions').select('value, label').order('label'),
+  ])
+
+  const initialInvites = (invitesRes.data as StaffInvite[] | null) ?? []
+  const initialMembers = (membersRes.data as CommitteeMember[] | null) ?? []
+  const initialPositions = (positionsRes.data as CommitteePositionOption[] | null) ?? []
 
   return (
     <main className="scr" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px', boxSizing: 'border-box' }}>
@@ -28,7 +43,11 @@ export default async function AdminPage() {
         </Link>
       </div>
 
-      <AdminStaff />
+      <AdminStaff
+        initialInvites={initialInvites}
+        initialMembers={initialMembers}
+        initialPositions={initialPositions}
+      />
     </main>
   )
 }

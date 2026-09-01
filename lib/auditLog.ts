@@ -42,7 +42,7 @@ export const AUDIT_PAGE_SIZE = 50
 
 // search_text is filtered on but never selected — it duplicates the visible
 // fields.
-const COLUMNS =
+export const COLUMNS =
   'id, occurred_at, actor_type, actor_id, actor_name, actor_email, actor_role, ' +
   'actor_position, auth_role, action, table_name, record_id, summary, ' +
   'changed_fields, old_data, new_data'

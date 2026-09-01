@@ -31,13 +31,6 @@ import {
 import { formatDateHeading, formatTimeRange, toLocalDateIso } from '@/lib/booking-helpers'
 import { MyGroupPanel } from '@/app/practice/MyGroupPanel'
 
-type Props = {
-  orientation: Orientation
-  orientationYear?: number
-  isAdmin: boolean
-  currentUserId: string
-}
-
 type MemberWithProfile = {
   member_id: string
   joined_at: string
@@ -55,23 +48,51 @@ const primaryBtnStyle: React.CSSProperties = { padding: '9px 16px', borderRadius
 const secondaryBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', color: '#334155', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }
 const dangerBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#FEE2E2', color: '#B91C1C', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }
 
-export function HeadPracticeDashboard({ orientation, orientationYear = 2026, isAdmin, currentUserId }: Props) {
-  const [groups, setGroups] = useState<HeadPracticeGroup[]>([])
-  const [roster, setRoster] = useState<CommitteeRosterEntry[]>([])
-  const [positions, setPositions] = useState<CommitteePositionOption[]>([])
-  const [myGroup, setMyGroup] = useState<MyGroup | null>(null)
-  const [loading, setLoading] = useState(true)
+type Props = {
+  orientation: Orientation
+  orientationYear?: number
+  isAdmin: boolean
+  currentUserId: string
+  initialGroups?: HeadPracticeGroup[]
+  initialRoster?: CommitteeRosterEntry[]
+  initialMyGroup?: MyGroup | null
+  initialPositions?: CommitteePositionOption[]
+}
+
+export function HeadPracticeDashboard({
+  orientation,
+  orientationYear = 2026,
+  isAdmin,
+  currentUserId,
+  initialGroups = [],
+  initialRoster = [],
+  initialMyGroup = null,
+  initialPositions = [],
+}: Props) {
+  const [groups, setGroups] = useState<HeadPracticeGroup[]>(initialGroups)
+  const [roster, setRoster] = useState<CommitteeRosterEntry[]>(initialRoster)
+  const [positions, setPositions] = useState<CommitteePositionOption[]>(initialPositions)
+  const [myGroup, setMyGroup] = useState<MyGroup | null>(initialMyGroup)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'mygroup' | 'groups' | 'members'>('mygroup')
+  const [activeTab, setActiveTab] = useState<'mygroup' | 'groups' | 'members'>(initialMyGroup ? 'mygroup' : 'groups')
 
   const [reloadToken, setReloadToken] = useState(0)
   const load = useCallback(() => setReloadToken((n) => n + 1), [])
 
+  const isInitialMount = useRef(true)
+
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      if (initialGroups.length > 0 || initialRoster.length > 0) return
+    }
+
     let active = true
 
     async function run() {
+      setLoading(true)
       const [{ data: g, error: gErr }, { data: r, error: rErr }, { data: mg, error: mgErr }, { data: p }] = await Promise.all([
         getHeadPracticeGroups(orientation, orientationYear),
         getHeadCommitteeRoster(orientation, orientationYear),

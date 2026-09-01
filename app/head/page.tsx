@@ -14,6 +14,9 @@ function isOrientation(value: string | string[] | undefined): value is Orientati
   return value === 'february' || value === 'april' || value === 'december'
 }
 
+import { createClient } from '@/lib/supabase/server'
+import type { HeadSlot, HeadBooking } from '@/lib/head'
+
 const ORIENTATIONS: { key: Orientation; label: string; icon: string }[] = [
   { key: 'february', label: 'February', icon: '🌸' },
   { key: 'april', label: 'April', icon: '🌿' },
@@ -59,6 +62,15 @@ export default async function HeadPage({
   const orientationYear: number = isRestricted && profile.orientation_year
     ? profile.orientation_year
     : (params.year ? parseInt(String(params.year), 10) || 2026 : 2026)
+
+  // Server-side parallel pre-fetch for instant rendering
+  const supabase = await createClient()
+  const [slotsRes, bookingsRes] = await Promise.all([
+    supabase.rpc('head_slots', { p_track: track, p_orientation: orientation, p_year: orientationYear }),
+    supabase.rpc('head_bookings', { p_track: track, p_orientation: orientation, p_year: orientationYear }),
+  ])
+  const initialSlots = (slotsRes.data as HeadSlot[] | null) ?? []
+  const initialBookings = (bookingsRes.data as HeadBooking[] | null) ?? []
 
   const orientationLabel = ORIENTATIONS.find(o => o.key === orientation)?.label || 'February'
   const visibleOrientations = isRestricted ? ORIENTATIONS.filter(o => o.key === orientation) : ORIENTATIONS
@@ -122,7 +134,15 @@ export default async function HeadPage({
         </div>
       </div>
 
-      <HeadDashboard track={track} orientation={orientation} orientationYear={orientationYear} profileId={profile.id} isAdmin={isAdmin} />
+      <HeadDashboard
+        track={track}
+        orientation={orientation}
+        orientationYear={orientationYear}
+        profileId={profile.id}
+        isAdmin={isAdmin}
+        initialSlots={initialSlots}
+        initialBookings={initialBookings}
+      />
     </main>
   )
 }

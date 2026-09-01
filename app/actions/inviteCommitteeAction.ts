@@ -70,10 +70,31 @@ export async function bulkInviteApprovedAction(
   const admin = createAdminClient(profile.id)
   const siteUrl = await getSiteUrl()
 
+  const emails = approved
+    .map((b) => b.applicant_email?.trim().toLowerCase())
+    .filter((e): e is string => Boolean(e))
+
+  if (emails.length === 0) {
+    return { ...empty, error: null }
+  }
+
+  // 1. Batch lookup existing invites for all candidates in a single query
+  const { data: existingRows } = await admin
+    .from('staff_invites')
+    .select('id, email, claimed_at')
+    .in('email', emails)
+
+  const existingMap = new Map((existingRows ?? []).map((r) => [r.email.toLowerCase(), r]))
+
   let invited = 0
   let alreadyInvited = 0
   let alreadyClaimed = 0
   let failed = 0
+
+  const toCreate: {
+    booking: ApprovedBookingRow
+    email: string
+  }[] = []
 
   for (const b of approved) {
     const email = b.applicant_email?.trim().toLowerCase()
@@ -82,55 +103,61 @@ export async function bulkInviteApprovedAction(
       continue
     }
 
-    const { data: existing } = await admin
-      .from('staff_invites')
-      .select('id, claimed_at')
-      .eq('email', email)
-      .maybeSingle()
-
+    const existing = existingMap.get(email)
     if (existing) {
       if (existing.claimed_at) alreadyClaimed++
       else alreadyInvited++
       continue
     }
 
-    const { data: created, error: insertErr } = await admin
-      .from('staff_invites')
-      .insert({
-        name: b.applicant_name,
-        student_id: b.student_id,
-        email,
-        role: 'committee',
-        track,
-        // 'facilitator' / 'game_master' are pre-seeded committee_positions
-        // values (0028) whose labels are exactly "Facilitator" / "Game
-        // Master" — the title matches the track they were approved for.
-        position: track,
-        orientation,
-        orientation_year: orientationYear,
-      })
-      .select('*')
-      .single()
+    toCreate.push({ booking: b, email })
+  }
 
-    if (insertErr || !created) {
-      failed++
-      continue
+  if (toCreate.length > 0) {
+    // 2. Batch insert new staff invites in a single round-trip
+    const newRows = toCreate.map(({ booking: b, email }) => ({
+      name: b.applicant_name,
+      student_id: b.student_id,
+      email,
+      role: 'committee' as const,
+      track,
+      position: track,
+      orientation,
+      orientation_year: orientationYear,
+    }))
+
+    const { data: createdRows, error: insertErr } = await admin
+      .from('staff_invites')
+      .insert(newRows)
+      .select('*')
+
+    if (insertErr || !createdRows) {
+      console.error('Batch invite insert failed:', insertErr)
+      failed += toCreate.length
+      return { invited, alreadyInvited, alreadyClaimed, failed, error: insertErr?.message ?? 'Failed to create invites' }
     }
 
-    const activationLink = `${siteUrl}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(created.code)}`
-
-    const res = await sendInvitationEmail({
-      name: created.name,
-      email,
-      code: created.code,
-      activationLink,
-      position: created.position,
+    // 3. Dispatch invitation emails concurrently
+    const emailPromises = createdRows.map(async (created) => {
+      const email = created.email
+      const activationLink = `${siteUrl}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(created.code)}`
+      const res = await sendInvitationEmail({
+        name: created.name,
+        email,
+        code: created.code,
+        activationLink,
+        position: created.position,
+      })
+      return res.success
     })
 
-    if (res.success) {
-      invited++
-    } else {
-      failed++
+    const results = await Promise.allSettled(emailPromises)
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) {
+        invited++
+      } else {
+        failed++
+      }
     }
   }
 

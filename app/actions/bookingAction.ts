@@ -70,10 +70,21 @@ export async function sendBulkWelcomeEmailsAction(
   const profile = await getCurrentProfile()
   const adminDb = createAdminClient(profile?.id)
   
-  let successCount = 0
-  let failCount = 0
+  const bookingIds = bookings.map((b) => b.booking_id)
+  if (bookingIds.length === 0) {
+    return { successCount: 0, failCount: 0 }
+  }
 
-  for (const b of bookings) {
+  // 1. Batch fetch current experiences for all targeted bookings in one query
+  const { data: currentBookings } = await adminDb
+    .from('bookings')
+    .select('id, experiences')
+    .in('id', bookingIds)
+
+  const expMap = new Map((currentBookings ?? []).map((r) => [r.id, r.experiences || '']))
+
+  // 2. Dispatch welcome emails concurrently
+  const emailTasks = bookings.map(async (b) => {
     try {
       const res = await sendWelcomeEmail({
         applicant_name: b.applicant_name,
@@ -83,28 +94,29 @@ export async function sendBulkWelcomeEmailsAction(
         customBody,
       })
       if (res.success) {
-        successCount++
-        
-        // 1. Fetch current experiences to append status tag
-        const { data: currentBooking } = await adminDb
-          .from('bookings')
-          .select('experiences')
-          .eq('id', b.booking_id)
-          .single()
-        
-        const currentExp = currentBooking?.experiences || ''
+        const currentExp = expMap.get(b.booking_id) || ''
         const updatedExp = currentExp + (currentExp.includes('[Welcome Email Sent]') ? '' : '\n\n[Welcome Email Sent]')
-        
-        // 2. Persist to database
         await adminDb
           .from('bookings')
           .update({ experiences: updatedExp })
           .eq('id', b.booking_id)
-      } else {
-        failCount++
+        return { success: true }
       }
+      return { success: false }
     } catch (err) {
       console.error(`Bulk welcome email failed for ${b.applicant_email}:`, err)
+      return { success: false }
+    }
+  })
+
+  const results = await Promise.allSettled(emailTasks)
+  let successCount = 0
+  let failCount = 0
+
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value.success) {
+      successCount++
+    } else {
       failCount++
     }
   }

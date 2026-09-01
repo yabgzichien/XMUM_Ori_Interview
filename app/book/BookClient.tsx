@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getAvailableSlots, type Track } from '@/lib/bookings'
 import { bookSlotAction } from '@/app/actions/bookingAction'
@@ -73,12 +73,22 @@ function FieldError({ message }: { message: string }) {
   return <div style={{ fontSize: '12.5px', color: '#B91C1C', fontWeight: 600, marginTop: '5px' }}>{message}</div>
 }
 
-export function BookClient() {
+type BookClientProps = {
+  initialSlotsByTrack?: Record<Track, AvailableSlot[]>
+  initialOrientation?: Orientation
+  initialTrack?: Track
+}
+
+export function BookClient({
+  initialSlotsByTrack,
+  initialOrientation,
+  initialTrack,
+}: BookClientProps = {}) {
   const searchParams = useSearchParams()
-  const initTrack: Track = isTrack(searchParams.get('track')) ? (searchParams.get('track') as Track) : 'facilitator'
-  const initOrientation: Orientation = isOrientation(searchParams.get('orientation'))
+  const initTrack: Track = initialTrack ?? (isTrack(searchParams.get('track')) ? (searchParams.get('track') as Track) : 'facilitator')
+  const initOrientation: Orientation = initialOrientation ?? (isOrientation(searchParams.get('orientation'))
     ? (searchParams.get('orientation') as Orientation)
-    : DEFAULT_ORIENTATION
+    : DEFAULT_ORIENTATION)
 
   const [orientation, setOrientation] = useState<Orientation>(initOrientation)
   const [track, setTrack] = useState<Track>(initTrack)
@@ -86,11 +96,13 @@ export function BookClient() {
 
   // Both tracks are loaded together so each tab can show a truthful count
   // before you click it.
-  const [slotsByTrack, setSlotsByTrack] = useState<Record<Track, AvailableSlot[]>>({
-    facilitator: [],
-    game_master: [],
-  })
-  const [loading, setLoading] = useState(true)
+  const [slotsByTrack, setSlotsByTrack] = useState<Record<Track, AvailableSlot[]>>(
+    initialSlotsByTrack ?? {
+      facilitator: [],
+      game_master: [],
+    }
+  )
+  const [loading, setLoading] = useState(!initialSlotsByTrack)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -111,10 +123,20 @@ export function BookClient() {
   const [reloadToken, setReloadToken] = useState(0)
   const loadSlots = useCallback(() => setReloadToken((n) => n + 1), [])
 
+  const isInitialMount = useRef(true)
+
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      if (initialSlotsByTrack && (initialSlotsByTrack.facilitator.length > 0 || initialSlotsByTrack.game_master.length > 0)) {
+        return
+      }
+    }
+
     let active = true
 
     async function run() {
+      setLoading(true)
       const [fac, gm] = await Promise.all([
         getAvailableSlots('facilitator', orientation),
         getAvailableSlots('game_master', orientation),

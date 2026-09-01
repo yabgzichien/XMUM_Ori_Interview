@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { PracticeClient } from '@/app/practice/PracticeClient'
+import { createClient } from '@/lib/supabase/server'
+import type { MyGroup, AvailableGroup } from '@/lib/practice'
 
 export default async function PracticePage() {
   const profile = await getCurrentProfile()
@@ -22,6 +24,17 @@ export default async function PracticePage() {
     : 'December'
   const orientationYear = profile.orientation_year || 2026
 
+  // Server-side parallel pre-fetch
+  const supabase = await createClient()
+  const [myGroupRes, availableGroupsRes] = await Promise.all([
+    supabase.rpc('my_practice_group'),
+    supabase.rpc('available_practice_groups'),
+  ])
+
+  const myGroupRows = (myGroupRes.data as MyGroup[] | null) ?? []
+  const initialMyGroup = myGroupRows && myGroupRows.length > 0 ? myGroupRows[0] : null
+  const initialAvailableGroups = (availableGroupsRes.data as AvailableGroup[] | null) ?? []
+
   return (
     <main className="scr" style={{ width: '100%', maxWidth: '1000px', margin: '0 auto', padding: '32px 16px 48px', boxSizing: 'border-box' }}>
       <div style={{ marginBottom: '24px' }}>
@@ -32,7 +45,11 @@ export default async function PracticePage() {
           Join a performance practice group for your orientation cycle and keep up with its scheduled sessions.
         </p>
       </div>
-      <PracticeClient currentUserId={profile.id} />
+      <PracticeClient
+        currentUserId={profile.id}
+        initialMyGroup={initialMyGroup}
+        initialAvailableGroups={initialAvailableGroups}
+      />
     </main>
   )
 }

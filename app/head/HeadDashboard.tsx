@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BulkCreateForm } from '@/app/head/BulkCreateForm'
 import { SlotsTable } from '@/app/head/SlotsTable'
 import { BookingsTable } from '@/app/head/BookingsTable'
@@ -14,15 +14,24 @@ type Props = {
   orientationYear?: number
   profileId: string
   isAdmin: boolean
+  initialSlots?: HeadSlot[]
+  initialBookings?: HeadBooking[]
 }
 
-export function HeadDashboard({ track, orientation, orientationYear = 2026, profileId }: Props) {
-  const [slots, setSlots] = useState<HeadSlot[]>([])
-  const [slotsLoading, setSlotsLoading] = useState(true)
+export function HeadDashboard({
+  track,
+  orientation,
+  orientationYear = 2026,
+  profileId,
+  initialSlots = [],
+  initialBookings = [],
+}: Props) {
+  const [slots, setSlots] = useState<HeadSlot[]>(initialSlots)
+  const [slotsLoading, setSlotsLoading] = useState(false)
   const [slotsError, setSlotsError] = useState<string | null>(null)
 
-  const [bookings, setBookings] = useState<HeadBooking[]>([])
-  const [bookingsLoading, setBookingsLoading] = useState(true)
+  const [bookings, setBookings] = useState<HeadBooking[]>(initialBookings)
+  const [bookingsLoading, setBookingsLoading] = useState(false)
   const [bookingsError, setBookingsError] = useState<string | null>(null)
 
   const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'invites'>('slots')
@@ -35,10 +44,20 @@ export function HeadDashboard({ track, orientation, orientationYear = 2026, prof
   const refreshSlots = useCallback(() => setSlotsToken((n) => n + 1), [])
   const refreshBookings = useCallback(() => setBookingsToken((n) => n + 1), [])
 
+  // Track whether this is the initial render to avoid redundant fetch
+  const isInitialSlotsMount = useRef(true)
+  const isInitialBookingsMount = useRef(true)
+
   useEffect(() => {
+    if (isInitialSlotsMount.current) {
+      isInitialSlotsMount.current = false
+      if (initialSlots.length > 0) return
+    }
+
     let active = true
 
     async function run() {
+      setSlotsLoading(true)
       const { data, error } = await getHeadSlots(track, orientation, orientationYear)
       if (!active) return
       setSlotsLoading(false)
@@ -58,9 +77,15 @@ export function HeadDashboard({ track, orientation, orientationYear = 2026, prof
   }, [track, orientation, orientationYear, slotsToken])
 
   useEffect(() => {
+    if (isInitialBookingsMount.current) {
+      isInitialBookingsMount.current = false
+      if (initialBookings.length > 0) return
+    }
+
     let active = true
 
     async function run() {
+      setBookingsLoading(true)
       const { data, error } = await getHeadBookings(track, orientation, orientationYear)
       if (!active) return
       setBookingsLoading(false)

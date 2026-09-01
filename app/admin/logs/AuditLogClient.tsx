@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import {
   listAuditLog,
   actionLabel,
@@ -67,12 +67,20 @@ function localInputToIso(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }
 
-export function AuditLogClient() {
-  const [entries, setEntries] = useState<AuditEntry[]>([])
-  const [loading, setLoading] = useState(true)
+type AuditLogClientProps = {
+  initialEntries?: AuditEntry[]
+  initialHasMore?: boolean
+}
+
+export function AuditLogClient({
+  initialEntries = [],
+  initialHasMore = false,
+}: AuditLogClientProps = {}) {
+  const [entries, setEntries] = useState<AuditEntry[]>(initialEntries)
+  const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(false)
+  const [hasMore, setHasMore] = useState(initialHasMore)
 
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -85,6 +93,8 @@ export function AuditLogClient() {
   const [reloadToken, setReloadToken] = useState(0)
   const reload = useCallback(() => setReloadToken((n) => n + 1), [])
 
+  const isInitialMount = useRef(true)
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300)
     return () => clearTimeout(timer)
@@ -92,6 +102,13 @@ export function AuditLogClient() {
 
   // First page. Any filter change re-runs this and discards the previous pages.
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      if (initialEntries.length > 0 && !debouncedSearch && action === 'all' && table === 'all' && !from && !to) {
+        return
+      }
+    }
+
     let active = true
 
     async function run() {
