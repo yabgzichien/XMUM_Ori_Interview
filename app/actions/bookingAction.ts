@@ -58,6 +58,56 @@ export async function bookSlotAction(
   return { data: booking, error: null }
 }
 
+export async function confirmReservationAction(
+  token: string,
+  input: PublicBookingInput
+): Promise<{ data: PublicBooking | null; error: string | null }> {
+  const supabase = await createClient()
+
+  const combinedExperiences = input.experiences.trim() + (input.links?.trim() ? `\n\nRelevant Links:\n${input.links.trim()}` : '')
+
+  const { data, error } = await supabase.rpc('confirm_reservation', {
+    p_token: token,
+    p_name: input.name,
+    p_student_id: input.studentId || null,
+    p_email: input.email,
+    p_experiences: combinedExperiences,
+  })
+
+  if (error || !data) {
+    return { data: null, error: error?.message || 'Database booking failed.' }
+  }
+
+  const booking = data as PublicBooking
+
+  const { data: slot } = await supabase
+    .from('slots')
+    .select('starts_at, ends_at, venue')
+    .eq('id', booking.slot_id)
+    .maybeSingle()
+
+  const bookingDetails = {
+    id: booking.id,
+    applicant_name: booking.applicant_name,
+    applicant_email: booking.applicant_email,
+    track: booking.track,
+    starts_at: slot?.starts_at || '',
+    ends_at: slot?.ends_at || '',
+    created_at: booking.created_at,
+    venue: slot?.venue || '',
+  }
+
+  sendBookingConfirmation(bookingDetails).then((res) => {
+    if (res.success) {
+      console.log(`Booking confirmation email sent to ${bookingDetails.applicant_email}. MessageId: ${res.messageId}`)
+    } else {
+      console.warn(`Booking confirmation email failed: ${res.error}`)
+    }
+  })
+
+  return { data: booking, error: null }
+}
+
 export async function sendBulkWelcomeEmailsAction(
   bookings: { booking_id: string; applicant_name: string; applicant_email: string; track: string }[],
   customSubject?: string,
