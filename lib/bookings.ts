@@ -36,6 +36,24 @@ export async function getAvailableSlots(track: Track, orientation: Orientation) 
   return { data: (data as AvailableSlot[] | null) ?? null, error }
 }
 
+export type SlotHold = {
+  hold_id: string
+  token: string
+  expires_at: string
+}
+
+export async function reserveSlot(slotId: string, prevToken: string | null) {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('reserve_slot', { p_slot: slotId, p_prev_token: prevToken })
+  return { data: (data as SlotHold | null) ?? null, error }
+}
+
+export async function releaseHold(token: string) {
+  const supabase = createClient()
+  const { error } = await supabase.rpc('release_hold', { p_token: token })
+  return { error }
+}
+
 export async function bookSlotPublic(slotId: string, input: PublicBookingInput) {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('book_slot_public', {
