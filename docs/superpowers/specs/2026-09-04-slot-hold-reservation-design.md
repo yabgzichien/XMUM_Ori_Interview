@@ -41,7 +41,7 @@ not a consumer product) that's accepted debt, not a real cost.
 create table slot_holds (
   id uuid primary key default gen_random_uuid(),
   slot_id uuid not null references slots(id),
-  token uuid not null default gen_random_uuid(),
+  token uuid not null default gen_random_uuid() unique,
   held_at timestamptz not null default now(),
   released boolean not null default false
 );
@@ -77,8 +77,10 @@ Returns a `bookings` row, same shape as `book_slot_public` returns today.
    from `'slot is full'` so the frontend can show the right explanation.
 3. Re-validate the booking window (defensive; mirrors `book_slot_public`).
 4. Insert into `bookings` exactly as `book_slot_public` does today, including the
-   existing `unique_violation` → `'this email already has an active booking in this
-   track'` handling.
+   existing `unique_violation` handling — email and student ID each have their own
+   partial unique index (per track/orientation/year), reported as `'this email
+   already has an active booking in this track for this orientation'` or the
+   student-ID equivalent depending on which constraint fired.
 5. Mark the hold `released = true` in the same transaction.
 
 ### New: `release_hold(p_token uuid)`
@@ -115,9 +117,12 @@ mid-step-2 doesn't strand the applicant with an orphaned hold they can't recover
   step 2. On failure (slot filled or held by someone else in the interim), shows an
   inline "that slot was just taken — pick another" message, calls `loadSlots()`, and
   stays on step 1.
-- **Step 2:** a visible countdown, ticking from `holdExpiresAt`. At zero: the form
-  locks (inputs and Confirm disabled), shows "Your hold expired — that seat may be
-  gone," with a button back to step 1 that reloads the live list.
+- **Step 2:** a visible countdown, ticking from `holdExpiresAt`. `holdExpiresAt` is
+  anchored on the *client's own clock* at reserve time (`Date.now() + 3 minutes`),
+  not the server's `expires_at` timestamp — a device clock running fast would
+  otherwise read a fresh hold as already expired. At zero: the form locks (inputs
+  and Confirm disabled), shows "Your hold expired — that seat may be gone," with a
+  button back to step 1 that reloads the live list.
 - **Back (step 2 → 1):** calls `release_hold(holdToken)`, clears hold state, calls
   `loadSlots()`. This is what keeps the "swap" mechanism from mattering in the common
   case — an applicant who browses, picks, then changes their mind frees the seat
@@ -134,16 +139,18 @@ mid-step-2 doesn't strand the applicant with an orphaned hold they can't recover
 |---|---|---|
 | Slot full/window closed at reserve time | `reserve_slot` | `'slot is full'` / `'booking window is closed for this track'` |
 | Hold expired before confirm | `confirm_reservation` | `'hold expired'` (new, distinct from slot-full) |
-| Duplicate email in track at confirm | `confirm_reservation` | `'this email already has an active booking in this track'` (unchanged) |
+| Duplicate email/student ID in track at confirm | `confirm_reservation` | `'this email already has an active booking in this track for this orientation'` or the student-ID equivalent (unchanged from `book_slot_public`) |
+| Slot full at confirm time (capacity lowered after the hold was taken) | `confirm_reservation` | `'slot is full'` |
 | Release on an already-gone hold | `release_hold` | no-op, no error (idempotent) |
 
 ## Known trade-offs (accepted, not deferred)
 
-- **No defense against multi-tab/incognito hold-spam.** The swap mechanism caps one
-  active hold *per browser session*, not per person — someone with several tabs or
-  windows can still hold several seats at once. Accepted for this audience (a link
-  shared with orientation applicants, not the open internet); revisit only if it's
-  actually abused.
+- **No defense against scripted or multi-session hold-spam.** `reserve_slot` is
+  anon-callable with no rate limiting, and the swap mechanism only caps one active
+  hold *per browser session*, not per person — several tabs, or a short script
+  re-reserving under 3 minutes, could hold every open seat in a track indefinitely.
+  Accepted for this audience (a link shared with orientation applicants, not the
+  open internet); revisit only if it's actually abused.
 - **`slot_holds` grows unbounded.** No sweep/cleanup job. Fine at this app's volume;
   would need revisiting if this pattern were reused somewhere with much higher
   booking-attempt volume.
@@ -175,3 +182,28 @@ guarantees directly rather than mocking):
    persistence.
 4. Remove `book_slot_public` and its caller once the new flow is verified end-to-end
    (separate cleanup step, not blocking).
+
+## Amendment (2026-09-04) — hardening found by the final review
+
+Two gaps surfaced only once the whole branch was reviewed together (neither was
+visible from any single task's diff):
+
+- **`confirm_reservation` had no capacity re-check before inserting.**
+  `book_slot_public` had one; the omission here meant an admin lowering a slot's
+  capacity while a hold was live (the head dashboard's capacity-lowering guard only
+  blocks going below `booked_count`, not `booked_count + held_count`) could let a
+  confirm exceed capacity. Fixed by adding `select ... for update` on the slot row
+  and a `booked_count >= capacity` check, mirroring `book_slot_public`'s own
+  pattern — should have been there from the start. Covered by a new test.
+- **`slot_holds.slot_id` had no `on delete cascade`.** Since hold rows persist
+  forever (the lazy-expiry, no-sweep design above), any slot that was ever held —
+  even after the hold expired or released — became permanently undeletable via the
+  head dashboard. Fixed in the same follow-up migration.
+
+Both landed in `supabase/migrations/0036_slot_holds_hardening.sql`.
+
+Also: `BookClient.tsx`'s step-1 seat counts (`openCount`, the date-filter checks,
+the per-card "N left" badge) initially kept computing `capacity - booked_count`
+instead of reading the RPC's `seats_left` — silently defeating the whole point of
+this feature, since a held slot still displayed and behaved as available. Fixed by
+switching all five call sites to `seats_left`.
