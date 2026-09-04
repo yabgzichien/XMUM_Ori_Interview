@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   canModifyBooking,
+  formatCountdown,
   formatDateHeading,
   formatTimeRange,
   groupSlotsByDate,
@@ -125,5 +126,24 @@ describe('formatDateHeading', () => {
 
   it('formats a different date correctly', () => {
     expect(formatDateHeading('2026-01-01')).toBe('Thu, 1 Jan 2026')
+  })
+})
+
+describe('formatCountdown', () => {
+  it('formats whole minutes', () => {
+    expect(formatCountdown(180_000)).toBe('3:00')
+  })
+
+  it('pads single-digit seconds', () => {
+    expect(formatCountdown(65_000)).toBe('1:05')
+  })
+
+  it('floors partial seconds', () => {
+    expect(formatCountdown(5_400)).toBe('0:05')
+  })
+
+  it('clamps zero and negative values to 0:00', () => {
+    expect(formatCountdown(0)).toBe('0:00')
+    expect(formatCountdown(-1000)).toBe('0:00')
   })
 })

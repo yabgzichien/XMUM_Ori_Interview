@@ -103,3 +103,11 @@ export function formatDateHeading(dateIso: string): string {
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
   return `${get('weekday')}, ${get('day')} ${get('month')} ${get('year')}`
 }
+
+/** Formats milliseconds remaining as "M:SS", clamped at "0:00". */
+export function formatCountdown(msRemaining: number): string {
+  const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
