@@ -149,10 +149,20 @@ export function BookClient({
         sessionStorage.removeItem(HOLD_STORAGE_KEY)
         return
       }
+      if (saved.orientation !== orientation) {
+        // Restoring would require switching orientation, which re-triggers the
+        // slot-loading effect and races the stray-slot bounce (and the pre-
+        // existing setSelectedId(null) once that refetch resolves) against
+        // stale data for the old orientation. Simplest safe path: don't
+        // restore across an orientation mismatch — release the hold server-
+        // side so the seat doesn't sit orphaned until it naturally expires.
+        releaseHold(saved.token)
+        sessionStorage.removeItem(HOLD_STORAGE_KEY)
+        return
+      }
       setHoldToken(saved.token)
       setHoldExpiresAt(saved.expiresAt)
       setTrack(saved.track)
-      setOrientation(saved.orientation)
       setSelectedId(saved.slotId)
       setStep(2)
     } catch {
