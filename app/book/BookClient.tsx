@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { getAvailableSlots, type Track } from '@/lib/bookings'
-import { bookSlotAction } from '@/app/actions/bookingAction'
-import { formatDateHeading, formatTimeRange, toLocalDateIso, type AvailableSlot } from '@/lib/booking-helpers'
+import { getAvailableSlots, reserveSlot, releaseHold, type Track } from '@/lib/bookings'
+import { confirmReservationAction } from '@/app/actions/bookingAction'
+import { formatCountdown, formatDateHeading, formatTimeRange, toLocalDateIso, type AvailableSlot } from '@/lib/booking-helpers'
 import {
   DEFAULT_ORIENTATION,
   ORIENTATIONS,
   isOrientation,
   type Orientation,
 } from '@/lib/orientation'
+
+const HOLD_STORAGE_KEY = 'xmumori-book-hold'
 
 const TRACKS: { key: Track; title: string; icon: string; blurb: string }[] = [
   { key: 'facilitator', title: 'Facilitator', icon: '🎯', blurb: 'Guide new students through orientation week.' },
@@ -118,12 +120,78 @@ export function BookClient({
   const [showErrors, setShowErrors] = useState(false)
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
 
+  const [holdToken, setHoldToken] = useState<string | null>(null)
+  const [holdExpiresAt, setHoldExpiresAt] = useState<number | null>(null)
+  const [remainingMs, setRemainingMs] = useState<number | null>(null)
+  const [reserving, setReserving] = useState(false)
+  const [reserveError, setReserveError] = useState<string | null>(null)
+  const [holdDead, setHoldDead] = useState(false)
+
   const slots = slotsByTrack[track]
 
   const [reloadToken, setReloadToken] = useState(0)
   const loadSlots = useCallback(() => setReloadToken((n) => n + 1), [])
 
   const isInitialMount = useRef(true)
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem(HOLD_STORAGE_KEY)
+    if (!raw) return
+    try {
+      const saved = JSON.parse(raw) as {
+        token: string
+        expiresAt: number
+        slotId: string
+        track: Track
+        orientation: Orientation
+      }
+      if (saved.expiresAt <= Date.now()) {
+        sessionStorage.removeItem(HOLD_STORAGE_KEY)
+        return
+      }
+      setHoldToken(saved.token)
+      setHoldExpiresAt(saved.expiresAt)
+      setTrack(saved.track)
+      setOrientation(saved.orientation)
+      setSelectedId(saved.slotId)
+      setStep(2)
+    } catch {
+      sessionStorage.removeItem(HOLD_STORAGE_KEY)
+    }
+    // Runs once on mount only — restoring a hold shouldn't re-fire on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (step !== 2 || !holdExpiresAt) {
+      setRemainingMs(null)
+      return
+    }
+    const tick = () => setRemainingMs(Math.max(0, holdExpiresAt - Date.now()))
+    tick()
+    const interval = setInterval(tick, 1000)
+    return () => clearInterval(interval)
+  }, [step, holdExpiresAt])
+
+  // If a restored hold's slot no longer exists in the freshly loaded list
+  // (e.g. an admin deleted it while the hold was active), don't strand the
+  // applicant on a blank step 2 — bounce back to the picker.
+  useEffect(() => {
+    if (step === 2 && !loading && !slots.find((s) => s.id === selectedId)) {
+      setStep(1)
+    }
+  }, [step, loading, slots, selectedId])
+
+  const holdExpired = remainingMs !== null && remainingMs <= 0
+  const holdLocked = holdExpired || holdDead
+
+  function clearHold() {
+    setHoldToken(null)
+    setHoldExpiresAt(null)
+    setRemainingMs(null)
+    setHoldDead(false)
+    sessionStorage.removeItem(HOLD_STORAGE_KEY)
+  }
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -182,13 +250,13 @@ export function BookClient({
   const formInvalid = Boolean(nameError || studentIdError || emailError || experiencesError)
 
   async function confirmBooking() {
-    if (!selectedSlot) return
+    if (!selectedSlot || !holdToken) return
     setShowErrors(true)
     setSubmitError(null)
     if (formInvalid) return
 
     setSubmitting(true)
-    const { data, error } = await bookSlotAction(selectedSlot.id, {
+    const { data, error } = await confirmReservationAction(holdToken, {
       name: name.trim(),
       studentId: studentId.trim(),
       email: email.trim(),
@@ -198,6 +266,7 @@ export function BookClient({
     setSubmitting(false)
 
     if (data) {
+      clearHold()
       setConfirmation({
         name: data.applicant_name,
         studentId: studentId.trim(),
@@ -208,10 +277,52 @@ export function BookClient({
       setStep(3)
       return
     }
-    setSubmitError(error ?? 'Something went wrong. Please try again.')
-    // The slot may have filled while the form was open — refresh the list so
-    // the applicant sees the real state instead of a stale "seats left".
+
+    // A duplicate email/student ID is user-fixable — the hold is still alive
+    // (confirm_reservation only releases it on success), so let them retry.
+    if (error?.includes('already has an active booking')) {
+      setSubmitError(error)
+      return
+    }
+
+    // Anything else means the hold itself is dead (expired, or the slot/
+    // window changed under it) — retrying Confirm would just fail the same
+    // way again, so lock the form instead of leaving a misleading retry path.
+    setHoldDead(true)
+    setSubmitError(error ?? 'Your hold expired. That seat may be gone.')
+  }
+
+  async function goBackToStep1() {
+    if (holdToken) {
+      await releaseHold(holdToken)
+    }
+    clearHold()
+    setStep(1)
+    setSubmitError(null)
     loadSlots()
+  }
+
+  async function reserveAndContinue() {
+    if (!selectedSlot) return
+    setReserving(true)
+    setReserveError(null)
+    const { data, error } = await reserveSlot(selectedSlot.id, holdToken)
+    setReserving(false)
+
+    if (!data) {
+      setReserveError(error?.message ?? 'That slot was just taken — pick another.')
+      loadSlots()
+      return
+    }
+
+    const expiresAt = new Date(data.expires_at).getTime()
+    setHoldToken(data.token)
+    setHoldExpiresAt(expiresAt)
+    sessionStorage.setItem(
+      HOLD_STORAGE_KEY,
+      JSON.stringify({ token: data.token, expiresAt, slotId: selectedSlot.id, track, orientation }),
+    )
+    setStep(2)
   }
 
   function bookAnother() {
@@ -224,6 +335,7 @@ export function BookClient({
     setFilterDate('')
     setShowErrors(false)
     setSubmitError(null)
+    clearHold()
     setStep(1)
     loadSlots()
   }
@@ -423,13 +535,19 @@ export function BookClient({
             </span>
             <button
               type="button"
-              disabled={!selectedSlot}
-              onClick={() => setStep(2)}
-              style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot ? '#2563EB' : '#CBD5E1', cursor: selectedSlot ? 'pointer' : 'not-allowed', boxShadow: selectedSlot ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
+              disabled={!selectedSlot || reserving}
+              onClick={reserveAndContinue}
+              style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot && !reserving ? '#2563EB' : '#CBD5E1', cursor: selectedSlot && !reserving ? 'pointer' : 'not-allowed', boxShadow: selectedSlot && !reserving ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
             >
-              Continue →
+              {reserving ? 'Holding your seat…' : 'Continue →'}
             </button>
           </div>
+
+          {reserveError && (
+            <div style={{ marginTop: '12px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
+              {reserveError}
+            </div>
+          )}
         </div>
       )}
 
@@ -437,22 +555,35 @@ export function BookClient({
       {step === 2 && selectedSlot && (
         <div className="scr book-2" style={{ display: 'grid', gridTemplateColumns: '1.5fr .7fr', gap: '16px', alignItems: 'start' }}>
           <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '20px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 14px', letterSpacing: '-.01em' }}>Your details</h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 14px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, letterSpacing: '-.01em' }}>Your details</h2>
+              {!holdLocked && remainingMs !== null && (
+                <span style={{ fontSize: '13px', fontWeight: 700, color: remainingMs < 30_000 ? '#B91C1C' : '#2563EB', background: remainingMs < 30_000 ? '#FEF2F2' : '#EFF4FF', padding: '5px 10px', borderRadius: '99px' }}>
+                  Seat held · {formatCountdown(remainingMs)}
+                </span>
+              )}
+            </div>
+
+            {holdLocked && (
+              <div style={{ marginBottom: '14px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
+                Your hold expired — that seat may be gone.
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={fieldLabelStyle} htmlFor="bk-name">Full name</label>
-                <input id="bk-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aisha Rahman" style={fieldStyle} />
+                <input id="bk-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aisha Rahman" style={fieldStyle} disabled={holdLocked} />
                 {showErrors && nameError && <FieldError message={nameError} />}
               </div>
               <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
                   <label style={fieldLabelStyle} htmlFor="bk-student-id">Student ID</label>
-                  <input id="bk-student-id" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="AC22XXXXX" style={fieldStyle} />
+                  <input id="bk-student-id" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="AC22XXXXX" style={fieldStyle} disabled={holdLocked} />
                   {showErrors && studentIdError && <FieldError message={studentIdError} />}
                 </div>
                 <div>
                   <label style={fieldLabelStyle} htmlFor="bk-email">Email</label>
-                  <input id="bk-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@xmu.edu.my" style={fieldStyle} />
+                  <input id="bk-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@xmu.edu.my" style={fieldStyle} disabled={holdLocked} />
                   {showErrors && emailError && <FieldError message={emailError} />}
                 </div>
               </div>
@@ -465,6 +596,7 @@ export function BookClient({
                   placeholder="Clubs, events, leadership, gaming, or anything you'd like us to know."
                   rows={4}
                   style={{ ...fieldStyle, resize: 'vertical', lineHeight: 1.5 }}
+                  disabled={holdLocked}
                 />
                 {showErrors && experiencesError && <FieldError message={experiencesError} />}
               </div>
@@ -472,7 +604,7 @@ export function BookClient({
                 <label style={fieldLabelStyle} htmlFor="bk-links">
                   Relevant links <span style={{ color: '#94A3B8', fontWeight: 500 }}>(optional)</span>
                 </label>
-                <input id="bk-links" value={links} onChange={(e) => setLinks(e.target.value)} placeholder="e.g. Portfolio, GitHub, LinkedIn" style={fieldStyle} />
+                <input id="bk-links" value={links} onChange={(e) => setLinks(e.target.value)} placeholder="e.g. Portfolio, GitHub, LinkedIn" style={fieldStyle} disabled={holdLocked} />
               </div>
             </div>
 
@@ -483,17 +615,19 @@ export function BookClient({
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setStep(1)} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                ← Back
+              <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                {holdLocked ? 'Choose another slot' : '← Back'}
               </button>
-              <button
-                type="button"
-                onClick={confirmBooking}
-                disabled={submitting}
-                style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? '#CBD5E1' : '#16A34A', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(22,163,74,.45)' }}
-              >
-                {submitting ? 'Booking…' : 'Confirm booking'}
-              </button>
+              {!holdLocked && (
+                <button
+                  type="button"
+                  onClick={confirmBooking}
+                  disabled={submitting}
+                  style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? '#CBD5E1' : '#16A34A', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(22,163,74,.45)' }}
+                >
+                  {submitting ? 'Booking…' : 'Confirm booking'}
+                </button>
+              )}
             </div>
           </div>
 
