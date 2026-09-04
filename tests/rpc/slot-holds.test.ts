@@ -204,4 +204,36 @@ describe.skipIf(!hasEnv)('slot hold RPCs', () => {
     expect(retried.error).toBeNull()
     expect(retried.data?.status).toBe('booked')
   })
+
+  it('confirm_reservation refuses to overbook if capacity is lowered after the hold was taken', async () => {
+    const slot = await makeSlot({ capacity: 2 })
+    const client = anon()
+
+    const first = await client.rpc('reserve_slot', { p_slot: slot.id, p_prev_token: null })
+    expect(first.error).toBeNull()
+    const firstBooking = await client.rpc('confirm_reservation', {
+      p_token: first.data.token,
+      p_name: 'Overbook A',
+      p_student_id: 'AC220005',
+      p_email: `overbook_a_${Date.now()}@test.local`,
+      p_experiences: 'N/A',
+    })
+    expect(firstBooking.error).toBeNull()
+
+    const second = await client.rpc('reserve_slot', { p_slot: slot.id, p_prev_token: null })
+    expect(second.error).toBeNull()
+
+    // Simulate an admin lowering capacity while the second hold is still live.
+    await admin.from('slots').update({ capacity: 1 }).eq('id', slot.id)
+
+    const rejected = await client.rpc('confirm_reservation', {
+      p_token: second.data.token,
+      p_name: 'Overbook B',
+      p_student_id: 'AC220006',
+      p_email: `overbook_b_${Date.now()}@test.local`,
+      p_experiences: 'N/A',
+    })
+    expect(rejected.error).not.toBeNull()
+    expect(rejected.error?.message).toMatch(/full/i)
+  })
 })
