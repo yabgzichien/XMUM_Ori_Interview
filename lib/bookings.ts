@@ -54,14 +54,3 @@ export async function releaseHold(token: string) {
   return { error }
 }
 
-export async function bookSlotPublic(slotId: string, input: PublicBookingInput) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('book_slot_public', {
-    p_slot: slotId,
-    p_name: input.name,
-    p_student_id: input.studentId,
-    p_email: input.email,
-    p_experiences: input.experiences,
-  })
-  return { data: (data as PublicBooking | null) ?? null, error }
-}
