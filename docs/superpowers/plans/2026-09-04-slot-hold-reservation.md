@@ -17,7 +17,7 @@
 - All new RPCs are `language plpgsql security definer set search_path = public`, matching every existing booking RPC.
 - `slot_holds` gets RLS enabled with **zero policies** — all access goes through the RPCs, never direct table access.
 - Follow `BookClient.tsx`'s existing convention: inline `style={{...}}` objects, no CSS framework, no new component library.
-- Integration tests for RPCs live in `tests/rpc/` and follow the `describe.skipIf(!hasEnv)` real-Supabase-project convention already used by `tests/rpc/booking.test.ts` — this repo's `.env.local` has real credentials configured, so these tests actually run, not just typecheck.
+- Integration tests for RPCs live in `tests/rpc/` and follow the `describe.skipIf(!hasEnv)` real-Supabase-project convention already used by `tests/rpc/booking.test.ts` — this repo's `.env.local` has real credentials configured. **Plain `npm test` does not load `.env.local`** (`vitest.config.ts` has no env-loading step) and will silently report these as skipped rather than passing. Always run RPC integration tests as `node --env-file=.env.local node_modules/.bin/vitest run <file>`, matching how `npm run migrate`/`npm run seed` already load env vars in this repo.
 
 ---
 
@@ -453,8 +453,10 @@ describe.skipIf(!hasEnv)('slot hold RPCs', () => {
 
 - [ ] **Step 4: Run the tests**
 
-Run: `npm test -- tests/rpc/slot-holds.test.ts`
-Expected: all 7 tests PASS (`.env.local` already has real Supabase credentials configured in this repo, so this suite actually executes rather than skipping).
+Plain `npm test` does NOT load `.env.local` (`vitest.config.ts` has no env-loading step — same reason the pre-existing `tests/rpc/booking.test.ts` and `tests/rpc/audit.test.ts` self-skip under plain `npm test`), so it would silently report these tests as skipped rather than passing. Run instead, matching how `npm run migrate`/`npm run seed` already load env vars in this repo:
+
+Run: `node --env-file=.env.local node_modules/.bin/vitest run tests/rpc/slot-holds.test.ts`
+Expected: all 7 tests PASS (real network call to the live Supabase project — confirm the output shows actual pass/fail counts, not "skipped").
 
 - [ ] **Step 5: Commit**
 
@@ -1031,8 +1033,10 @@ In `lib/bookings.ts`, delete the `bookSlotPublic` function (the block starting `
 
 - [ ] **Step 4: Confirm nothing broke**
 
-Run: `npx tsc --noEmit && npm test`
-Expected: typecheck clean; full test suite passes (including Task 1's `slot-holds.test.ts`, which doesn't touch `book_slot_public` at all, and the pre-existing `booking.test.ts`, which tests the unrelated authenticated `book_slot` RPC — not `book_slot_public` — so it's unaffected by this drop).
+Run: `npx tsc --noEmit && node --env-file=.env.local node_modules/.bin/vitest run`
+(plain `npm test` does not load `.env.local` — see Task 1 Step 4's note — so use the `--env-file` form here too, to actually exercise the RPC integration tests against the live project rather than silently skipping them.)
+
+Expected: typecheck clean. `tests/rpc/slot-holds.test.ts` (Task 1) passes in full — it doesn't touch `book_slot_public` at all. `tests/rpc/booking.test.ts` has 4 pre-existing failures unrelated to this change (`cancel_booking`/`reschedule_booking` erroring with "more than one row returned by a subquery used as an expression" — their `track_settings` lookup predates the `orientation_year` migration and was never updated; confirmed present on `main` before this plan's first commit). That file tests the legacy authenticated `book_slot` RPC, not `book_slot_public` — so it's unaffected by this task either way. Do not attempt to fix those 4 failures; they're out of scope for this plan. Every other test file should pass.
 
 - [ ] **Step 5: Commit**
 
