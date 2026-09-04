@@ -13,6 +13,7 @@ import {
 } from '@/lib/orientation'
 
 const HOLD_STORAGE_KEY = 'xmumori-book-hold'
+const HOLD_TTL_MS = 3 * 60 * 1000
 
 const TRACKS: { key: Track; title: string; icon: string; blurb: string }[] = [
   { key: 'facilitator', title: 'Facilitator', icon: '🎯', blurb: 'Guide new students through orientation week.' },
@@ -188,9 +189,12 @@ export function BookClient({
   // applicant on a blank step 2 — bounce back to the picker.
   useEffect(() => {
     if (step === 2 && !loading && !slots.find((s) => s.id === selectedId)) {
+      if (holdToken) releaseHold(holdToken)
+      clearHold()
       setStep(1)
     }
-  }, [step, loading, slots, selectedId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, loading, slots, selectedId, holdToken])
 
   const holdExpired = remainingMs !== null && remainingMs <= 0
   const holdLocked = holdExpired || holdDead
@@ -233,7 +237,7 @@ export function BookClient({
   }, [orientation, reloadToken])
 
   const openCount = useCallback(
-    (t: Track) => slotsByTrack[t].filter((s) => s.capacity - s.booked_count > 0).length,
+    (t: Track) => slotsByTrack[t].filter((s) => s.seats_left > 0).length,
     [slotsByTrack],
   )
 
@@ -266,13 +270,21 @@ export function BookClient({
     if (formInvalid) return
 
     setSubmitting(true)
-    const { data, error } = await confirmReservationAction(holdToken, {
-      name: name.trim(),
-      studentId: studentId.trim(),
-      email: email.trim(),
-      experiences: experiences.trim(),
-      links: links.trim(),
-    })
+    let result: Awaited<ReturnType<typeof confirmReservationAction>>
+    try {
+      result = await confirmReservationAction(holdToken, {
+        name: name.trim(),
+        studentId: studentId.trim(),
+        email: email.trim(),
+        experiences: experiences.trim(),
+        links: links.trim(),
+      })
+    } catch {
+      setSubmitting(false)
+      setSubmitError('Something went wrong. Please try again.')
+      return
+    }
+    const { data, error } = result
     setSubmitting(false)
 
     if (data) {
@@ -295,11 +307,23 @@ export function BookClient({
       return
     }
 
-    // Anything else means the hold itself is dead (expired, or the slot/
-    // window changed under it) — retrying Confirm would just fail the same
-    // way again, so lock the form instead of leaving a misleading retry path.
-    setHoldDead(true)
-    setSubmitError(error ?? 'Your hold expired. That seat may be gone.')
+    // Only these specific messages mean the hold itself is genuinely dead
+    // (expired, or the slot/window changed under it) — anything else (a
+    // transient failure, an unexpected message) shouldn't permanently lock
+    // a form whose hold might still be perfectly live.
+    const holdIsDead =
+      error != null &&
+      (error.includes('hold expired') ||
+        error.includes('slot is not open') ||
+        error.includes('booking window is closed'))
+
+    if (holdIsDead) {
+      setHoldDead(true)
+      setSubmitError(null)
+      return
+    }
+
+    setSubmitError(error ?? 'Something went wrong. Please try again.')
   }
 
   async function goBackToStep1() {
@@ -325,7 +349,7 @@ export function BookClient({
       return
     }
 
-    const expiresAt = new Date(data.expires_at).getTime()
+    const expiresAt = Date.now() + HOLD_TTL_MS
     setHoldToken(data.token)
     setHoldExpiresAt(expiresAt)
     sessionStorage.setItem(
@@ -442,8 +466,8 @@ export function BookClient({
                 {[{ value: '', label: 'All dates' }, ...availableDates.map((d) => ({ value: d, label: formatDateHeading(d).replace(/, \d{4}$/, '') }))].map((option) => {
                   const active = filterDate === option.value
                   const hasOpen = option.value === ''
-                    ? slots.some((s) => s.capacity - s.booked_count > 0)
-                    : slots.some((s) => toLocalDateIso(s.starts_at) === option.value && s.capacity - s.booked_count > 0)
+                    ? slots.some((s) => s.seats_left > 0)
+                    : slots.some((s) => toLocalDateIso(s.starts_at) === option.value && s.seats_left > 0)
                   return (
                     <button
                       key={option.value || 'all'}
@@ -462,7 +486,7 @@ export function BookClient({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '10px', background: '#F8FAFC', border: '1px solid #EAEEF4', borderRadius: '10px', padding: '6px 12px', width: 'fit-content' }}>
                   <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{getDayOfWeek(filterDate)}</span>
                   <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#94A3B8' }} />
-                  {slots.some((s) => toLocalDateIso(s.starts_at) === filterDate && s.capacity - s.booked_count > 0) ? (
+                  {slots.some((s) => toLocalDateIso(s.starts_at) === filterDate && s.seats_left > 0) ? (
                     <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 600 }}>Open interviews available</span>
                   ) : (
                     <span style={{ fontSize: '13px', color: '#F97316', fontWeight: 600 }}>All interviews fully booked</span>
@@ -489,7 +513,7 @@ export function BookClient({
               </div>
             ) : (
               filteredSlots.map((sl) => {
-                const seatsLeft = sl.capacity - sl.booked_count
+                const seatsLeft = sl.seats_left
                 const status = seatsLeft <= 0 ? 'full' : seatsLeft <= 2 ? 'few' : 'open'
                 const selected = sl.id === selectedId
                 const full = status === 'full'
