@@ -47,11 +47,11 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
     const practiceHref = profile.role === 'admin' ? '/head/practice' : '/practice'
     return (
       <header style={{ background: '#fff', borderBottom: '1px solid #EAEEF4', position: 'relative', zIndex: 100 }}>
-        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        <div className="nav-container">
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '16px' }}>X</div>
-              <div style={{ fontWeight: 800, fontSize: '15px' }}>XMUM <span style={{ color: '#94A3B8', fontWeight: 600 }}>Committee</span></div>
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '16px', flexShrink: 0 }}>X</div>
+              <div style={{ fontWeight: 800, fontSize: '15px', whiteSpace: 'nowrap' }}>XMUM <span style={{ color: '#94A3B8', fontWeight: 600 }}>Committee</span></div>
             </Link>
             <nav className="nav-links flex gap-[4px]">
               {isStaff && (
@@ -75,7 +75,7 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
             </nav>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {/* Name + role pill — hidden on very small screens */}
             {profile.name && (
               <span className="nav-links" style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
@@ -99,7 +99,7 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
                 </div>
               )}
             </Link>
-            <form action="/auth/signout" method="post">
+            <form action="/auth/signout" method="post" className="nav-links">
               <button
                 type="submit"
                 style={{ padding: '8px 13px', borderRadius: '9px', border: '1px solid #E2E8F0', background: '#fff', color: '#64748B', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
@@ -157,6 +157,14 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
               <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>{displayRoleLabel(profile)}</div>
             </div>
           </Link>
+          <form action="/auth/signout" method="post" style={{ marginTop: '6px', borderTop: '1px solid #EAEEF4', paddingTop: '8px' }}>
+            <button
+              type="submit"
+              style={{ width: '100%', padding: '9px 12px', borderRadius: '9px', border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#B91C1C', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', textAlign: 'center' }}
+            >
+              Sign out
+            </button>
+          </form>
         </div>
       </header>
     )
@@ -164,25 +172,50 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
 
   return (
     <header style={{ background: '#fff', borderBottom: '1px solid #EAEEF4', position: 'relative', zIndex: 100 }}>
-      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-        <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '11px' }}>
-          <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '17px', boxShadow: '0 4px 12px -3px rgba(37,99,235,.5)' }}>X</div>
-          <div style={{ lineHeight: 1.15 }}>
+      <div className="nav-container">
+        <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '17px', boxShadow: '0 4px 12px -3px rgba(37,99,235,.5)', flexShrink: 0 }}>X</div>
+          <div style={{ lineHeight: 1.15, whiteSpace: 'nowrap' }}>
             <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em' }}>XMUM Orientation</div>
             <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Interview Booking</div>
           </div>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Link href="/book" style={{ padding: '9px 13px', borderRadius: '10px', border: 'none', background: 'transparent', color: '#334155', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+        {/* Desktop links */}
+        <div className="nav-links flex items-center gap-[8px]">
+          <Link href="/book" style={{ padding: '9px 13px', borderRadius: '10px', border: 'none', background: pathname === '/book' ? '#EFF4FF' : 'transparent', color: pathname === '/book' ? '#2563EB' : '#334155', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
             Book
           </Link>
-          <Link href="/my-booking" style={{ padding: '9px 13px', borderRadius: '10px', border: 'none', background: 'transparent', color: '#334155', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+          <Link href="/my-booking" style={{ padding: '9px 13px', borderRadius: '10px', border: 'none', background: pathname === '/my-booking' ? '#EFF4FF' : 'transparent', color: pathname === '/my-booking' ? '#2563EB' : '#334155', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
             Check booking
           </Link>
           <Link href="/login" style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#1E293B', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
             Committee
           </Link>
         </div>
+        {/* Mobile Hamburger Toggle */}
+        <button
+          type="button"
+          className="nav-mobile-toggle"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          style={{ background: 'none', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center' }}
+          aria-label="Open menu"
+        >
+          <span style={{ width: '18px', height: '2px', background: '#475569', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
+          <span style={{ width: '18px', height: '2px', background: '#475569', borderRadius: '1px', display: 'block', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.2s' }} />
+          <span style={{ width: '18px', height: '2px', background: '#475569', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
+        </button>
+      </div>
+      {/* Mobile dropdown */}
+      <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
+        <Link href="/book" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/book' ? '#EFF4FF' : 'transparent', color: pathname === '/book' ? '#2563EB' : '#334155' }}>
+          📝 Book an Interview
+        </Link>
+        <Link href="/my-booking" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/my-booking' ? '#EFF4FF' : 'transparent', color: pathname === '/my-booking' ? '#2563EB' : '#334155' }}>
+          🔍 Check Booking
+        </Link>
+        <Link href="/login" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/login' ? '#EFF4FF' : 'transparent', color: pathname === '/login' ? '#2563EB' : '#334155' }}>
+          🔐 Committee Login
+        </Link>
       </div>
     </header>
   )

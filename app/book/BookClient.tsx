@@ -375,19 +375,120 @@ export function BookClient({
   }
 
   return (
-    <main className="scr" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 24px 48px', boxSizing: 'border-box' }}>
+    <main className="scr book-page-main" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 24px 48px', boxSizing: 'border-box' }}>
       <style>{`
-        .book-orientations { display: flex; gap: 10px; }
-        .book-tracks { display: flex; gap: 10px; margin-bottom: 14px; }
-        @media (max-width: 560px) {
-          .book-orientations, .book-tracks { flex-direction: column; }
+        .book-orientations {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .book-tracks {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 14px;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .book-orientation-btn {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 16px;
+          border-radius: 14px;
+          cursor: pointer;
+          text-align: left;
+          transition: all .15s;
+          box-sizing: border-box;
+          width: 100%;
+        }
+        .book-track-btn {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 16px;
+          border-radius: 14px;
+          cursor: pointer;
+          text-align: left;
+          transition: all .15s;
+          box-sizing: border-box;
+          width: 100%;
+        }
+        .book-orientation-sub {
+          display: block;
+        }
+        @media (max-width: 640px) {
+          .book-orientations {
+            gap: 6px;
+            margin-bottom: 10px;
+          }
+          .book-tracks {
+            gap: 6px;
+            margin-bottom: 12px;
+          }
+          .book-orientation-btn {
+            padding: 8px 4px !important;
+            gap: 6px !important;
+            border-radius: 10px !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+          .book-orientation-icon {
+            font-size: 16px !important;
+          }
+          .book-orientation-title {
+            font-size: 13px !important;
+            white-space: nowrap !important;
+          }
+          .book-orientation-sub {
+            display: none !important;
+          }
+          .book-track-btn {
+            padding: 8px 10px !important;
+            gap: 8px !important;
+            border-radius: 10px !important;
+            align-items: center !important;
+          }
+          .book-track-icon {
+            font-size: 18px !important;
+          }
+          .book-track-title {
+            font-size: 13px !important;
+            white-space: nowrap !important;
+          }
+          .book-track-sub {
+            font-size: 11px !important;
+            white-space: nowrap !important;
+          }
+        }
+        @media (max-width: 380px) {
+          .book-orientation-btn {
+            padding: 8px 2px !important;
+            gap: 4px !important;
+          }
+          .book-orientation-title {
+            font-size: 12px !important;
+          }
+          .book-track-btn {
+            padding: 7px 6px !important;
+            gap: 6px !important;
+          }
+          .book-track-title {
+            font-size: 12.5px !important;
+          }
+          .book-track-sub {
+            font-size: 10.5px !important;
+          }
         }
       `}</style>
 
       <div style={{ marginBottom: '16px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.025em', margin: '0 0 4px' }}>Book an interview</h1>
         <p style={{ color: '#64748B', fontSize: '14px', margin: 0 }}>
-          Choose your track, pick a time that works, and tell us a little about you.
+          Please fill in your details in 10 minutes. The slots will be open to others after the timer ends
         </p>
       </div>
 
@@ -399,11 +500,11 @@ export function BookClient({
           const active = step === n
           return (
             <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '26px', height: '26px', borderRadius: '99px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12.5px', fontWeight: 700, background: done ? '#16A34A' : active ? '#2563EB' : '#EEF2F7', color: done || active ? '#fff' : '#94A3B8' }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '99px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12.5px', fontWeight: 700, background: done ? '#16A34A' : active ? '#2563EB' : '#EEF2F7', color: done || active ? '#fff' : '#94A3B8', flexShrink: 0 }}>
                 {done ? '✓' : n}
               </div>
-              <span style={{ fontSize: '13.5px', fontWeight: 600, color: active || done ? '#0F172A' : '#94A3B8' }}>{labels[n]}</span>
-              {n < 3 && <span style={{ width: '26px', height: '2px', background: '#E2E8F0', borderRadius: '2px' }} />}
+              <span style={{ fontSize: '13.5px', fontWeight: 600, color: active || done ? '#0F172A' : '#94A3B8', whiteSpace: 'nowrap' }}>{labels[n]}</span>
+              {n < 3 && <span className="stepper-divider" style={{ width: '26px', height: '2px', background: '#E2E8F0', borderRadius: '2px' }} />}
             </div>
           )
         })}
@@ -422,12 +523,16 @@ export function BookClient({
                     key={o.key}
                     type="button"
                     onClick={() => { setOrientation(o.key); setFilterDate('') }}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', padding: '15px 18px', borderRadius: '14px', cursor: 'pointer', textAlign: 'left', transition: 'all .15s', border: `1.5px solid ${active ? '#2563EB' : '#EAEEF4'}`, background: active ? '#EFF4FF' : '#fff' }}
+                    className="book-orientation-btn"
+                    style={{
+                      border: `1.5px solid ${active ? '#2563EB' : '#EAEEF4'}`,
+                      background: active ? '#EFF4FF' : '#fff',
+                    }}
                   >
-                    <span style={{ fontSize: '20px' }}>{o.icon}</span>
+                    <span className="book-orientation-icon" style={{ fontSize: '20px', flexShrink: 0 }}>{o.icon}</span>
                     <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
-                      <span style={{ fontWeight: 700, fontSize: '15px' }}>{o.label}</span>
-                      <span style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 500 }}>Orientation</span>
+                      <span className="book-orientation-title" style={{ fontWeight: 700, fontSize: '15px' }}>{o.label}</span>
+                      <span className="book-orientation-sub" style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 500 }}>Orientation</span>
                     </span>
                   </button>
                 )
@@ -444,12 +549,16 @@ export function BookClient({
                   key={t.key}
                   type="button"
                   onClick={() => { setTrack(t.key); setSelectedId(null); setFilterDate('') }}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', padding: '15px 18px', borderRadius: '14px', cursor: 'pointer', textAlign: 'left', transition: 'all .15s', border: `1.5px solid ${active ? '#2563EB' : '#EAEEF4'}`, background: active ? '#EFF4FF' : '#fff' }}
+                  className="book-track-btn"
+                  style={{
+                    border: `1.5px solid ${active ? '#2563EB' : '#EAEEF4'}`,
+                    background: active ? '#EFF4FF' : '#fff',
+                  }}
                 >
-                  <span style={{ fontSize: '20px' }}>{t.icon}</span>
+                  <span className="book-track-icon" style={{ fontSize: '20px', flexShrink: 0 }}>{t.icon}</span>
                   <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25 }}>
-                    <span style={{ fontWeight: 700, fontSize: '15px' }}>{t.title}</span>
-                    <span style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 500 }}>
+                    <span className="book-track-title" style={{ fontWeight: 700, fontSize: '15px' }}>{t.title}</span>
+                    <span className="book-track-sub" style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 500 }}>
                       {loading ? 'Loading…' : count === 0 ? 'No slots open' : `${count} slot${count === 1 ? '' : 's'} open`}
                     </span>
                   </span>

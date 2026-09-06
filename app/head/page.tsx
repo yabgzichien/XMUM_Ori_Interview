@@ -82,9 +82,9 @@ export default async function HeadPage({
           <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>{orientationLabel} {orientationYear} Orientation Dashboard</h1>
           <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0 }}>Manage interview slots and review applicants.</p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end' }}>
+        <div className="head-header-controls" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end' }}>
           {/* Orientation Tabs */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="head-orientation-tabs" style={{ display: 'flex', gap: '8px' }}>
             {visibleOrientations.map(o => (
               <Link
                 key={o.key}

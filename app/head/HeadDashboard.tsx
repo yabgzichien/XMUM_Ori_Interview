@@ -114,11 +114,11 @@ export function HeadDashboard({
     .reduce((acc, slot) => acc + Math.max(0, slot.capacity - slot.booked_count), 0)
   const fillRate = totalSeats > 0 ? Math.round((bookedSeats / totalSeats) * 100) : 0
 
-  const stats: { label: string; value: string; hint?: string }[] = [
-    { label: 'Slots', value: String(slots.length), hint: `${upcomingSlots.length} upcoming` },
-    { label: 'Seats booked', value: `${bookedSeats} / ${totalSeats}`, hint: `${fillRate}% filled` },
-    { label: 'Seats still open', value: String(openSeatsLeft), hint: 'upcoming & open' },
-    { label: 'Applicants', value: String(bookings.length), hint: 'active bookings' },
+  const stats: { label: string; shortLabel: string; value: string; hint?: string }[] = [
+    { label: 'Slots', shortLabel: 'Slots', value: String(slots.length), hint: `${upcomingSlots.length} upcoming` },
+    { label: 'Seats booked', shortLabel: 'Booked', value: `${bookedSeats} / ${totalSeats}`, hint: `${fillRate}% filled` },
+    { label: 'Seats still open', shortLabel: 'Open', value: String(openSeatsLeft), hint: 'upcoming & open' },
+    { label: 'Applicants', shortLabel: 'Applicants', value: String(bookings.length), hint: 'active bookings' },
   ]
 
   const invitedBookings = bookings.filter((b) => b.invited_at)
@@ -128,10 +128,13 @@ export function HeadDashboard({
     <>
       <div className="stats-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
         {stats.map((stat) => (
-          <div key={stat.label} style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '12px', padding: '12px 18px', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
-            <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>{stat.label}</span>
-            <span style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', lineHeight: 1.15 }}>{stat.value}</span>
-            {stat.hint && <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#94A3B8', marginTop: '2px' }}>{stat.hint}</span>}
+          <div key={stat.label} className="stat-card">
+            <span className="stat-card-label">
+              <span className="stat-label-full">{stat.label}</span>
+              <span className="stat-label-short">{stat.shortLabel}</span>
+            </span>
+            <span className="stat-card-value">{stat.value}</span>
+            {stat.hint && <span className="stat-card-hint">{stat.hint}</span>}
           </div>
         ))}
       </div>
@@ -141,18 +144,83 @@ export function HeadDashboard({
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
-        <div className="tab-group" style={{ display: 'flex', borderBottom: '1px solid #EAEEF4', background: '#F8FAFC' }}>
-          <button type="button" onClick={() => setActiveTab('slots')} style={{ flex: 1, padding: '16px 20px', border: 'none', background: activeTab === 'slots' ? '#fff' : 'transparent', color: activeTab === 'slots' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderBottom: activeTab === 'slots' ? 'none' : '1px solid #EAEEF4', borderRight: '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'background 0.2s' }}>
-            <span>📅</span> Available Slots
-            <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'slots' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{slots.length}</span>
+        <div className="tab-group">
+          <button
+            type="button"
+            onClick={() => setActiveTab('slots')}
+            style={{
+              flex: '1 0 auto',
+              padding: '16px 20px',
+              border: 'none',
+              background: activeTab === 'slots' ? '#fff' : 'transparent',
+              color: activeTab === 'slots' ? '#0F172A' : '#64748B',
+              fontWeight: 700,
+              fontSize: '14.5px',
+              cursor: 'pointer',
+              borderBottom: activeTab === 'slots' ? 'none' : '1px solid #EAEEF4',
+              borderRight: '1px solid #EAEEF4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span>📅</span>
+            <span><span className="tab-label-full">Available </span>Slots</span>
+            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'slots' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{slots.length}</span>
           </button>
-          <button type="button" onClick={() => setActiveTab('bookings')} style={{ flex: 1, padding: '16px 20px', border: 'none', background: activeTab === 'bookings' ? '#fff' : 'transparent', color: activeTab === 'bookings' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderBottom: activeTab === 'bookings' ? 'none' : '1px solid #EAEEF4', borderRight: '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'background 0.2s' }}>
-            <span>👤</span> Booked Applicants
-            <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'bookings' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{bookings.length}</span>
+          <button
+            type="button"
+            onClick={() => setActiveTab('bookings')}
+            style={{
+              flex: '1 0 auto',
+              padding: '16px 20px',
+              border: 'none',
+              background: activeTab === 'bookings' ? '#fff' : 'transparent',
+              color: activeTab === 'bookings' ? '#0F172A' : '#64748B',
+              fontWeight: 700,
+              fontSize: '14.5px',
+              cursor: 'pointer',
+              borderBottom: activeTab === 'bookings' ? 'none' : '1px solid #EAEEF4',
+              borderRight: '1px solid #EAEEF4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span>👤</span>
+            <span><span className="tab-label-full">Booked </span>Applicants</span>
+            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'bookings' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{bookings.length}</span>
           </button>
-          <button type="button" onClick={() => setActiveTab('invites')} style={{ flex: 1, padding: '16px 20px', border: 'none', background: activeTab === 'invites' ? '#fff' : 'transparent', color: activeTab === 'invites' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderBottom: activeTab === 'invites' ? 'none' : '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'background 0.2s' }}>
-            <span>📋</span> Registration
-            <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'invites' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{registeredCount}/{invitedBookings.length}</span>
+          <button
+            type="button"
+            onClick={() => setActiveTab('invites')}
+            style={{
+              flex: '1 0 auto',
+              padding: '16px 20px',
+              border: 'none',
+              background: activeTab === 'invites' ? '#fff' : 'transparent',
+              color: activeTab === 'invites' ? '#0F172A' : '#64748B',
+              fontWeight: 700,
+              fontSize: '14.5px',
+              cursor: 'pointer',
+              borderBottom: activeTab === 'invites' ? 'none' : '1px solid #EAEEF4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span>📋</span>
+            <span>Registration</span>
+            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'invites' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{registeredCount}/{invitedBookings.length}</span>
           </button>
         </div>
 
