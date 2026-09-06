@@ -46,8 +46,8 @@ async function makeSlot(opts: { capacity?: number; hoursFromNow?: number } = {})
 }
 
 async function expireHold(token: string) {
-  // Backdate held_at past the 3-minute TTL instead of waiting in real time.
-  const staleTime = new Date(Date.now() - 4 * 60_000).toISOString()
+  // Backdate held_at past the 10-minute TTL instead of waiting in real time.
+  const staleTime = new Date(Date.now() - 11 * 60_000).toISOString()
   const { error } = await admin.from('slot_holds').update({ held_at: staleTime }).eq('token', token)
   if (error) throw error
 }

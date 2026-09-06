@@ -13,7 +13,7 @@ import {
 } from '@/lib/orientation'
 
 const HOLD_STORAGE_KEY = 'xmumori-book-hold'
-const HOLD_TTL_MS = 3 * 60 * 1000
+const HOLD_TTL_MS = 10 * 60 * 1000
 
 const TRACKS: { key: Track; title: string; icon: string; blurb: string }[] = [
   { key: 'facilitator', title: 'Facilitator', icon: '🎯', blurb: 'Guide new students through orientation week.' },

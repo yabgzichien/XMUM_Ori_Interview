@@ -131,6 +131,7 @@ describe('formatDateHeading', () => {
 
 describe('formatCountdown', () => {
   it('formats whole minutes', () => {
+    expect(formatCountdown(600_000)).toBe('10:00')
     expect(formatCountdown(180_000)).toBe('3:00')
   })
 
