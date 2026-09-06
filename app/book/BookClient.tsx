@@ -593,7 +593,7 @@ export function BookClient({
               <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, letterSpacing: '-.01em' }}>Your details</h2>
               {!holdLocked && remainingMs !== null && (
                 <span style={{ fontSize: '13px', fontWeight: 700, color: remainingMs < 30_000 ? '#B91C1C' : '#2563EB', background: remainingMs < 30_000 ? '#FEF2F2' : '#EFF4FF', padding: '5px 10px', borderRadius: '99px' }}>
-                  Seat held · {formatCountdown(remainingMs)}
+                  Timer · {formatCountdown(remainingMs)}
                 </span>
               )}
             </div>
