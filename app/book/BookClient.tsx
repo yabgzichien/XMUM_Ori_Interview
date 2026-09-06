@@ -598,71 +598,76 @@ export function BookClient({
               )}
             </div>
 
-            {holdLocked && (
-              <div style={{ marginBottom: '14px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
-                Your hold expired — that seat may be gone.
-              </div>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {holdLocked ? (
               <div>
-                <label style={fieldLabelStyle} htmlFor="bk-name">Full name</label>
-                <input id="bk-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aisha Rahman" style={fieldStyle} disabled={holdLocked} />
-                {showErrors && nameError && <FieldError message={nameError} />}
-              </div>
-              <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={fieldLabelStyle} htmlFor="bk-student-id">Student ID</label>
-                  <input id="bk-student-id" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="AC22XXXXX" style={fieldStyle} disabled={holdLocked} />
-                  {showErrors && studentIdError && <FieldError message={studentIdError} />}
+                <div style={{ marginBottom: '16px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
+                  Time Exceeded
                 </div>
-                <div>
-                  <label style={fieldLabelStyle} htmlFor="bk-email">Email</label>
-                  <input id="bk-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@xmu.edu.my" style={fieldStyle} disabled={holdLocked} />
-                  {showErrors && emailError && <FieldError message={emailError} />}
-                </div>
-              </div>
-              <div>
-                <label style={fieldLabelStyle} htmlFor="bk-experience">Relevant experience</label>
-                <textarea
-                  id="bk-experience"
-                  value={experiences}
-                  onChange={(e) => setExperiences(e.target.value)}
-                  placeholder="Clubs, events, leadership, gaming, or anything you'd like us to know."
-                  rows={4}
-                  style={{ ...fieldStyle, resize: 'vertical', lineHeight: 1.5 }}
-                  disabled={holdLocked}
-                />
-                {showErrors && experiencesError && <FieldError message={experiencesError} />}
-              </div>
-              <div>
-                <label style={fieldLabelStyle} htmlFor="bk-links">
-                  Relevant links <span style={{ color: '#94A3B8', fontWeight: 500 }}>(optional)</span>
-                </label>
-                <input id="bk-links" value={links} onChange={(e) => setLinks(e.target.value)} placeholder="e.g. Portfolio, GitHub, LinkedIn" style={fieldStyle} disabled={holdLocked} />
-              </div>
-            </div>
-
-            {submitError && (
-              <div style={{ marginTop: '14px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
-                {submitError}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
-              <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                {holdLocked ? 'Choose another slot' : '← Back'}
-              </button>
-              {!holdLocked && (
-                <button
-                  type="button"
-                  onClick={confirmBooking}
-                  disabled={submitting}
-                  style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? '#CBD5E1' : '#16A34A', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(22,163,74,.45)' }}
-                >
-                  {submitting ? 'Booking…' : 'Confirm booking'}
+                <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                  Choose another slot
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={fieldLabelStyle} htmlFor="bk-name">Full name</label>
+                    <input id="bk-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aisha Rahman" style={fieldStyle} />
+                    {showErrors && nameError && <FieldError message={nameError} />}
+                  </div>
+                  <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    <div>
+                      <label style={fieldLabelStyle} htmlFor="bk-student-id">Student ID</label>
+                      <input id="bk-student-id" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="AC22XXXXX" style={fieldStyle} />
+                      {showErrors && studentIdError && <FieldError message={studentIdError} />}
+                    </div>
+                    <div>
+                      <label style={fieldLabelStyle} htmlFor="bk-email">Email</label>
+                      <input id="bk-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@xmu.edu.my" style={fieldStyle} />
+                      {showErrors && emailError && <FieldError message={emailError} />}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={fieldLabelStyle} htmlFor="bk-experience">Relevant experience</label>
+                    <textarea
+                      id="bk-experience"
+                      value={experiences}
+                      onChange={(e) => setExperiences(e.target.value)}
+                      placeholder="Clubs, events, leadership, gaming, or anything you'd like us to know."
+                      rows={4}
+                      style={{ ...fieldStyle, resize: 'vertical', lineHeight: 1.5 }}
+                    />
+                    {showErrors && experiencesError && <FieldError message={experiencesError} />}
+                  </div>
+                  <div>
+                    <label style={fieldLabelStyle} htmlFor="bk-links">
+                      Relevant links <span style={{ color: '#94A3B8', fontWeight: 500 }}>(optional)</span>
+                    </label>
+                    <input id="bk-links" value={links} onChange={(e) => setLinks(e.target.value)} placeholder="e.g. Portfolio, GitHub, LinkedIn" style={fieldStyle} />
+                  </div>
+                </div>
+
+                {submitError && (
+                  <div style={{ marginTop: '14px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
+                    {submitError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
+                  <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmBooking}
+                    disabled={submitting}
+                    style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? '#CBD5E1' : '#16A34A', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(22,163,74,.45)' }}
+                  >
+                    {submitting ? 'Booking…' : 'Confirm booking'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '16px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', position: 'sticky', top: '80px' }}>
