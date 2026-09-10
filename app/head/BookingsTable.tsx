@@ -96,7 +96,56 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   const [notesValue, setNotesValue] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const { showToast, toastElement } = useToast()
+
+  async function handleExportExcel() {
+    setExporting(true)
+    try {
+      const params = new URLSearchParams({
+        track,
+        orientation,
+        year: String(orientationYear),
+      })
+      if (dateRange.start) {
+        params.set('startDate', toLocalDateIso(dateRange.start.toISOString()))
+      }
+      if (dateRange.end) {
+        params.set('endDate', toLocalDateIso(dateRange.end.toISOString()))
+      }
+
+      const res = await fetch(`/api/export/bookings?${params.toString()}`)
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error(errJson.error || `Export failed with status ${res.status}`)
+      }
+
+      const blob = await res.blob()
+      const disposition = res.headers.get('Content-Disposition')
+      let filename = `${orientation}_${orientationYear}_${track === 'game_master' ? 'GM' : 'Facilitator'}_Interview_Time_Slot_Export.xlsx`
+      if (disposition && disposition.includes('filename=')) {
+        const match = disposition.match(/filename="?([^";]+)"?/)
+        if (match && match[1]) {
+          filename = decodeURIComponent(match[1])
+        }
+      }
+
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      showToast('Excel file downloaded successfully.', 'success')
+    } catch (err: unknown) {
+      showToast(`Failed to export Excel: ${errorMessage(err)}`, 'error')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const approvedBookings = useMemo(() => {
     return bookings.filter((b) => b.interview_status === 'approved')
@@ -140,13 +189,14 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
       if (res.error) {
         showToast(`Failed to invite: ${res.error}`, 'error')
       } else {
-        showToast(
-          `Invited ${res.invited} new committee member${res.invited === 1 ? '' : 's'}.` +
-          (res.alreadyInvited ? ` ${res.alreadyInvited} already invited.` : '') +
-          (res.alreadyClaimed ? ` ${res.alreadyClaimed} already active.` : '') +
-          (res.failed ? ` ${res.failed} failed.` : ''),
-          res.failed > 0 ? 'info' : 'success',
-        )
+        const parts: string[] = []
+        if (res.invited > 0) parts.push(`Invited ${res.invited} new committee member${res.invited === 1 ? '' : 's'}.`)
+        if (res.resent > 0) parts.push(`Resent ${res.resent} pending invite${res.resent === 1 ? '' : 's'}.`)
+        if (res.alreadyClaimed > 0) parts.push(`${res.alreadyClaimed} already registered.`)
+        if (res.failed > 0) parts.push(`${res.failed} failed.`)
+        const msg = parts.length > 0 ? parts.join(' ') : 'All approved applicants are already registered.'
+        showToast(msg, res.failed > 0 ? 'info' : 'success')
+        onChanged()
       }
     } catch (err: unknown) {
       showToast(`Failed to invite to committee: ${errorMessage(err)}`, 'error')
@@ -246,8 +296,32 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
           </label>
         </div>
 
-        {approvedBookings.length > 0 && (
-          <div className="bulk-email-btn" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', height: '36px' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', height: '36px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={exporting}
+            style={{
+              padding: '8px 15px',
+              borderRadius: '8px',
+              border: '1px solid #CBD5E1',
+              background: '#fff',
+              color: '#334155',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              cursor: exporting ? 'not-allowed' : 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+              opacity: exporting ? 0.7 : 1,
+            }}
+          >
+            <span>📊</span> {exporting ? 'Exporting...' : 'Export to Excel'}
+          </button>
+
+          {approvedBookings.length > 0 && (
             <button
               type="button"
               onClick={handleInviteCommittee}
@@ -271,8 +345,8 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
             >
               <span>🎭</span> {invitingCommittee ? 'Inviting...' : `Invite Approved to Committee (${approvedBookings.length})`}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {loading && <div style={{ padding: '20px', color: '#64748B', fontSize: '14px' }}>Loading...</div>}

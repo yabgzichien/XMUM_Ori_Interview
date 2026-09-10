@@ -21,41 +21,61 @@ function formatTrack(track: string | undefined | null): string {
   return track.charAt(0).toUpperCase() + track.slice(1)
 }
 
+let cachedTransporter: nodemailer.Transporter | null = null
+let cachedTransporterKey = ''
+
 async function getTransporter(): Promise<{
-  transporter: nodemailer.Transporter
+  transporter: nodemailer.Transporter | null
   from: string
+  error?: string
 }> {
   const host = process.env.SMTP_HOST
-  const port = Number(process.env.SMTP_PORT || '587')
+  const port = Number(process.env.SMTP_PORT || '465')
   const user = process.env.SMTP_USER
   const pass = process.env.SMTP_PASSWORD
   const from = process.env.SMTP_FROM || `"XMUM Orientation Committee" <noreply@xmu.edu.my>`
 
   if (!host || !user || !pass) {
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_ETHEREAL_FALLBACK !== 'true') {
+      const err = 'SMTP configuration is missing in production environment (SMTP_HOST, SMTP_USER, or SMTP_PASSWORD not set).'
+      console.error(`[EMAIL ERROR] ${err}`)
+      return { transporter: null, from, error: err }
+    }
+
     console.warn('SMTP configuration is missing. Falling back to Ethereal SMTP test service...')
-    const testAccount = await nodemailer.createTestAccount()
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    })
-    return { transporter, from: `"XMUM Orientation (Test)" <${testAccount.user}>` }
+    if (!cachedTransporter || cachedTransporterKey !== 'ethereal') {
+      const testAccount = await nodemailer.createTestAccount()
+      cachedTransporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      })
+      cachedTransporterKey = 'ethereal'
+    }
+    return { transporter: cachedTransporter, from: `"XMUM Orientation (Test)" <${process.env.SMTP_USER || 'test@ethereal.email'}>` }
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: {
-      user,
-      pass,
-    },
-  })
-  return { transporter, from }
+  const key = `${host}:${port}:${user}`
+  if (!cachedTransporter || cachedTransporterKey !== key) {
+    cachedTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 50,
+      auth: {
+        user,
+        pass,
+      },
+    })
+    cachedTransporterKey = key
+  }
+  return { transporter: cachedTransporter, from }
 }
 
 /**
@@ -156,7 +176,10 @@ export function buildBookingConfirmationHtml(details: BookingDetails): string {
 export async function sendBookingConfirmation(
   details: BookingDetails
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const { transporter, from } = await getTransporter()
+  const { transporter, from, error } = await getTransporter()
+  if (!transporter) {
+    return { success: false, error: error || 'Email service unavailable.' }
+  }
   const trackStr = formatTrack(details.track)
 
   try {
@@ -214,7 +237,10 @@ export async function sendWelcomeEmail(
     customBody?: string
   }
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const { transporter, from } = await getTransporter()
+  const { transporter, from, error } = await getTransporter()
+  if (!transporter) {
+    return { success: false, error: error || 'Email service unavailable.' }
+  }
 
   const trackStr = formatTrack(details.track)
 
@@ -305,7 +331,10 @@ Once again, welcome onboard! We are excited to work with you.`
 export async function sendInvitationEmail(
   details: { name: string; email: string; code: string; activationLink: string; position?: string | null }
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const { transporter, from } = await getTransporter()
+  const { transporter, from, error } = await getTransporter()
+  if (!transporter) {
+    return { success: false, error: error || 'Email service unavailable.' }
+  }
   const position = details.position ? positionLabel(details.position) : null
 
   const htmlContent = `

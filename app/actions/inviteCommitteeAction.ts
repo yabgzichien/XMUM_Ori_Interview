@@ -18,6 +18,7 @@ type ApprovedBookingRow = {
 
 type BulkInviteResult = {
   invited: number
+  resent: number
   alreadyInvited: number
   alreadyClaimed: number
   failed: number
@@ -39,7 +40,7 @@ export async function bulkInviteApprovedAction(
   orientation: Orientation,
   orientationYear: number = 2026,
 ): Promise<BulkInviteResult> {
-  const empty = { invited: 0, alreadyInvited: 0, alreadyClaimed: 0, failed: 0 }
+  const empty = { invited: 0, resent: 0, alreadyInvited: 0, alreadyClaimed: 0, failed: 0 }
 
   const profile = await getCurrentProfile()
   if (!profile) {
@@ -81,12 +82,13 @@ export async function bulkInviteApprovedAction(
   // 1. Batch lookup existing invites for all candidates in a single query
   const { data: existingRows } = await admin
     .from('staff_invites')
-    .select('id, email, claimed_at')
+    .select('id, email, claimed_at, code, name, position')
     .in('email', emails)
 
   const existingMap = new Map((existingRows ?? []).map((r) => [r.email.toLowerCase(), r]))
 
   let invited = 0
+  let resent = 0
   let alreadyInvited = 0
   let alreadyClaimed = 0
   let failed = 0
@@ -94,6 +96,13 @@ export async function bulkInviteApprovedAction(
   const toCreate: {
     booking: ApprovedBookingRow
     email: string
+  }[] = []
+
+  const toResend: {
+    name: string
+    email: string
+    code: string
+    position?: string | null
   }[] = []
 
   for (const b of approved) {
@@ -105,13 +114,30 @@ export async function bulkInviteApprovedAction(
 
     const existing = existingMap.get(email)
     if (existing) {
-      if (existing.claimed_at) alreadyClaimed++
-      else alreadyInvited++
+      if (existing.claimed_at) {
+        alreadyClaimed++
+      } else {
+        // Invite already created but not claimed: resend so candidate actually receives their code
+        alreadyInvited++
+        toResend.push({
+          name: existing.name || b.applicant_name,
+          email,
+          code: existing.code,
+          position: existing.position || track,
+        })
+      }
       continue
     }
 
     toCreate.push({ booking: b, email })
   }
+
+  let createdRows: {
+    name: string
+    email: string
+    code: string
+    position: string | null
+  }[] = []
 
   if (toCreate.length > 0) {
     // 2. Batch insert new staff invites in a single round-trip
@@ -126,42 +152,74 @@ export async function bulkInviteApprovedAction(
       orientation_year: orientationYear,
     }))
 
-    const { data: createdRows, error: insertErr } = await admin
+    const { data: inserted, error: insertErr } = await admin
       .from('staff_invites')
       .insert(newRows)
       .select('*')
 
-    if (insertErr || !createdRows) {
+    if (insertErr || !inserted) {
       console.error('Batch invite insert failed:', insertErr)
       failed += toCreate.length
-      return { invited, alreadyInvited, alreadyClaimed, failed, error: insertErr?.message ?? 'Failed to create invites' }
+      return { invited, resent, alreadyInvited, alreadyClaimed, failed, error: insertErr?.message ?? 'Failed to create invites' }
     }
+    createdRows = inserted
+  }
 
-    // 3. Dispatch invitation emails concurrently
-    const emailPromises = createdRows.map(async (created) => {
-      const email = created.email
-      const activationLink = `${siteUrl}/register?email=${encodeURIComponent(email)}&code=${encodeURIComponent(created.code)}`
-      const res = await sendInvitationEmail({
-        name: created.name,
-        email,
-        code: created.code,
-        activationLink,
-        position: created.position,
+  // 3. Dispatch invitation emails with controlled concurrency of 3
+  const emailDispatches: {
+    name: string
+    email: string
+    code: string
+    position?: string | null
+    isResend: boolean
+  }[] = [
+    ...createdRows.map((c) => ({
+      name: c.name,
+      email: c.email,
+      code: c.code,
+      position: c.position,
+      isResend: false,
+    })),
+    ...toResend.map((r) => ({
+      name: r.name,
+      email: r.email,
+      code: r.code,
+      position: r.position,
+      isResend: true,
+    })),
+  ]
+
+  const CONCURRENCY = 3
+  for (let i = 0; i < emailDispatches.length; i += CONCURRENCY) {
+    const chunk = emailDispatches.slice(i, i + CONCURRENCY)
+    const chunkResults = await Promise.allSettled(
+      chunk.map(async (item) => {
+        const activationLink = `${siteUrl}/register?email=${encodeURIComponent(item.email)}&code=${encodeURIComponent(item.code)}`
+        const res = await sendInvitationEmail({
+          name: item.name,
+          email: item.email,
+          code: item.code,
+          activationLink,
+          position: item.position,
+        })
+        return { success: res.success, isResend: item.isResend }
       })
-      return res.success
-    })
+    )
 
-    const results = await Promise.allSettled(emailPromises)
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value) {
-        invited++
+    for (const r of chunkResults) {
+      if (r.status === 'fulfilled' && r.value.success) {
+        if (r.value.isResend) {
+          resent++
+        } else {
+          invited++
+        }
       } else {
         failed++
       }
     }
   }
 
-  return { invited, alreadyInvited, alreadyClaimed, failed, error: null }
+  return { invited, resent, alreadyInvited, alreadyClaimed, failed, error: null }
 }
 
 // Invites a single approved interviewee onto the committee, or re-sends the

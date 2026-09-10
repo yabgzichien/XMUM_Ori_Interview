@@ -4,6 +4,8 @@ import { getCurrentProfile } from '@/lib/auth'
 import { HeadDashboard } from '@/app/head/HeadDashboard'
 import type { Track, Orientation } from '@/lib/head'
 
+export const maxDuration = 60
+
 type SearchParams = { [key: string]: string | string[] | undefined }
 
 function isTrack(value: string | string[] | undefined): value is Track {

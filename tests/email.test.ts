@@ -36,3 +36,37 @@ describe('buildBookingConfirmationHtml', () => {
     expect(html).toContain('9:15 AM')
   })
 })
+
+describe('Email configuration error handling', () => {
+  it('fails with explicit error in production when SMTP env vars are unset', async () => {
+    const { sendInvitationEmail } = await import('@/lib/email')
+    const originalEnv = process.env.NODE_ENV
+    const originalHost = process.env.SMTP_HOST
+    const originalUser = process.env.SMTP_USER
+    const originalPass = process.env.SMTP_PASSWORD
+
+    try {
+      // @ts-expect-error override readonly in test
+      process.env.NODE_ENV = 'production'
+      delete process.env.SMTP_HOST
+      delete process.env.SMTP_USER
+      delete process.env.SMTP_PASSWORD
+
+      const res = await sendInvitationEmail({
+        name: 'Test Candidate',
+        email: 'test@candidate.local',
+        code: 'TESTCODE',
+        activationLink: 'https://example.com/register',
+      })
+
+      expect(res.success).toBe(false)
+      expect(res.error).toContain('SMTP configuration is missing in production environment')
+    } finally {
+      // @ts-expect-error restore in test
+      process.env.NODE_ENV = originalEnv
+      if (originalHost) process.env.SMTP_HOST = originalHost
+      if (originalUser) process.env.SMTP_USER = originalUser
+      if (originalPass) process.env.SMTP_PASSWORD = originalPass
+    }
+  })
+})
