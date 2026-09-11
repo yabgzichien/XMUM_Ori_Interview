@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import type { HeadBooking, HeadSlot, Orientation, Track } from '@/lib/head'
-import { generateInterviewBookingWorkbook } from '@/lib/excel-export'
+import { generateExportFilename, generateInterviewBookingWorkbook } from '@/lib/excel-export'
 
 function isTrack(val: string | null): val is Track {
   return val === 'facilitator' || val === 'game_master'
@@ -78,25 +78,19 @@ export async function GET(request: NextRequest) {
 
   const buffer = await workbook.xlsx.writeBuffer()
 
-  const trackLabel = track === 'game_master' ? 'GM' : 'Facilitator'
-  let filename: string
-  if (startDate && endDate && startDate === endDate) {
-    const parts = startDate.split('-') // ['YYYY', 'MM', 'DD']
-    const datePrefix = parts.length === 3 ? `${parts[2]}_${parts[1]}` : startDate
-    filename = `${datePrefix} ${trackLabel} Interview Time Slot Export.xlsx`
-  } else if (startDate && !endDate) {
-    const parts = startDate.split('-')
-    const datePrefix = parts.length === 3 ? `${parts[2]}_${parts[1]}` : startDate
-    filename = `${datePrefix} ${trackLabel} Interview Time Slot Export.xlsx`
-  } else {
-    filename = `${orientation}_${year}_${trackLabel}_Interview_Time_Slot_Export.xlsx`
-  }
+  const filename = generateExportFilename({
+    track,
+    orientation,
+    year,
+    startDate,
+    endDate,
+  })
 
   return new NextResponse(buffer, {
     status: 200,
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+      'Content-Disposition': `attachment; filename="${filename.replace(/"/g, '')}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
       'Cache-Control': 'no-store, max-age=0',
     },
   })

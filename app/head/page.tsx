@@ -81,8 +81,8 @@ export default async function HeadPage({
     <main className="scr head-page-main" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px', boxSizing: 'border-box' }}>
       <div className="head-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>{orientationLabel} {orientationYear} Orientation Dashboard</h1>
-          <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0 }}>Manage interview slots and review applicants.</p>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>{orientationLabel} {orientationYear} Orientation Dashboard</h1>
+          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>Manage interview slots and review applicants.</p>
         </div>
         <div className="head-header-controls" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end' }}>
           {/* Orientation Tabs */}
@@ -93,9 +93,9 @@ export default async function HeadPage({
                 href={`/head?orientation=${o.key}&track=${track}&year=${orientationYear}`}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-                  background: orientation === o.key ? '#EFF4FF' : '#fff',
-                  color: orientation === o.key ? '#2563EB' : '#475569',
-                  border: orientation === o.key ? '1px solid #2563EB' : '1px solid #E2E8F0',
+                  background: orientation === o.key ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card, #fff)',
+                  color: orientation === o.key ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #475569)',
+                  border: orientation === o.key ? '1px solid var(--accent-text, #2563EB)' : '1px solid var(--border-input, #E2E8F0)',
                   transition: 'all 0.15s',
                   display: 'flex', alignItems: 'center', gap: '6px',
                 }}
@@ -111,9 +111,9 @@ export default async function HeadPage({
                 href={`/head?orientation=${orientation}&track=facilitator&year=${orientationYear}`}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-                  background: track === 'facilitator' ? '#0F172A' : '#fff',
-                  color: track === 'facilitator' ? '#fff' : '#475569',
-                  border: track === 'facilitator' ? '1px solid #0F172A' : '1px solid #E2E8F0',
+                  background: track === 'facilitator' ? 'var(--text-primary, #0F172A)' : 'var(--bg-card, #fff)',
+                  color: track === 'facilitator' ? 'var(--bg-card, #fff)' : 'var(--text-secondary, #475569)',
+                  border: track === 'facilitator' ? '1px solid var(--text-primary, #0F172A)' : '1px solid var(--border-input, #E2E8F0)',
                   transition: 'all 0.15s'
                 }}
               >
@@ -123,9 +123,9 @@ export default async function HeadPage({
                 href={`/head?orientation=${orientation}&track=game_master&year=${orientationYear}`}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-                  background: track === 'game_master' ? '#0F172A' : '#fff',
-                  color: track === 'game_master' ? '#fff' : '#475569',
-                  border: track === 'game_master' ? '1px solid #0F172A' : '1px solid #E2E8F0',
+                  background: track === 'game_master' ? 'var(--text-primary, #0F172A)' : 'var(--bg-card, #fff)',
+                  color: track === 'game_master' ? 'var(--bg-card, #fff)' : 'var(--text-secondary, #475569)',
+                  border: track === 'game_master' ? '1px solid var(--text-primary, #0F172A)' : '1px solid var(--border-input, #E2E8F0)',
                   transition: 'all 0.15s'
                 }}
               >

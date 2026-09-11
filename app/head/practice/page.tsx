@@ -64,8 +64,8 @@ export default async function HeadPracticePage({
     <main className="scr head-page-main" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px', boxSizing: 'border-box' }}>
       <div className="head-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>{orientationLabel} {orientationYear} Practice Groups</h1>
-          <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0 }}>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>{orientationLabel} {orientationYear} Practice Groups</h1>
+          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>
             Create groups, assign performance leads, and track sessions. Facilitators and Game
             Masters practice together — groups aren&apos;t split by track.
           </p>
@@ -77,9 +77,9 @@ export default async function HeadPracticePage({
               href={`/head/practice?orientation=${o.key}&year=${orientationYear}`}
               style={{
                 padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-                background: orientation === o.key ? '#EFF4FF' : '#fff',
-                color: orientation === o.key ? '#2563EB' : '#475569',
-                border: orientation === o.key ? '1px solid #2563EB' : '1px solid #E2E8F0',
+                background: orientation === o.key ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card, #fff)',
+                color: orientation === o.key ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #475569)',
+                border: orientation === o.key ? '1px solid var(--accent-text, #2563EB)' : '1px solid var(--border-input, #E2E8F0)',
                 transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', gap: '6px',
               }}

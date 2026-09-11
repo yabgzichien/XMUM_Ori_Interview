@@ -86,13 +86,16 @@ function BookingCard({
     : { grad: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', light: '#F3F0FF', text: '#7C3AED' }
 
   return (
-    <div style={{
-      background: '#fff',
-      border: '1px solid #EAEEF4',
-      borderRadius: '20px',
-      overflow: 'hidden',
-      boxShadow: '0 4px 16px -6px rgba(0,0,0,0.08)',
-    }}>
+    <div
+      className="booking-card"
+      style={{
+        background: 'var(--bg-card, #fff)',
+        border: '1px solid var(--border-card, #EAEEF4)',
+        borderRadius: '20px',
+        overflow: 'hidden',
+        boxShadow: '0 4px 16px -6px rgba(0,0,0,0.08)',
+      }}
+    >
       {/* Track stripe header */}
       <div style={{ background: trackColor.grad, padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -131,20 +134,20 @@ function BookingCard({
       <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Date</div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>{formatDate(b.starts_at)}</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Date</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', lineHeight: 1.3 }}>{formatDate(b.starts_at)}</div>
           </div>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Time</div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{formatTime(b.starts_at)} – {formatTime(b.ends_at)}</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Time</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>{formatTime(b.starts_at)} – {formatTime(b.ends_at)}</div>
           </div>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Venue</div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{b.venue || 'TBA'}</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Venue</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>{b.venue || 'TBA'}</div>
           </div>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Student ID</div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase' }}>{b.student_id || '—'}</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Student ID</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase' }}>{b.student_id || '—'}</div>
           </div>
         </div>
 
@@ -179,7 +182,7 @@ function BookingCard({
         )}
 
         {isActive && isPast && (
-          <p style={{ textAlign: 'center', fontSize: '13px', color: '#94A3B8', fontStyle: 'italic', margin: 0 }}>
+          <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--text-muted, #94A3B8)', fontStyle: 'italic', margin: 0 }}>
             This slot has already passed.
           </p>
         )}
@@ -236,7 +239,7 @@ export function MyBookingClient() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 50%, #F8FAFC 100%)',
+      background: 'var(--bg-page-gradient, linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 50%, #F8FAFC 100%))',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -259,10 +262,10 @@ export function MyBookingClient() {
         }}>
           <span style={{ fontSize: '26px' }}>🎫</span>
         </div>
-        <h1 style={{ fontSize: '26px', fontWeight: 900, color: '#0F172A', margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-primary, #0F172A)', margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
           Check My Booking
         </h1>
-        <p style={{ fontSize: '14.5px', color: '#64748B', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
+        <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
           Enter your Student ID to view or manage your interview booking.
         </p>
       </div>
@@ -271,8 +274,8 @@ export function MyBookingClient() {
       <div className="my-booking-card" style={{
         width: '100%',
         maxWidth: '480px',
-        background: '#fff',
-        border: '1px solid #EAEEF4',
+        background: 'var(--bg-card, #fff)',
+        border: '1px solid var(--border-card, #EAEEF4)',
         borderRadius: '24px',
         boxShadow: '0 20px 40px -12px rgba(0,0,0,0.08)',
         overflow: 'hidden',
@@ -281,7 +284,7 @@ export function MyBookingClient() {
         <form onSubmit={handleLookup} style={{ padding: '28px 28px 24px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label htmlFor="student-id-input" style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
+              <label htmlFor="student-id-input" style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
                 Student ID
               </label>
               <input
@@ -289,24 +292,25 @@ export function MyBookingClient() {
                 type="text"
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
-                placeholder="e.g. DSC2404111"
+                placeholder="e.g. CST2109001"
                 required
+                autoComplete="off"
+                spellCheck="false"
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
-                  border: '1.5px solid #E2E8F0',
+                  padding: '13px 16px',
                   borderRadius: '12px',
-                  fontSize: '16px',
-                  fontFamily: '"JetBrains Mono", "Courier New", monospace',
-                  color: '#0F172A',
-                  outline: 'none',
+                  border: '1.5px solid var(--border-input, #E2E8F0)',
+                  fontSize: '15px',
+                  fontFamily: '"JetBrains Mono", monospace',
+                  letterSpacing: '0.04em',
+                  background: 'var(--bg-input, #fff)',
+                  color: 'var(--text-primary, #0F172A)',
                   boxSizing: 'border-box',
-                  background: '#FAFBFD',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.03em',
+                  outline: 'none',
+                  transition: 'border-color 0.15s, box-shadow 0.15s',
                 }}
               />
-
             </div>
 
             {lookupError && (
@@ -314,10 +318,10 @@ export function MyBookingClient() {
                 background: '#FEF2F2',
                 border: '1px solid #FECACA',
                 borderRadius: '10px',
-                padding: '11px 14px',
-                fontSize: '13.5px',
+                padding: '10px 14px',
+                fontSize: '13px',
                 color: '#B91C1C',
-                fontWeight: 500,
+                fontWeight: 600,
               }}>
                 {lookupError}
               </div>
@@ -329,17 +333,17 @@ export function MyBookingClient() {
               disabled={loading}
               style={{
                 width: '100%',
-                padding: '14px',
+                padding: '13px',
                 borderRadius: '12px',
                 border: 'none',
-                background: loading ? '#94A3B8' : 'linear-gradient(135deg, #10B981, #059669)',
+                background: '#2563EB',
                 color: '#fff',
                 fontSize: '15px',
-                fontWeight: 800,
+                fontWeight: 700,
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: loading ? 'none' : '0 8px 20px -6px rgba(16,185,129,.5)',
-                transition: 'all 0.2s',
-                letterSpacing: '-0.01em',
+                opacity: loading ? 0.7 : 1,
+                boxShadow: '0 4px 14px -3px rgba(37,99,235,0.4)',
+                transition: 'background 0.15s',
               }}
             >
               {loading ? 'Searching...' : 'Find My Booking'}
@@ -350,19 +354,19 @@ export function MyBookingClient() {
 
       {/* Results */}
       {searched && bookings.length === 0 && (
-        <div style={{
+        <div className="my-booking-card" style={{
           width: '100%',
           maxWidth: '480px',
-          background: '#fff',
-          border: '1px solid #EAEEF4',
+          background: 'var(--bg-card, #fff)',
+          border: '1px solid var(--border-card, #EAEEF4)',
           borderRadius: '20px',
           padding: '32px 24px',
           textAlign: 'center',
           boxShadow: '0 4px 16px -6px rgba(0,0,0,0.06)',
         }}>
           <div style={{ fontSize: '36px', marginBottom: '12px' }}>🔍</div>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>No bookings found</div>
-          <div style={{ fontSize: '13.5px', color: '#64748B', lineHeight: 1.5 }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '6px' }}>No bookings found</div>
+          <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.5 }}>
             No interview booking was found for <strong style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}>{studentId.trim()}</strong>.<br />
             Double-check your Student ID and try again.
           </div>
@@ -371,13 +375,13 @@ export function MyBookingClient() {
 
       {bookings.length > 0 && (
         <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textAlign: 'center', marginBottom: '4px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textAlign: 'center', marginBottom: '4px' }}>
             {bookings.length === 1 ? '1 booking found' : `${bookings.length} bookings found`}
           </div>
           {bookings.map(b => (
             <BookingCard key={b.booking_id} b={b} studentId={studentId.trim()} onCancelled={handleCancelled} />
           ))}
-          <p style={{ textAlign: 'center', fontSize: '12px', color: '#94A3B8', margin: 0, lineHeight: 1.5 }}>
+          <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted, #94A3B8)', margin: 0, lineHeight: 1.5 }}>
             Need help? Contact the XMUM Orientation Committee.
           </p>
         </div>

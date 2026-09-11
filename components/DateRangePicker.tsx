@@ -148,12 +148,12 @@ export function DateRangePicker({ value, onChange }: Props) {
           alignItems: 'center',
           gap: '8px',
           padding: '8px 14px',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-input, #E2E8F0)',
           borderRadius: '8px',
-          background: '#fff',
+          background: 'var(--bg-card, #fff)',
           fontSize: '13.5px',
           fontWeight: 600,
-          color: '#0F172A',
+          color: 'var(--text-primary, #0F172A)',
           cursor: 'pointer',
           outline: 'none',
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
@@ -162,7 +162,7 @@ export function DateRangePicker({ value, onChange }: Props) {
         }}
       >
         {/* Calendar icon */}
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748B' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted, #64748B)' }}>
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="16" y1="2" x2="16" y2="6"></line>
           <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -178,14 +178,15 @@ export function DateRangePicker({ value, onChange }: Props) {
       {/* Popover Calendar */}
       {isOpen && (
         <div
+          className="date-picker-popover"
           style={{
             position: 'absolute',
             top: 'calc(100% + 6px)',
             left: 0,
-            background: '#fff',
-            border: '1px solid #EAEEF4',
+            background: 'var(--bg-card, #fff)',
+            border: '1px solid var(--border-card, #EAEEF4)',
             borderRadius: '16px',
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.03)',
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12), 0 8px 10px -6px rgba(0,0,0,0.06)',
             padding: '16px',
             zIndex: 100,
             width: '280px',
@@ -199,7 +200,7 @@ export function DateRangePicker({ value, onChange }: Props) {
               onClick={prevMonth}
               style={{
                 border: 'none',
-                background: '#F1F5F9',
+                background: 'var(--bg-card-hover, #F1F5F9)',
                 borderRadius: '6px',
                 width: '26px',
                 height: '26px',
@@ -207,12 +208,12 @@ export function DateRangePicker({ value, onChange }: Props) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: '#475569',
+                color: 'var(--text-secondary, #475569)',
               }}
             >
               &larr;
             </button>
-            <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+            <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>
               {monthNames[currentView.month]} {currentView.year}
             </span>
             <button
@@ -220,7 +221,7 @@ export function DateRangePicker({ value, onChange }: Props) {
               onClick={nextMonth}
               style={{
                 border: 'none',
-                background: '#F1F5F9',
+                background: 'var(--bg-card-hover, #F1F5F9)',
                 borderRadius: '6px',
                 width: '26px',
                 height: '26px',
@@ -228,7 +229,7 @@ export function DateRangePicker({ value, onChange }: Props) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: '#475569',
+                color: 'var(--text-secondary, #475569)',
               }}
             >
               &rarr;
@@ -255,7 +256,7 @@ export function DateRangePicker({ value, onChange }: Props) {
               const isToday = isSameDay(date, new Date())
 
               let bg = 'transparent'
-              let color = '#334155'
+              let color = 'var(--text-primary, #334155)'
               let borderRadius = '6px'
 
               if (selType) {
@@ -266,8 +267,8 @@ export function DateRangePicker({ value, onChange }: Props) {
                   borderRadius = '12px'
                 }
               } else if (range) {
-                bg = '#EFF6FF'
-                color = '#2563EB'
+                bg = 'var(--accent-subtle, #EFF6FF)'
+                color = 'var(--accent-text, #2563EB)'
                 borderRadius = '0'
               }
 
@@ -292,7 +293,7 @@ export function DateRangePicker({ value, onChange }: Props) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'all 0.15s ease',
-                    boxShadow: isToday && !selType ? 'inset 0 0 0 1px #CBD5E1' : 'none',
+                    boxShadow: isToday && !selType ? 'inset 0 0 0 1px var(--border-input, #CBD5E1)' : 'none',
                   }}
                 >
                   {date.getDate()}
@@ -303,7 +304,7 @@ export function DateRangePicker({ value, onChange }: Props) {
 
           {/* Footer actions */}
           {(value.start || value.end) && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #F1F5F9' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-card, #F1F5F9)' }}>
               <button
                 type="button"
                 onClick={handleClear}

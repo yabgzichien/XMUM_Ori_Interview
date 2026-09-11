@@ -28,7 +28,7 @@ const DURATION_PRESETS = [10, 15, 20, 30, 45, 60]
 const labelStyle: React.CSSProperties = {
   fontSize: '11px',
   fontWeight: 700,
-  color: '#64748B',
+  color: 'var(--text-muted, #64748B)',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   marginBottom: '8px',
@@ -38,24 +38,24 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
-  border: '1px solid #E2E8F0',
+  border: '1px solid var(--border-input, #E2E8F0)',
   borderRadius: '9px',
   fontSize: '14px',
   fontFamily: 'inherit',
-  color: '#0F172A',
-  background: '#fff',
+  color: 'var(--text-primary, #0F172A)',
+  background: 'var(--bg-input, #fff)',
   boxSizing: 'border-box',
 }
 
 const sectionStyle: React.CSSProperties = {
-  borderTop: '1px solid #EAEEF4',
+  borderTop: '1px solid var(--border-card, #EAEEF4)',
   paddingTop: '18px',
   marginTop: '18px',
 }
 
 function fieldError(message: string) {
   return (
-    <div style={{ fontSize: '12.5px', color: '#B91C1C', fontWeight: 600, marginTop: '6px' }}>{message}</div>
+    <div style={{ fontSize: '12.5px', color: 'var(--badge-danger-text, #B91C1C)', fontWeight: 600, marginTop: '6px' }}>{message}</div>
   )
 }
 
@@ -222,7 +222,7 @@ export function BulkCreateForm({
   return (
     <div
       className="form-card"
-      style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '26px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}
+      style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '26px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}
     >
       <style>{`
         .bcf-split { display: grid; grid-template-columns: 300px 1fr; gap: 22px; align-items: start; }
@@ -238,10 +238,10 @@ export function BulkCreateForm({
       `}</style>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#EFF4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🗓️</div>
+        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--accent-subtle, #EFF4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🗓️</div>
         <div>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 2px', color: '#0F172A' }}>Add interview slots</h2>
-          <p style={{ fontSize: '12.5px', color: '#64748B', margin: 0 }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 2px', color: 'var(--text-primary, #0F172A)' }}>Add interview slots</h2>
+          <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: 0 }}>
             Pick the days, set one time window, and back-to-back slots are generated for every day at once.
           </p>
         </div>
@@ -260,7 +260,7 @@ export function BulkCreateForm({
             <div>
               <label style={labelStyle}>Selected</label>
               {dates.length === 0 ? (
-                <div style={{ border: '1px dashed #E2E8F0', borderRadius: '12px', padding: '18px', fontSize: '13px', color: '#94A3B8', background: '#FAFBFD' }}>
+                <div style={{ border: '1px dashed var(--border-input, #E2E8F0)', borderRadius: '12px', padding: '18px', fontSize: '13px', color: 'var(--text-muted, #94A3B8)', background: 'var(--bg-card-subtle, #FAFBFD)' }}>
                   No days selected yet. Click dates in the calendar — an amber dot means that day already has slots.
                 </div>
               ) : (
@@ -268,14 +268,14 @@ export function BulkCreateForm({
                   {dates.map((d) => (
                     <span
                       key={d}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#EFF4FF', color: '#2563EB', padding: '5px 8px 5px 11px', borderRadius: '99px', fontSize: '12.5px', fontWeight: 700 }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--btn-accent-bg, #EFF4FF)', color: 'var(--btn-accent-text, #2563EB)', border: '1px solid var(--btn-accent-border, #DBE6FF)', padding: '5px 8px 5px 11px', borderRadius: '99px', fontSize: '12.5px', fontWeight: 700 }}
                     >
                       {formatDateHeading(d).replace(/, \d{4}$/, '')}
                       <button
                         type="button"
                         onClick={() => setDates((prev) => prev.filter((x) => x !== d))}
                         aria-label={`Remove ${d}`}
-                        style={{ background: '#DBE6FF', border: 'none', color: '#2563EB', cursor: 'pointer', width: '16px', height: '16px', borderRadius: '99px', fontSize: '12px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'var(--btn-accent-border, #DBE6FF)', border: 'none', color: 'var(--btn-accent-text, #2563EB)', cursor: 'pointer', width: '16px', height: '16px', borderRadius: '99px', fontSize: '12px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         ×
                       </button>
@@ -289,15 +289,15 @@ export function BulkCreateForm({
                 <label style={labelStyle}>2 · Daily time window</label>
                 <div className="bcf-times">
                   <div>
-                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }}>Starts</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px', display: 'block' }}>Starts</span>
                     <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required style={inputStyle} />
                   </div>
                   <div>
-                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }}>Ends</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px', display: 'block' }}>Ends</span>
                     <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required style={inputStyle} />
                   </div>
                   <div>
-                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }}>Slot length (min)</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px', display: 'block' }}>Slot length (min)</span>
                     <input
                       type="number"
                       min={1}
@@ -321,9 +321,9 @@ export function BulkCreateForm({
                         style={{
                           padding: '5px 12px',
                           borderRadius: '99px',
-                          border: `1px solid ${active ? '#2563EB' : '#E2E8F0'}`,
-                          background: active ? '#EFF4FF' : '#fff',
-                          color: active ? '#2563EB' : '#64748B',
+                          border: `1px solid ${active ? '#2563EB' : 'var(--border-input, #E2E8F0)'}`,
+                          background: active ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card, #fff)',
+                          color: active ? '#2563EB' : 'var(--text-secondary, #64748B)',
                           fontSize: '12.5px',
                           fontWeight: 700,
                           cursor: 'pointer',
@@ -347,7 +347,7 @@ export function BulkCreateForm({
                 <label style={labelStyle}>3 · Slot details</label>
                 <div className="bcf-meta">
                   <div>
-                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }}>Seats per slot</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px', display: 'block' }}>Seats per slot</span>
                     <input
                       type="number"
                       min={1}
@@ -358,8 +358,8 @@ export function BulkCreateForm({
                     />
                   </div>
                   <div>
-                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }}>
-                      Venue <span style={{ color: '#E11D48', fontWeight: 700 }}>*</span> <span style={{ color: '#94A3B8', fontWeight: 400 }}>— shown to applicants and emailed to them</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px', display: 'block' }}>
+                      Venue <span style={{ color: '#E11D48', fontWeight: 700 }}>*</span> <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 400 }}>— shown to applicants and emailed to them</span>
                     </span>
                     <input
                       type="text"
@@ -380,12 +380,12 @@ export function BulkCreateForm({
           {/* ── Preview ─────────────────────────────────────────────────── */}
           {planned.length > 0 && (
             <div style={{ ...sectionStyle }}>
-              <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '16px', border: '1px solid #E2E8F0' }}>
+              <div style={{ background: 'var(--bg-card-subtle, #F8FAFC)', borderRadius: '12px', padding: '16px', border: '1px solid var(--border-card, #E2E8F0)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                  <h3 style={{ fontSize: '13.5px', fontWeight: 700, margin: 0, color: '#0F172A' }}>
+                  <h3 style={{ fontSize: '13.5px', fontWeight: 700, margin: 0, color: 'var(--text-primary, #0F172A)' }}>
                     Preview — {toCreate.length} slot{toCreate.length === 1 ? '' : 's'} will be created
                   </h3>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)' }}>
                     {slotsPerDay} per day × {dates.length} day{dates.length === 1 ? '' : 's'}
                   </span>
                 </div>
@@ -393,12 +393,12 @@ export function BulkCreateForm({
                 {(pastCount > 0 || conflictCount > 0) && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '10px 0 12px' }}>
                     {pastCount > 0 && (
-                      <div style={{ fontSize: '12.5px', color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '8px 10px' }}>
+                      <div style={{ fontSize: '12.5px', color: 'var(--badge-warning-text, #92400E)', background: 'var(--badge-warning-bg, #FFFBEB)', border: '1px solid var(--badge-warning-border, #FDE68A)', borderRadius: '8px', padding: '8px 10px' }}>
                         {pastCount} slot{pastCount === 1 ? '' : 's'} in this range {pastCount === 1 ? 'is' : 'are'} already in the past and will be skipped.
                       </div>
                     )}
                     {conflictCount > 0 && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '8px 10px', cursor: 'pointer' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--badge-warning-text, #92400E)', background: 'var(--badge-warning-bg, #FFFBEB)', border: '1px solid var(--badge-warning-border, #FDE68A)', borderRadius: '8px', padding: '8px 10px', cursor: 'pointer' }}>
                         <input type="checkbox" checked={skipConflicts} onChange={(e) => setSkipConflicts(e.target.checked)} style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
                         <span>
                           Skip {conflictCount} slot{conflictCount === 1 ? '' : 's'} that overlap{conflictCount === 1 ? 's' : ''} an existing slot
@@ -411,9 +411,9 @@ export function BulkCreateForm({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '260px', overflowY: 'auto' }}>
                   {byDate.map(([date, daySlots]) => (
                     <div key={date}>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary, #475569)', marginBottom: '5px' }}>
                         {formatDateHeading(date)}
-                        <span style={{ color: '#94A3B8', fontWeight: 600 }}> · {daySlots.length} slot{daySlots.length === 1 ? '' : 's'}</span>
+                        <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}> · {daySlots.length} slot{daySlots.length === 1 ? '' : 's'}</span>
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                         {daySlots.map((slot) => {
@@ -424,12 +424,12 @@ export function BulkCreateForm({
                               key={slot.starts_at}
                               title={slot.past ? 'In the past — skipped' : slot.conflict ? 'Overlaps an existing slot' : undefined}
                               style={{
-                                background: warn ? '#FFFBEB' : '#fff',
-                                border: `1px solid ${warn ? '#FDE68A' : '#E2E8F0'}`,
+                                background: warn ? '#FFFBEB' : 'var(--bg-card, #fff)',
+                                border: `1px solid ${warn ? '#FDE68A' : 'var(--border-input, #E2E8F0)'}`,
                                 borderRadius: '6px',
                                 padding: '4px 8px',
                                 fontSize: '11.5px',
-                                color: warn ? '#92400E' : '#475569',
+                                color: warn ? '#92400E' : 'var(--text-secondary, #475569)',
                                 fontWeight: 600,
                                 textDecoration: dropped ? 'line-through' : 'none',
                                 opacity: dropped ? 0.7 : 1,
@@ -453,8 +453,8 @@ export function BulkCreateForm({
               disabled={toCreate.length === 0}
               style={{
                 padding: '10.5px 24px',
-                borderRadius: '9px',
-                background: toCreate.length === 0 ? '#CBD5E1' : '#2563EB',
+                borderRadius: '99px',
+                background: toCreate.length === 0 ? 'var(--border-input, #CBD5E1)' : '#2563EB',
                 border: 'none',
                 color: '#fff',
                 fontWeight: 700,
@@ -469,15 +469,15 @@ export function BulkCreateForm({
         </form>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 16px', color: '#0F172A' }}>Confirm creation</h3>
+          <div style={{ background: 'var(--bg-card-subtle, #F8FAFC)', borderRadius: '12px', padding: '20px', border: '1px solid var(--border-card, #E2E8F0)' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 16px', color: 'var(--text-primary, #0F172A)' }}>Confirm creation</h3>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px', color: '#475569' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px', color: 'var(--text-secondary, #475569)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
-                <span style={{ fontWeight: 600, color: '#334155' }}>Days</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>Days</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                   {dates.map((d) => (
-                    <span key={d} style={{ background: '#E2E8F0', padding: '2px 8px', borderRadius: '99px', fontSize: '12px', color: '#334155', fontWeight: 600 }}>
+                    <span key={d} style={{ background: 'var(--bg-card-hover, #E2E8F0)', padding: '2px 8px', borderRadius: '99px', fontSize: '12px', color: 'var(--text-secondary, #334155)', fontWeight: 600 }}>
                       {formatDateHeading(d).replace(/, \d{4}$/, '')}
                     </span>
                   ))}
@@ -485,24 +485,24 @@ export function BulkCreateForm({
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
-                <span style={{ fontWeight: 600, color: '#334155' }}>Window</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>Window</span>
                 <span>{startTime} – {endTime}, {intervalMinutes} min each</span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
-                <span style={{ fontWeight: 600, color: '#334155' }}>Seats</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>Seats</span>
                 <span>{capacity} per slot</span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
-                <span style={{ fontWeight: 600, color: '#334155' }}>Venue</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>Venue</span>
                 <span>{venue.trim()}</span>
               </div>
 
               {(pastCount > 0 || (skipConflicts && conflictCount > 0)) && (
                 <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
-                  <span style={{ fontWeight: 600, color: '#334155' }}>Skipping</span>
-                  <span style={{ color: '#92400E' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>Skipping</span>
+                  <span style={{ color: 'var(--badge-warning-text, #92400E)' }}>
                     {[
                       pastCount > 0 ? `${pastCount} in the past` : null,
                       skipConflicts && conflictCount > 0 ? `${conflictCount} overlapping` : null,
@@ -511,9 +511,9 @@ export function BulkCreateForm({
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px', marginTop: '4px', paddingTop: '12px', borderTop: '1px dashed #CBD5E1' }}>
-                <span style={{ fontWeight: 700, color: '#0F172A' }}>Creating</span>
-                <span style={{ fontWeight: 800, color: '#2563EB' }}>{toCreate.length} slots</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px', marginTop: '4px', paddingTop: '12px', borderTop: '1px dashed var(--border-card, #CBD5E1)' }}>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>Creating</span>
+                <span style={{ fontWeight: 800, color: 'var(--accent-primary, #2563EB)' }}>{toCreate.length} slots</span>
               </div>
             </div>
           </div>
@@ -523,7 +523,7 @@ export function BulkCreateForm({
               type="button"
               onClick={() => setShowConfirm(false)}
               disabled={submitting}
-              style={{ padding: '10.5px 20px', borderRadius: '9px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: submitting ? 'not-allowed' : 'pointer' }}
+              style={{ padding: '10.5px 20px', borderRadius: '9px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '14px', cursor: submitting ? 'not-allowed' : 'pointer' }}
             >
               Go back
             </button>
@@ -540,12 +540,12 @@ export function BulkCreateForm({
       )}
 
       {createdCount !== null && (
-        <p style={{ marginTop: '16px', fontSize: '13px', color: '#166534', fontWeight: 600, padding: '12px', background: '#DCFCE7', borderRadius: '8px', border: '1px solid #BBF7D0' }}>
+        <p style={{ marginTop: '16px', fontSize: '13px', color: 'var(--badge-success-text, #166534)', fontWeight: 600, padding: '12px', background: 'var(--badge-success-bg, #DCFCE7)', borderRadius: '8px', border: '1px solid var(--badge-success-border, #BBF7D0)' }}>
           ✓ Created {createdCount} slot{createdCount === 1 ? '' : 's'}. They&apos;re listed below and open for booking.
         </p>
       )}
       {error && (
-        <p style={{ marginTop: '16px', fontSize: '13px', color: '#B91C1C', padding: '12px', background: '#FEE2E2', borderRadius: '8px', border: '1px solid #FECACA' }}>
+        <p style={{ marginTop: '16px', fontSize: '13px', color: 'var(--badge-danger-text, #B91C1C)', padding: '12px', background: 'var(--badge-danger-bg, #FEE2E2)', borderRadius: '8px', border: '1px solid var(--badge-danger-border, #FECACA)' }}>
           ⚠ {error}
         </p>
       )}

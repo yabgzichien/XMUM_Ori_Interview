@@ -69,6 +69,63 @@ export function formatSlotTimeRange(startsAt: string, endsAt: string, timeZone: 
   return `${formatSlotTimePart(startsAt, timeZone)}-${formatSlotTimePart(endsAt, timeZone)}`
 }
 
+/** Formats a Date into e.g. '10Sep2026 1230' in the given timezone. */
+export function formatExportTimestamp(now: Date = new Date(), timeZone: string = DEFAULT_TIMEZONE): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now)
+
+  const day = parts.find((p) => p.type === 'day')?.value ?? ''
+  const month = parts.find((p) => p.type === 'month')?.value ?? ''
+  const year = parts.find((p) => p.type === 'year')?.value ?? ''
+  let hour = parts.find((p) => p.type === 'hour')?.value ?? ''
+  if (hour === '24') hour = '00'
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? ''
+
+  return `${day}${month}${year} ${hour}${minute}`
+}
+
+/** Generates the export filename with date/time, e.g. '26_12 GM Interview Time Slot Export 10Sep2026 1230.xlsx'. */
+export function generateExportFilename({
+  track,
+  orientation,
+  year,
+  startDate,
+  endDate,
+  timestampDate = new Date(),
+  timeZone = DEFAULT_TIMEZONE,
+}: {
+  track: Track
+  orientation: Orientation
+  year: number
+  startDate?: string | null
+  endDate?: string | null
+  timestampDate?: Date
+  timeZone?: string
+}): string {
+  const trackLabel = track === 'game_master' ? 'GM' : 'Facilitator'
+  const timestamp = formatExportTimestamp(timestampDate, timeZone)
+  const orientationLabel = orientation.charAt(0).toUpperCase() + orientation.slice(1)
+
+  if (startDate && endDate && startDate === endDate) {
+    const parts = startDate.split('-') // ['YYYY', 'MM', 'DD']
+    const datePrefix = parts.length === 3 ? `${parts[2]}_${parts[1]}` : startDate
+    return `${datePrefix} ${trackLabel} Interview Time Slot Export ${timestamp}.xlsx`
+  } else if (startDate && !endDate) {
+    const parts = startDate.split('-')
+    const datePrefix = parts.length === 3 ? `${parts[2]}_${parts[1]}` : startDate
+    return `${datePrefix} ${trackLabel} Interview Time Slot Export ${timestamp}.xlsx`
+  } else {
+    return `${orientationLabel} ${year} ${trackLabel} Interview Time Slot Export ${timestamp}.xlsx`
+  }
+}
+
 const thinBorderAll: Partial<ExcelJS.Borders> = {
   top: { style: 'thin', color: { argb: 'FF000000' } },
   bottom: { style: 'thin', color: { argb: 'FF000000' } },

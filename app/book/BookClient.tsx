@@ -45,19 +45,19 @@ function getDayOfWeek(dateStr: string): string {
 const fieldStyle: React.CSSProperties = {
   width: '100%',
   padding: '11px 13px',
-  border: '1px solid #E2E8F0',
+  border: '1px solid var(--border-input, #E2E8F0)',
   borderRadius: '10px',
   fontSize: '15px',
   fontFamily: 'inherit',
-  background: '#fff',
-  color: '#0F172A',
+  background: 'var(--bg-input, #fff)',
+  color: 'var(--text-primary, #0F172A)',
   boxSizing: 'border-box',
 }
 
 const fieldLabelStyle: React.CSSProperties = {
   fontSize: '13px',
   fontWeight: 600,
-  color: '#334155',
+  color: 'var(--text-secondary, #334155)',
   marginBottom: '6px',
   display: 'block',
 }
@@ -65,7 +65,7 @@ const fieldLabelStyle: React.CSSProperties = {
 const sectionLabelStyle: React.CSSProperties = {
   fontSize: '11px',
   fontWeight: 700,
-  color: '#64748B',
+  color: 'var(--text-muted, #64748B)',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   marginBottom: '8px',
@@ -73,7 +73,7 @@ const sectionLabelStyle: React.CSSProperties = {
 }
 
 function FieldError({ message }: { message: string }) {
-  return <div style={{ fontSize: '12.5px', color: '#B91C1C', fontWeight: 600, marginTop: '5px' }}>{message}</div>
+  return <div style={{ fontSize: '12.5px', color: 'var(--badge-danger-text, #B91C1C)', fontWeight: 600, marginTop: '5px' }}>{message}</div>
 }
 
 type BookClientProps = {
@@ -486,8 +486,8 @@ export function BookClient({
       `}</style>
 
       <div style={{ marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.025em', margin: '0 0 4px' }}>Book an interview</h1>
-        <p style={{ color: '#64748B', fontSize: '14px', margin: 0 }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.025em', margin: '0 0 4px', color: 'var(--text-primary, #0F172A)' }}>Book an interview</h1>
+        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14px', margin: 0 }}>
           Please fill in your details in 10 minutes. The slots will be open to others after the timer ends
         </p>
       </div>
@@ -500,11 +500,11 @@ export function BookClient({
           const active = step === n
           return (
             <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '26px', height: '26px', borderRadius: '99px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12.5px', fontWeight: 700, background: done ? '#16A34A' : active ? '#2563EB' : '#EEF2F7', color: done || active ? '#fff' : '#94A3B8', flexShrink: 0 }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '99px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12.5px', fontWeight: 700, background: done ? '#16A34A' : active ? '#2563EB' : 'var(--bg-card-subtle, #EEF2F7)', color: done || active ? '#fff' : 'var(--text-muted, #94A3B8)', flexShrink: 0 }}>
                 {done ? '✓' : n}
               </div>
-              <span style={{ fontSize: '13.5px', fontWeight: 600, color: active || done ? '#0F172A' : '#94A3B8', whiteSpace: 'nowrap' }}>{labels[n]}</span>
-              {n < 3 && <span className="stepper-divider" style={{ width: '26px', height: '2px', background: '#E2E8F0', borderRadius: '2px' }} />}
+              <span style={{ fontSize: '13.5px', fontWeight: 600, color: active || done ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #94A3B8)', whiteSpace: 'nowrap' }}>{labels[n]}</span>
+              {n < 3 && <span className="stepper-divider" style={{ width: '26px', height: '2px', background: 'var(--border-input, #E2E8F0)', borderRadius: '2px' }} />}
             </div>
           )
         })}
@@ -525,14 +525,14 @@ export function BookClient({
                     onClick={() => { setOrientation(o.key); setFilterDate('') }}
                     className="book-orientation-btn"
                     style={{
-                      border: `1.5px solid ${active ? '#2563EB' : '#EAEEF4'}`,
-                      background: active ? '#EFF4FF' : '#fff',
+                      border: `1.5px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
+                      background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
                     }}
                   >
                     <span className="book-orientation-icon" style={{ fontSize: '20px', flexShrink: 0 }}>{o.icon}</span>
                     <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
-                      <span className="book-orientation-title" style={{ fontWeight: 700, fontSize: '15px' }}>{o.label}</span>
-                      <span className="book-orientation-sub" style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 500 }}>Orientation</span>
+                      <span className="book-orientation-title" style={{ fontWeight: 700, fontSize: '15px', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>{o.label}</span>
+                      <span className="book-orientation-sub" style={{ fontSize: '12.5px', color: active ? 'var(--btn-active-subtext, #3B82F6)' : 'var(--text-muted, #64748B)', fontWeight: 500 }}>Orientation</span>
                     </span>
                   </button>
                 )
@@ -551,14 +551,14 @@ export function BookClient({
                   onClick={() => { setTrack(t.key); setSelectedId(null); setFilterDate('') }}
                   className="book-track-btn"
                   style={{
-                    border: `1.5px solid ${active ? '#2563EB' : '#EAEEF4'}`,
-                    background: active ? '#EFF4FF' : '#fff',
+                    border: `1.5px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
+                    background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
                   }}
                 >
                   <span className="book-track-icon" style={{ fontSize: '20px', flexShrink: 0 }}>{t.icon}</span>
                   <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25 }}>
-                    <span className="book-track-title" style={{ fontWeight: 700, fontSize: '15px' }}>{t.title}</span>
-                    <span className="book-track-sub" style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 500 }}>
+                    <span className="book-track-title" style={{ fontWeight: 700, fontSize: '15px', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>{t.title}</span>
+                    <span className="book-track-sub" style={{ fontSize: '12.5px', color: active ? 'var(--btn-active-subtext, #3B82F6)' : 'var(--text-muted, #64748B)', fontWeight: 500 }}>
                       {loading ? 'Loading…' : count === 0 ? 'No slots open' : `${count} slot${count === 1 ? '' : 's'} open`}
                     </span>
                   </span>
@@ -582,23 +582,23 @@ export function BookClient({
                       key={option.value || 'all'}
                       type="button"
                       onClick={() => { setFilterDate(option.value); setSelectedId(null) }}
-                      style={{ padding: '8px 16px', borderRadius: '99px', border: `1.5px solid ${active ? '#2563EB' : '#EAEEF4'}`, background: active ? '#EFF4FF' : '#fff', color: active ? '#2563EB' : '#475569', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s ease', opacity: hasOpen ? 1 : 0.65, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      style={{ padding: '8px 16px', borderRadius: '99px', border: `1.5px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`, background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-secondary, #475569)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s ease', opacity: hasOpen ? 1 : 0.65, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     >
                       {option.label}
-                      {!hasOpen && <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>(Full)</span>}
+                      {!hasOpen && <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted, #94A3B8)' }}>(Full)</span>}
                     </button>
                   )
                 })}
               </div>
 
               {filterDate && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '10px', background: '#F8FAFC', border: '1px solid #EAEEF4', borderRadius: '10px', padding: '6px 12px', width: 'fit-content' }}>
-                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{getDayOfWeek(filterDate)}</span>
-                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#94A3B8' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '10px', background: 'var(--bg-card-subtle, #F8FAFC)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '10px', padding: '6px 12px', width: 'fit-content' }}>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>{getDayOfWeek(filterDate)}</span>
+                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted, #94A3B8)' }} />
                   {slots.some((s) => toLocalDateIso(s.starts_at) === filterDate && s.seats_left > 0) ? (
-                    <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 600 }}>Open interviews available</span>
+                    <span style={{ fontSize: '13px', color: 'var(--badge-success-text, #10B981)', fontWeight: 600 }}>Open interviews available</span>
                   ) : (
-                    <span style={{ fontSize: '13px', color: '#F97316', fontWeight: 600 }}>All interviews fully booked</span>
+                    <span style={{ fontSize: '13px', color: 'var(--badge-warning-text, #F97316)', fontWeight: 600 }}>All interviews fully booked</span>
                   )}
                 </div>
               )}
@@ -606,16 +606,16 @@ export function BookClient({
           )}
 
           {loadError && (
-            <div style={{ padding: '14px 16px', borderRadius: '12px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600, marginBottom: '14px' }}>
+            <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', color: 'var(--badge-danger-text, #B91C1C)', fontSize: '13.5px', fontWeight: 600, marginBottom: '14px' }}>
               Couldn’t load slots: {loadError}
             </div>
           )}
 
           <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
             {loading ? (
-              <div style={{ gridColumn: '1 / -1', fontSize: '14px', color: '#64748B', padding: '20px' }}>Loading slots…</div>
+              <div style={{ gridColumn: '1 / -1', fontSize: '14px', color: 'var(--text-muted, #64748B)', padding: '20px' }}>Loading slots…</div>
             ) : filteredSlots.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px', background: '#F8FAFC', borderRadius: '14px', border: '1px dashed #E2E8F0' }}>
+              <div style={{ gridColumn: '1 / -1', padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px', background: 'var(--bg-card-subtle, #F8FAFC)', borderRadius: '14px', border: '1px dashed var(--border-input, #E2E8F0)' }}>
                 {slots.length === 0
                   ? 'No interview slots are open for this track yet. Check back soon.'
                   : 'No slots on that date. Try another date or clear the filter.'}
@@ -639,30 +639,30 @@ export function BookClient({
                       borderRadius: '14px',
                       cursor: full ? 'not-allowed' : 'pointer',
                       opacity: full ? 0.55 : 1,
-                      background: selected ? '#EFF4FF' : '#fff',
-                      border: `1.5px solid ${selected ? '#2563EB' : '#EAEEF4'}`,
+                      background: selected ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
+                      border: `1.5px solid ${selected ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
                       boxShadow: selected ? '0 8px 22px -12px rgba(37,99,235,.5)' : 'none',
                       transition: 'border-color .12s, box-shadow .12s',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
                       <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '3px' }}>
+                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '3px' }}>
                           {formatDateHeading(toLocalDateIso(sl.starts_at))}
                         </div>
-                        <div style={{ fontSize: '17px', fontWeight: 800, letterSpacing: '-.01em', color: '#0F172A' }}>
+                        <div style={{ fontSize: '17px', fontWeight: 800, letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>
                           {formatTimeRange(sl.starts_at, sl.ends_at)}
                         </div>
-                        <div style={{ fontSize: '12.5px', color: '#64748B', marginTop: '4px', fontWeight: 600 }}>
+                        <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', marginTop: '4px', fontWeight: 600 }}>
                           📍 {sl.venue?.trim() || 'Venue TBA'}
                         </div>
                       </div>
-                      {status === 'open' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: '#ECFDF3', color: '#15803D', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{seatsLeft} left</span>}
-                      {status === 'few' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: '#FFF7ED', color: '#C2410C', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{seatsLeft} left</span>}
-                      {status === 'full' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: '#F1F5F9', color: '#94A3B8', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>Full</span>}
+                      {status === 'open' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-success-bg, #ECFDF3)', color: 'var(--badge-success-text, #15803D)', border: '1px solid var(--badge-success-border, #BBF7D0)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{seatsLeft} left</span>}
+                      {status === 'few' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-warning-bg, #FFF7ED)', color: 'var(--badge-warning-text, #C2410C)', border: '1px solid var(--badge-warning-border, #FDE68A)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{seatsLeft} left</span>}
+                      {status === 'full' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-neutral-bg, #F1F5F9)', color: 'var(--badge-neutral-text, #94A3B8)', border: '1px solid var(--badge-neutral-border, #E2E8F0)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>Full</span>}
                     </div>
                     {selected && (
-                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: '#2563EB', fontSize: '13px', fontWeight: 700 }}>✓ Selected</div>
+                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-text, #2563EB)', fontSize: '13px', fontWeight: 700 }}>✓ Selected</div>
                     )}
                   </button>
                 )
@@ -671,7 +671,7 @@ export function BookClient({
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13.5px', color: selectedSlot ? '#334155' : '#94A3B8', fontWeight: selectedSlot ? 600 : 400 }}>
+            <span style={{ fontSize: '13.5px', color: selectedSlot ? 'var(--text-secondary, #334155)' : 'var(--text-muted, #94A3B8)', fontWeight: selectedSlot ? 600 : 400 }}>
               {selectedSlot
                 ? `${formatDateHeading(toLocalDateIso(selectedSlot.starts_at))} · ${formatTimeRange(selectedSlot.starts_at, selectedSlot.ends_at)}`
                 : 'Select a slot to continue'}
@@ -680,14 +680,14 @@ export function BookClient({
               type="button"
               disabled={!selectedSlot || reserving}
               onClick={reserveAndContinue}
-              style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot && !reserving ? '#2563EB' : '#CBD5E1', cursor: selectedSlot && !reserving ? 'pointer' : 'not-allowed', boxShadow: selectedSlot && !reserving ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
+              style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot && !reserving ? 'var(--accent-primary, #2563EB)' : 'var(--btn-neutral-bg, #CBD5E1)', cursor: selectedSlot && !reserving ? 'pointer' : 'not-allowed', boxShadow: selectedSlot && !reserving ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
             >
               {reserving ? 'Holding your seat…' : 'Continue →'}
             </button>
           </div>
 
           {reserveError && (
-            <div style={{ marginTop: '12px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
+            <div style={{ marginTop: '12px', padding: '11px 14px', borderRadius: '10px', background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', color: 'var(--badge-danger-text, #B91C1C)', fontSize: '13.5px', fontWeight: 600 }}>
               {reserveError}
             </div>
           )}
@@ -697,11 +697,19 @@ export function BookClient({
       {/* ── Step 2: details ───────────────────────────────────────────── */}
       {step === 2 && selectedSlot && (
         <div className="scr book-2" style={{ display: 'grid', gridTemplateColumns: '1.5fr .7fr', gap: '16px', alignItems: 'start' }}>
-          <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '20px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
+          <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '20px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 14px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, letterSpacing: '-.01em' }}>Your details</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>Your details</h2>
               {!holdLocked && remainingMs !== null && (
-                <span style={{ fontSize: '13px', fontWeight: 700, color: remainingMs < 30_000 ? '#B91C1C' : '#2563EB', background: remainingMs < 30_000 ? '#FEF2F2' : '#EFF4FF', padding: '5px 10px', borderRadius: '99px' }}>
+                <span style={{
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: remainingMs < 30_000 ? 'var(--badge-danger-text, #B91C1C)' : 'var(--btn-accent-text, #2563EB)',
+                  background: remainingMs < 30_000 ? 'var(--badge-danger-bg, #FEF2F2)' : 'var(--btn-accent-bg, #EFF4FF)',
+                  border: `1px solid ${remainingMs < 30_000 ? 'var(--badge-danger-border, #FECACA)' : 'var(--btn-accent-border, #DBE6FF)'}`,
+                  padding: '5px 10px',
+                  borderRadius: '99px'
+                }}>
                   Timer · {formatCountdown(remainingMs)}
                 </span>
               )}
@@ -709,10 +717,10 @@ export function BookClient({
 
             {holdLocked ? (
               <div>
-                <div style={{ marginBottom: '16px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
+                <div style={{ marginBottom: '16px', padding: '11px 14px', borderRadius: '10px', background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', color: 'var(--badge-danger-text, #B91C1C)', fontSize: '13.5px', fontWeight: 600 }}>
                   Time Exceeded
                 </div>
-                <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                   Choose another slot
                 </button>
               </div>
@@ -750,27 +758,27 @@ export function BookClient({
                   </div>
                   <div>
                     <label style={fieldLabelStyle} htmlFor="bk-links">
-                      Relevant links <span style={{ color: '#94A3B8', fontWeight: 500 }}>(optional)</span>
+                      Relevant links <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}>(optional)</span>
                     </label>
                     <input id="bk-links" value={links} onChange={(e) => setLinks(e.target.value)} placeholder="e.g. Portfolio, GitHub, LinkedIn" style={fieldStyle} />
                   </div>
                 </div>
 
                 {submitError && (
-                  <div style={{ marginTop: '14px', padding: '11px 14px', borderRadius: '10px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '13.5px', fontWeight: 600 }}>
+                  <div style={{ marginTop: '14px', padding: '11px 14px', borderRadius: '10px', background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', color: 'var(--badge-danger-text, #B91C1C)', fontSize: '13.5px', fontWeight: 600 }}>
                     {submitError}
                   </div>
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
-                  <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                  <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                     ← Back
                   </button>
                   <button
                     type="button"
                     onClick={confirmBooking}
                     disabled={submitting}
-                    style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? '#CBD5E1' : '#16A34A', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(22,163,74,.45)' }}
+                    style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? 'var(--btn-neutral-bg, #CBD5E1)' : 'var(--accent-primary, #2563EB)', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(37,99,235,.45)' }}
                   >
                     {submitting ? 'Booking…' : 'Confirm booking'}
                   </button>
@@ -779,26 +787,26 @@ export function BookClient({
             )}
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '16px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', position: 'sticky', top: '80px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: '#94A3B8', marginBottom: '10px' }}>Your slot</div>
+          <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '16px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', position: 'sticky', top: '80px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted, #94A3B8)', marginBottom: '10px' }}>Your slot</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: track === 'facilitator' ? '#EFF4FF' : '#F3F0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
+              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: track === 'facilitator' ? 'var(--badge-facilitator-bg, #EFF4FF)' : 'var(--badge-gm-bg, #F3F0FF)', border: `1px solid ${track === 'facilitator' ? 'var(--badge-facilitator-border, #DBE6FF)' : 'var(--badge-gm-border, #DDD6FE)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
                 {track === 'facilitator' ? '🎯' : '🎮'}
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '15px' }}>{track === 'facilitator' ? 'Facilitator' : 'Game Master'}</div>
-                <div style={{ fontSize: '12.5px', color: '#64748B' }}>Interview track</div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary, #0F172A)' }}>{track === 'facilitator' ? 'Facilitator' : 'Game Master'}</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>Interview track</div>
               </div>
             </div>
-            <div style={{ borderTop: '1px dashed #E2E8F0', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ borderTop: '1px dashed var(--border-input, #E2E8F0)', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
                 { label: 'Date', value: formatDateHeading(toLocalDateIso(selectedSlot.starts_at)) },
                 { label: 'Time', value: formatTimeRange(selectedSlot.starts_at, selectedSlot.ends_at) },
                 { label: 'Venue', value: selectedSlot.venue?.trim() || 'TBA' },
               ].map((row) => (
                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
-                  <span style={{ fontSize: '13px', color: '#64748B' }}>{row.label}</span>
-                  <span style={{ fontSize: '13.5px', fontWeight: 700, textAlign: 'right' }}>{row.value}</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>{row.label}</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, textAlign: 'right', color: 'var(--text-primary, #0F172A)' }}>{row.value}</span>
                 </div>
               ))}
             </div>
@@ -809,19 +817,19 @@ export function BookClient({
       {/* ── Step 3: confirmed ─────────────────────────────────────────── */}
       {step === 3 && confirmation && (
         <div className="scr" style={{ maxWidth: '560px', margin: '0 auto' }}>
-          <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '20px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 14px 40px -18px rgba(16,24,40,.2)' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '99px', background: '#ECFDF3', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', animation: 'pop .4s ease' }}>
-              <span style={{ fontSize: '30px', color: '#16A34A' }}>✓</span>
+          <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '20px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 14px 40px -18px rgba(16,24,40,.2)' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '99px', background: 'var(--badge-success-bg, #ECFDF3)', border: '1px solid var(--badge-success-border, #BBF7D0)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', animation: 'pop .4s ease' }}>
+              <span style={{ fontSize: '30px', color: 'var(--badge-success-text, #16A34A)' }}>✓</span>
             </div>
-            <h2 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>You&apos;re booked!</h2>
-            <p style={{ color: '#64748B', fontSize: '14px', margin: '0 0 18px', lineHeight: 1.55 }}>
-              We&apos;ve emailed a confirmation to <strong style={{ color: '#334155' }}>{confirmation.email}</strong>. Bring your student ID on the day.
+            <h2 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>You&apos;re booked!</h2>
+            <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14px', margin: '0 0 18px', lineHeight: 1.55 }}>
+              We&apos;ve emailed a confirmation to <strong style={{ color: 'var(--text-primary, #334155)' }}>{confirmation.email}</strong>. Bring your student ID on the day.
             </p>
 
-            <div style={{ background: '#F8FAFC', border: '1px solid #EAEEF4', borderRadius: '14px', padding: '14px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: '#94A3B8', marginBottom: '6px' }}>Student ID</div>
-              <div style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '24px', fontWeight: 600, letterSpacing: '.06em', color: '#2563EB' }}>{confirmation.studentId}</div>
-              <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '6px' }}>Use this to look up your booking anytime at /my-booking.</div>
+            <div style={{ background: 'var(--bg-card-subtle, #F8FAFC)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '14px', padding: '14px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted, #94A3B8)', marginBottom: '6px' }}>Student ID</div>
+              <div style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '24px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent-text, #2563EB)' }}>{confirmation.studentId}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted, #94A3B8)', marginTop: '6px' }}>Use this to look up your booking anytime at /my-booking.</div>
             </div>
 
             <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', textAlign: 'left', marginBottom: '18px' }}>
@@ -831,9 +839,9 @@ export function BookClient({
                 { label: 'Time', value: formatTimeRange(confirmation.slot.starts_at, confirmation.slot.ends_at) },
                 { label: 'Venue', value: confirmation.slot.venue?.trim() || 'TBA' },
               ].map((row) => (
-                <div key={row.label} style={{ background: '#F8FAFC', borderRadius: '12px', padding: '13px 15px' }}>
-                  <div style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600, marginBottom: '2px' }}>{row.label}</div>
-                  <div style={{ fontSize: '14px', fontWeight: 700 }}>{row.value}</div>
+                <div key={row.label} style={{ background: 'var(--bg-card-subtle, #F8FAFC)', borderRadius: '12px', padding: '13px 15px' }}>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600, marginBottom: '2px' }}>{row.label}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>{row.value}</div>
                 </div>
               ))}
             </div>
@@ -842,7 +850,7 @@ export function BookClient({
               <a href="/my-booking" style={{ padding: '12px 18px', borderRadius: '11px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }}>
                 View my booking
               </a>
-              <button type="button" onClick={bookAnother} style={{ padding: '12px 18px', borderRadius: '11px', border: '1px solid #E2E8F0', background: '#fff', color: '#1E293B', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+              <button type="button" onClick={bookAnother} style={{ padding: '12px 18px', borderRadius: '11px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #1E293B)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                 Book another
               </button>
             </div>

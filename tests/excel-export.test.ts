@@ -4,6 +4,8 @@ import {
   formatSlotTimePart,
   formatSlotTimeRange,
   getLocalDateString,
+  formatExportTimestamp,
+  generateExportFilename,
 } from '@/lib/excel-export'
 import type { HeadBooking, HeadSlot } from '@/lib/head'
 
@@ -29,6 +31,35 @@ describe('excel-export helpers', () => {
   it('gets local calendar date string YYYY-MM-DD', () => {
     expect(getLocalDateString('2026-08-18T01:00:00+00:00')).toBe('2026-08-18')
     expect(getLocalDateString('2026-12-26T10:00:00+00:00')).toBe('2026-12-26')
+  })
+
+  it('formats export timestamp with dMMMyyyy HHmm matching user requirement', () => {
+    // 2022-09-10 12:30 in UTC+8
+    const d = new Date('2022-09-10T04:30:00Z')
+    expect(formatExportTimestamp(d)).toBe('10Sep2022 1230')
+  })
+
+  it('generates export filename with date time', () => {
+    const timestampDate = new Date('2022-09-10T04:30:00Z')
+    // Single day export
+    const filenameSingle = generateExportFilename({
+      track: 'game_master',
+      orientation: 'december',
+      year: 2026,
+      startDate: '2026-12-26',
+      endDate: '2026-12-26',
+      timestampDate,
+    })
+    expect(filenameSingle).toBe('26_12 GM Interview Time Slot Export 10Sep2022 1230.xlsx')
+
+    // Full orientation export
+    const filenameFull = generateExportFilename({
+      track: 'facilitator',
+      orientation: 'december',
+      year: 2026,
+      timestampDate,
+    })
+    expect(filenameFull).toBe('December 2026 Facilitator Interview Time Slot Export 10Sep2022 1230.xlsx')
   })
 })
 

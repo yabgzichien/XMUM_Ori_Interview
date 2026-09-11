@@ -9,7 +9,7 @@ export default async function RegisterPage() {
     redirect(profile.role === 'committee' || profile.role === 'performance_lead' ? '/practice' : '/head')
   }
   return (
-    <Suspense fallback={<div style={{ padding: '64px', textAlign: 'center', color: '#64748B', fontSize: '14.5px' }}>Loading activation...</div>}>
+    <Suspense fallback={<div style={{ padding: '64px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14.5px' }}>Loading activation...</div>}>
       <RegisterForm />
     </Suspense>
   )

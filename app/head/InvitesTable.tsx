@@ -26,9 +26,9 @@ function formatDateTime(iso: string): string {
 const resendBtnStyle: React.CSSProperties = {
   padding: '8px 14px',
   borderRadius: '8px',
-  border: 'none',
-  background: '#EFF6FF',
-  color: '#2563EB',
+  border: '1px solid var(--btn-accent-border, #BFDBFE)',
+  background: 'var(--btn-accent-bg, #EFF6FF)',
+  color: 'var(--btn-accent-text, #2563EB)',
   fontWeight: 700,
   fontSize: '13px',
   cursor: 'pointer',
@@ -85,29 +85,29 @@ export function InvitesTable({ bookings, loading, error, track, orientation, ori
   return (
     <div style={{ minHeight: '380px', display: 'flex', flexDirection: 'column' }}>
       {toastElement}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #EAEEF4', display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', background: '#FAFBFD' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', background: 'var(--bg-card-subtle, #FAFBFD)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Search</label>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Search</label>
           <input
             type="text"
             placeholder="Filter by name, email, or ID..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            style={{ width: '100%', maxWidth: '280px', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '13.5px', fontFamily: 'inherit', color: '#0F172A', outline: 'none' }}
+            style={{ width: '100%', maxWidth: '280px', padding: '8px 12px', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '8px', fontSize: '13.5px', fontFamily: 'inherit', color: 'var(--text-primary, #0F172A)', background: 'var(--bg-input, #fff)', outline: 'none' }}
           />
         </div>
         {invited.length > 0 && (
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>
-            <span style={{ color: '#15803D' }}>{registeredCount}</span> / {invited.length} registered
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary, #475569)' }}>
+            <span style={{ color: 'var(--badge-success-text, #15803D)' }}>{registeredCount}</span> / {invited.length} registered
           </div>
         )}
       </div>
 
-      {loading && <div style={{ padding: '20px', color: '#64748B', fontSize: '14px' }}>Loading...</div>}
-      {error && <div style={{ padding: '20px', color: '#B91C1C', fontSize: '14px' }}>{error}</div>}
+      {loading && <div style={{ padding: '20px', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>Loading...</div>}
+      {error && <div style={{ padding: '20px', color: 'var(--badge-danger-text, #B91C1C)', fontSize: '14px' }}>{error}</div>}
 
       {!loading && !error && invited.length === 0 && (
-        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>
           No committee invites sent yet — invite approved applicants from the Booked Applicants tab.
         </div>
       )}
@@ -126,31 +126,31 @@ export function InvitesTable({ bookings, loading, error, track, orientation, ori
           {/* Desktop Table */}
           <table className="tbl-desk" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
-                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: '#64748B', letterSpacing: '.02em' }}>Applicant</th>
-                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: '#64748B', letterSpacing: '.02em' }}>Invited</th>
-                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: '#64748B', letterSpacing: '.02em' }}>Registration Status</th>
+              <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
+                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Applicant</th>
+                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Invited</th>
+                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Registration Status</th>
                 <th style={{ padding: '16px 20px' }}></th>
               </tr>
             </thead>
             <tbody>
               {invited.map((b) => (
-                <tr key={b.booking_id} style={{ borderBottom: '1px solid #EAEEF4' }}>
+                <tr key={b.booking_id} style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle' }}>
-                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{b.applicant_name}</div>
-                    <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{b.applicant_email}</div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>{b.applicant_name}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>{b.applicant_email}</div>
                   </td>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle' }}>
-                    <div style={{ fontSize: '13.5px', color: '#475569', fontWeight: 600 }}>{formatDateTime(b.invited_at as string)}</div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--text-secondary, #475569)', fontWeight: 600 }}>{formatDateTime(b.invited_at as string)}</div>
                   </td>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle' }}>
                     {b.invite_claimed_at ? (
                       <div>
-                        <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: '6px', background: '#ECFDF3', color: '#15803D', fontSize: '12px', fontWeight: 700 }}>Registered</span>
-                        <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>{formatDateTime(b.invite_claimed_at)}</div>
+                        <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: '6px', background: 'var(--badge-success-bg, #ECFDF3)', color: 'var(--badge-success-text, #15803D)', border: '1px solid var(--badge-success-border, #BBF7D0)', fontSize: '12px', fontWeight: 700 }}>Registered</span>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted, #94A3B8)', marginTop: '4px' }}>{formatDateTime(b.invite_claimed_at)}</div>
                       </div>
                     ) : (
-                      <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: '6px', background: '#FEF3C7', color: '#B45309', fontSize: '12px', fontWeight: 700 }}>Not yet registered</span>
+                      <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: '6px', background: 'var(--badge-warning-bg, #FEF3C7)', color: 'var(--badge-warning-text, #B45309)', border: '1px solid var(--badge-warning-border, #FDE68A)', fontSize: '12px', fontWeight: 700 }}>Not yet registered</span>
                     )}
                   </td>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle', textAlign: 'right' }}>
@@ -173,19 +173,19 @@ export function InvitesTable({ bookings, loading, error, track, orientation, ori
           {/* Mobile list */}
           <div className="tbl-mob">
             {invited.map((b) => (
-              <div key={b.booking_id} style={{ borderBottom: '1px solid #EAEEF4', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div key={b.booking_id} style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{b.applicant_name}</div>
-                    <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{b.applicant_email}</div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>{b.applicant_name}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>{b.applicant_email}</div>
                   </div>
                   {b.invite_claimed_at ? (
-                    <span style={{ display: 'inline-flex', padding: '4px 8px', borderRadius: '6px', background: '#ECFDF3', color: '#15803D', fontSize: '11px', fontWeight: 700 }}>Registered</span>
+                    <span style={{ display: 'inline-flex', padding: '4px 8px', borderRadius: '6px', background: 'var(--badge-success-bg, #ECFDF3)', color: 'var(--badge-success-text, #15803D)', border: '1px solid var(--badge-success-border, #BBF7D0)', fontSize: '11px', fontWeight: 700 }}>Registered</span>
                   ) : (
-                    <span style={{ display: 'inline-flex', padding: '4px 8px', borderRadius: '6px', background: '#FEF3C7', color: '#B45309', fontSize: '11px', fontWeight: 700 }}>Pending</span>
+                    <span style={{ display: 'inline-flex', padding: '4px 8px', borderRadius: '6px', background: 'var(--badge-warning-bg, #FEF3C7)', color: 'var(--badge-warning-text, #B45309)', border: '1px solid var(--badge-warning-border, #FDE68A)', fontSize: '11px', fontWeight: 700 }}>Pending</span>
                   )}
                 </div>
-                <div style={{ fontSize: '12.5px', color: '#64748B' }}>
+                <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>
                   Invited {formatDateTime(b.invited_at as string)}
                   {b.invite_claimed_at && <> · Registered {formatDateTime(b.invite_claimed_at)}</>}
                 </div>

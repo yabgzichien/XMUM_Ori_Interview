@@ -153,7 +153,7 @@ export function PracticeClient({
       {!myGroup ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {availableGroups.length === 0 && (
-            <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '32px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>
+            <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '32px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>
               No practice groups are open yet. Check back soon.
             </div>
           )}
@@ -161,23 +161,23 @@ export function PracticeClient({
             const joinable = g.seats_left > 0 && g.status === 'open'
             const isManagedByUser = Boolean(currentUserId && g.lead_id === currentUserId)
             return (
-              <div key={g.id} style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', flexWrap: 'wrap' }}>
+              <div key={g.id} style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary, #0F172A)' }}>
                     <span>{g.name}</span>
                     {isManagedByUser && (
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#2563EB', background: '#EFF4FF', padding: '2px 8px', borderRadius: '99px' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--accent-text, #2563EB)', background: 'var(--accent-subtle, #EFF4FF)', padding: '2px 8px', borderRadius: '99px' }}>
                         your group
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '13px', color: '#64748B' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
                     Performance Lead: {g.lead_name}{isManagedByUser ? ' (your group)' : ''} · {g.session_count} session{g.session_count === 1 ? '' : 's'} scheduled
                   </div>
                   {g.member_names.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                       {g.member_names.map((name) => (
-                        <span key={name} style={{ padding: '4px 10px', borderRadius: '99px', background: '#F1F5F9', color: '#334155', fontSize: '12px', fontWeight: 600 }}>
+                        <span key={name} style={{ padding: '4px 10px', borderRadius: '99px', background: 'var(--bg-card-hover, #F1F5F9)', color: 'var(--text-secondary, #334155)', fontSize: '12px', fontWeight: 600 }}>
                           {name}
                         </span>
                       ))}

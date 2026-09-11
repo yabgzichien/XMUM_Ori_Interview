@@ -38,7 +38,7 @@ function startOfToday(): Date {
 
 const navBtnStyle: React.CSSProperties = {
   border: 'none',
-  background: '#F1F5F9',
+  background: 'var(--bg-card-hover, #F1F5F9)',
   borderRadius: '8px',
   width: '28px',
   height: '28px',
@@ -46,7 +46,7 @@ const navBtnStyle: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   cursor: 'pointer',
-  color: '#475569',
+  color: 'var(--text-secondary, #475569)',
   fontSize: '14px',
 }
 
@@ -107,10 +107,10 @@ export function MultiDatePicker({ value, onChange, minDate, markedDates }: Props
   const todayIso = toIso(startOfToday())
 
   return (
-    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px', background: '#fff' }}>
+    <div style={{ border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '12px', padding: '14px', background: 'var(--bg-card, #fff)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <button type="button" onClick={() => shiftMonth(-1)} style={navBtnStyle} aria-label="Previous month">&larr;</button>
-        <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+        <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>
           {MONTH_NAMES[view.month]} {view.year}
         </span>
         <button type="button" onClick={() => shiftMonth(1)} style={navBtnStyle} aria-label="Next month">&rarr;</button>
@@ -143,8 +143,8 @@ export function MultiDatePicker({ value, onChange, minDate, markedDates }: Props
               style={{
                 height: '34px',
                 border: isSelected ? '1px solid #2563EB' : '1px solid transparent',
-                background: isSelected ? '#2563EB' : isDisabled ? 'transparent' : '#F8FAFC',
-                color: isSelected ? '#fff' : isDisabled ? '#CBD5E1' : '#334155',
+                background: isSelected ? '#2563EB' : isDisabled ? 'transparent' : 'var(--bg-card-subtle, #F8FAFC)',
+                color: isSelected ? '#fff' : isDisabled ? 'var(--text-faint, #CBD5E1)' : 'var(--text-primary, #334155)',
                 borderRadius: '9px',
                 fontSize: '12.5px',
                 fontWeight: isSelected || isToday ? 700 : 500,
@@ -172,7 +172,7 @@ export function MultiDatePicker({ value, onChange, minDate, markedDates }: Props
         })}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #F1F5F9' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-card, #F1F5F9)' }}>
         <button
           type="button"
           onClick={toggleWeekdaysInView}

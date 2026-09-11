@@ -143,7 +143,7 @@ export function HeadDashboard({
         <BulkCreateForm track={track} orientation={orientation} orientationYear={orientationYear} profileId={profileId} existingSlots={slots} onCreated={refreshSlots} />
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
         <div className="tab-group">
           <button
             type="button"
@@ -152,13 +152,13 @@ export function HeadDashboard({
               flex: '1 0 auto',
               padding: '16px 20px',
               border: 'none',
-              background: activeTab === 'slots' ? '#fff' : 'transparent',
-              color: activeTab === 'slots' ? '#0F172A' : '#64748B',
+              background: activeTab === 'slots' ? 'var(--bg-card, #fff)' : 'transparent',
+              color: activeTab === 'slots' ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #64748B)',
               fontWeight: 700,
               fontSize: '14.5px',
               cursor: 'pointer',
-              borderBottom: activeTab === 'slots' ? 'none' : '1px solid #EAEEF4',
-              borderRight: '1px solid #EAEEF4',
+              borderBottom: activeTab === 'slots' ? 'none' : '1px solid var(--border-card, #EAEEF4)',
+              borderRight: '1px solid var(--border-card, #EAEEF4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -169,7 +169,7 @@ export function HeadDashboard({
           >
             <span>📅</span>
             <span><span className="tab-label-full">Available </span>Slots</span>
-            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'slots' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{slots.length}</span>
+            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'slots' ? 'var(--bg-card-hover, #F1F5F9)' : 'var(--border-input, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '11.5px', fontWeight: 800 }}>{slots.length}</span>
           </button>
           <button
             type="button"
@@ -178,13 +178,13 @@ export function HeadDashboard({
               flex: '1 0 auto',
               padding: '16px 20px',
               border: 'none',
-              background: activeTab === 'bookings' ? '#fff' : 'transparent',
-              color: activeTab === 'bookings' ? '#0F172A' : '#64748B',
+              background: activeTab === 'bookings' ? 'var(--bg-card, #fff)' : 'transparent',
+              color: activeTab === 'bookings' ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #64748B)',
               fontWeight: 700,
               fontSize: '14.5px',
               cursor: 'pointer',
-              borderBottom: activeTab === 'bookings' ? 'none' : '1px solid #EAEEF4',
-              borderRight: '1px solid #EAEEF4',
+              borderBottom: activeTab === 'bookings' ? 'none' : '1px solid var(--border-card, #EAEEF4)',
+              borderRight: '1px solid var(--border-card, #EAEEF4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -195,7 +195,7 @@ export function HeadDashboard({
           >
             <span>👤</span>
             <span><span className="tab-label-full">Booked </span>Applicants</span>
-            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'bookings' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{bookings.length}</span>
+            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'bookings' ? 'var(--bg-card-hover, #F1F5F9)' : 'var(--border-input, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '11.5px', fontWeight: 800 }}>{bookings.length}</span>
           </button>
           <button
             type="button"
@@ -204,12 +204,12 @@ export function HeadDashboard({
               flex: '1 0 auto',
               padding: '16px 20px',
               border: 'none',
-              background: activeTab === 'invites' ? '#fff' : 'transparent',
-              color: activeTab === 'invites' ? '#0F172A' : '#64748B',
+              background: activeTab === 'invites' ? 'var(--bg-card, #fff)' : 'transparent',
+              color: activeTab === 'invites' ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #64748B)',
               fontWeight: 700,
               fontSize: '14.5px',
               cursor: 'pointer',
-              borderBottom: activeTab === 'invites' ? 'none' : '1px solid #EAEEF4',
+              borderBottom: activeTab === 'invites' ? 'none' : '1px solid var(--border-card, #EAEEF4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -220,7 +220,7 @@ export function HeadDashboard({
           >
             <span>📋</span>
             <span>Registration</span>
-            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'invites' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{registeredCount}/{invitedBookings.length}</span>
+            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'invites' ? 'var(--bg-card-hover, #F1F5F9)' : 'var(--border-input, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '11.5px', fontWeight: 800 }}>{registeredCount}/{invitedBookings.length}</span>
           </button>
         </div>
 

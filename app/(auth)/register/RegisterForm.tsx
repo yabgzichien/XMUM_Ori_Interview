@@ -63,8 +63,8 @@ export function RegisterForm() {
         <style>{`
           .register-card {
             width: 100% !important;
-            background: #fff;
-            border: 1px solid #EAEEF4;
+            background: var(--bg-card, #fff);
+            border: 1px solid var(--border-card, #EAEEF4);
             border-radius: 18px;
             padding: 36px !important;
             box-shadow: 0 8px 30px -16px rgba(16,24,40,.16);
@@ -81,9 +81,9 @@ export function RegisterForm() {
           }
         `}</style>
         <div style={{ textAlign: 'center', marginBottom: '26px' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '99px', background: '#EFF4FF', color: '#2563EB', fontSize: '12px', fontWeight: 700, border: '1px solid #DBE6FF', marginBottom: '14px' }}>✦ Invitation</span>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>Activate your account</h1>
-          <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0 }}>Set a password to finish your committee invite.</p>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '99px', background: 'var(--accent-subtle, #EFF4FF)', color: 'var(--accent-text, #2563EB)', fontSize: '12px', fontWeight: 700, border: '1px solid var(--accent-border, #DBE6FF)', marginBottom: '14px' }}>✦ Invitation</span>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>Activate your account</h1>
+          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>Set a password to finish your committee invite.</p>
         </div>
         {done ? (
           <div className="register-card" style={{ textAlign: 'center' }}>
@@ -93,20 +93,20 @@ export function RegisterForm() {
           <div className="register-card">
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Email</label>
-                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@xmu.edu.my" style={{ width: '100%', padding: '11px 13px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }} />
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '6px', display: 'block' }}>Email</label>
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@xmu.edu.my" style={{ width: '100%', padding: '11px 13px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)', borderRadius: '10px', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }} />
               </div>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Invite code</label>
-                <input type="text" required value={code} onChange={e => setCode(e.target.value)} placeholder="ORI-XXXX" style={{ width: '100%', padding: '11px 13px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '15px', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', outline: 'none' }} />
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '6px', display: 'block' }}>Invite code</label>
+                <input type="text" required value={code} onChange={e => setCode(e.target.value)} placeholder="ORI-XXXX" style={{ width: '100%', padding: '11px 13px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)', borderRadius: '10px', fontSize: '15px', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', outline: 'none' }} />
               </div>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>New password</label>
-                <input type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" style={{ width: '100%', padding: '11px 13px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }} />
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '6px', display: 'block' }}>New password</label>
+                <input type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" style={{ width: '100%', padding: '11px 13px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)', borderRadius: '10px', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }} />
               </div>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Confirm password</label>
-                <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" style={{ width: '100%', padding: '11px 13px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }} />
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '6px', display: 'block' }}>Confirm password</label>
+                <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" style={{ width: '100%', padding: '11px 13px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)', borderRadius: '10px', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }} />
               </div>
               {error && <p style={{ fontSize: '14px', color: '#B91C1C', margin: 0 }}>{error}</p>}
               <button type="submit" disabled={loading} style={{ marginTop: '4px', padding: '13px', borderRadius: '11px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '15px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 8px 18px -7px rgba(37,99,235,.5)', opacity: loading ? 0.7 : 1 }}>
@@ -115,8 +115,8 @@ export function RegisterForm() {
             </form>
           </div>
         )}
-        <p style={{ textAlign: 'center', fontSize: '13.5px', color: '#64748B', marginTop: '18px' }}>
-          Already activated? <Link href="/login" style={{ color: '#2563EB', fontWeight: 700 }}>Sign in</Link>
+        <p style={{ textAlign: 'center', fontSize: '13.5px', color: 'var(--text-muted, #64748B)', marginTop: '18px' }}>
+          Already activated? <Link href="/login" style={{ color: 'var(--accent-text, #2563EB)', fontWeight: 700 }}>Sign in</Link>
         </p>
       </div>
     </main>

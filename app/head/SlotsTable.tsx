@@ -26,24 +26,39 @@ const actionBtnBase: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
-const deleteBtnStyle: React.CSSProperties = { ...actionBtnBase, background: '#FEE2E2', color: '#EF4444' }
-const neutralBtnStyle: React.CSSProperties = { ...actionBtnBase, background: '#F1F5F9', color: '#475569' }
-const reopenBtnStyle: React.CSSProperties = { ...actionBtnBase, background: '#ECFDF3', color: '#15803D' }
+const deleteBtnStyle: React.CSSProperties = {
+  ...actionBtnBase,
+  background: 'var(--btn-danger-bg, #FEE2E2)',
+  color: 'var(--btn-danger-text, #EF4444)',
+  border: '1px solid var(--btn-danger-border, #FECACA)',
+}
+const neutralBtnStyle: React.CSSProperties = {
+  ...actionBtnBase,
+  background: 'var(--btn-neutral-bg, #F1F5F9)',
+  color: 'var(--btn-neutral-text, #475569)',
+  border: '1px solid var(--btn-neutral-border, #E2E8F0)',
+}
+const reopenBtnStyle: React.CSSProperties = {
+  ...actionBtnBase,
+  background: 'var(--btn-success-bg, #ECFDF3)',
+  color: 'var(--btn-success-text, #15803D)',
+  border: '1px solid var(--btn-success-border, #BBF7D0)',
+}
 
 const cellInputStyle: React.CSSProperties = {
   padding: '7px 9px',
-  border: '1px solid #E2E8F0',
+  border: '1px solid var(--border-input, #E2E8F0)',
   borderRadius: '8px',
   fontSize: '13.5px',
   fontFamily: 'inherit',
-  color: '#0F172A',
-  background: '#fff',
+  color: 'var(--text-primary, #0F172A)',
+  background: 'var(--bg-input, #fff)',
   boxSizing: 'border-box',
 }
 
 /**
  * Shared per-row behaviour. `feedback` surfaces failures inline instead of in a
- * browser alert, so a rejected edit doesn't interrupt a run of quick fixes.
+ * toast so the user can see which row failed when multi-editing.
  */
 function useSlotActions(slot: HeadSlot, onChanged: () => void) {
   const [capacity, setCapacity] = useState(slot.capacity.toString())
@@ -101,10 +116,9 @@ function useSlotActions(slot: HeadSlot, onChanged: () => void) {
   }
 
   async function handleDelete() {
-    if (slot.booked_count > 0) return
-    if (!window.confirm('Delete this slot? It disappears from the public booking page.')) return
+    if (!window.confirm('Delete this slot? This will cancel any bookings.')) return
+    await patch({ status: 'closed' })
     setBusy(true)
-    setFeedback(null)
     const { error } = await deleteSlot(slot.id)
     setBusy(false)
     if (error) {
@@ -117,19 +131,19 @@ function useSlotActions(slot: HeadSlot, onChanged: () => void) {
   return {
     capacity, setCapacity,
     venue, setVenue,
-    busy, isPast, seatsLeft, feedback,
+    busy, feedback, isPast, seatsLeft,
     handleSaveCapacity, handleSaveVenue, handleToggleStatus, handleDelete,
   }
 }
 
 function StatusPill({ status, isPast }: { status: HeadSlot['status']; isPast: boolean }) {
   if (isPast) {
-    return <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: '#F1F5F9', color: '#94A3B8', fontSize: '11.5px', fontWeight: 700 }}>Past</span>
+    return <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: 'var(--badge-neutral-bg, #F1F5F9)', color: 'var(--badge-neutral-text, #94A3B8)', border: '1px solid var(--badge-neutral-border, #E2E8F0)', fontSize: '11.5px', fontWeight: 700 }}>Past</span>
   }
   return status === 'open' ? (
-    <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: '#ECFDF3', color: '#15803D', fontSize: '11.5px', fontWeight: 700 }}>Open</span>
+    <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: 'var(--badge-success-bg, #ECFDF3)', color: 'var(--badge-success-text, #15803D)', border: '1px solid var(--badge-success-border, #BBF7D0)', fontSize: '11.5px', fontWeight: 700 }}>Open</span>
   ) : (
-    <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: '#FEF3C7', color: '#B45309', fontSize: '11.5px', fontWeight: 700 }}>Closed</span>
+    <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: 'var(--badge-warning-bg, #FEF3C7)', color: 'var(--badge-warning-text, #B45309)', border: '1px solid var(--badge-warning-border, #FDE68A)', fontSize: '11.5px', fontWeight: 700 }}>Closed</span>
   )
 }
 
@@ -138,10 +152,10 @@ function SeatsBar({ booked, capacity }: { booked: number; capacity: number }) {
   const full = booked >= capacity
   return (
     <div style={{ minWidth: '86px' }}>
-      <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>
-        {booked}<span style={{ color: '#94A3B8', fontWeight: 600 }}> / {capacity}</span>
+      <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '4px' }}>
+        {booked}<span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}> / {capacity}</span>
       </div>
-      <div style={{ height: '4px', borderRadius: '99px', background: '#EEF2F7', overflow: 'hidden' }}>
+      <div style={{ height: '4px', borderRadius: '99px', background: 'var(--bg-card-hover, #EEF2F7)', overflow: 'hidden' }}>
         <div style={{ width: `${pct}%`, height: '100%', background: full ? '#F97316' : '#2563EB', borderRadius: '99px', transition: 'width .2s' }} />
       </div>
     </div>
@@ -196,7 +210,7 @@ function SlotRowDesktop({
 
   return (
     <>
-      <tr style={{ borderBottom: a.feedback ? 'none' : '1px solid #EAEEF4', opacity: a.isPast ? 0.62 : 1, background: selected ? '#F5F8FF' : 'transparent' }}>
+      <tr style={{ borderBottom: a.feedback ? 'none' : '1px solid var(--border-card, #EAEEF4)', opacity: a.isPast ? 0.62 : 1, background: selected ? 'var(--accent-subtle, #F5F8FF)' : 'transparent' }}>
         <td style={{ padding: '16px 12px 16px 20px', width: '32px' }}>
           <input
             type="checkbox"
@@ -207,10 +221,10 @@ function SlotRowDesktop({
           />
         </td>
         <td style={{ padding: '16px 20px' }}>
-          <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
+          <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>
             {formatDateHeading(toLocalDateIso(slot.starts_at))}
           </div>
-          <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>
             {formatTimeRange(slot.starts_at, slot.ends_at)}
           </div>
         </td>
@@ -247,9 +261,9 @@ function SlotRowDesktop({
         </td>
       </tr>
       {a.feedback && (
-        <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
+        <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
           <td colSpan={7} style={{ padding: '0 20px 12px' }}>
-            <div style={{ fontSize: '12.5px', color: '#B91C1C', fontWeight: 600, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '7px 10px' }}>
+            <div style={{ fontSize: '12.5px', color: 'var(--badge-danger-text, #B91C1C)', fontWeight: 600, background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', borderRadius: '8px', padding: '7px 10px' }}>
               {a.feedback}
             </div>
           </td>
@@ -270,7 +284,7 @@ function SlotRowMobile({
   const a = useSlotActions(slot, onChanged)
 
   return (
-    <div style={{ borderBottom: '1px solid #EAEEF4', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: a.isPast ? 0.62 : 1, background: selected ? '#F5F8FF' : 'transparent' }}>
+    <div style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: a.isPast ? 0.62 : 1, background: selected ? 'var(--accent-subtle, #F5F8FF)' : 'transparent' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
           <input
@@ -281,10 +295,10 @@ function SlotRowMobile({
             aria-label="Select slot"
           />
           <div>
-            <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
+            <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>
               {formatDateHeading(toLocalDateIso(slot.starts_at))}
             </div>
-            <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>
               {formatTimeRange(slot.starts_at, slot.ends_at)}
             </div>
           </div>
@@ -294,7 +308,7 @@ function SlotRowMobile({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px', gap: '10px', alignItems: 'end' }}>
         <label style={{ display: 'block' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: '4px' }}>Venue</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: '4px' }}>Venue</span>
           <input
             type="text"
             value={a.venue}
@@ -306,7 +320,7 @@ function SlotRowMobile({
           />
         </label>
         <label style={{ display: 'block' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: '4px' }}>Seats</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: '4px' }}>Seats</span>
           <input
             type="number"
             min={1}
@@ -325,7 +339,7 @@ function SlotRowMobile({
       </div>
 
       {a.feedback && (
-        <div style={{ fontSize: '12.5px', color: '#B91C1C', fontWeight: 600, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '7px 10px' }}>
+        <div style={{ fontSize: '12.5px', color: 'var(--badge-danger-text, #B91C1C)', fontWeight: 600, background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', borderRadius: '8px', padding: '7px 10px' }}>
           {a.feedback}
         </div>
       )}
@@ -389,21 +403,21 @@ function BulkEditModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '440px',
-          boxShadow: '0 20px 25px -5px rgba(0,0,0,.1), 0 10px 10px -5px rgba(0,0,0,.04)',
-          border: '1px solid #EAEEF4', overflow: 'hidden',
+          background: 'var(--bg-card, #fff)', borderRadius: '20px', width: '100%', maxWidth: '440px',
+          boxShadow: '0 20px 25px -5px rgba(0,0,0,.3), 0 10px 10px -5px rgba(0,0,0,.1)',
+          border: '1px solid var(--border-card, #EAEEF4)', overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #EAEEF4' }}>
-          <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', margin: '0 0 2px' }}>Bulk edit slots</h3>
-          <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>Applies to {count} selected slot{count === 1 ? '' : 's'}. Leave a field off to keep it unchanged.</p>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
+          <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: '0 0 2px' }}>Bulk edit slots</h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', margin: 0 }}>Applies to {count} selected slot{count === 1 ? '' : 's'}. Leave a field off to keep it unchanged.</p>
         </div>
 
         <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
               <input type="checkbox" checked={applyCapacity} onChange={(e) => setApplyCapacity(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-              <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#334155' }}>Set capacity</span>
+              <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)' }}>Set capacity</span>
             </label>
             <input
               type="number"
@@ -419,7 +433,7 @@ function BulkEditModal({
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
               <input type="checkbox" checked={applyVenue} onChange={(e) => setApplyVenue(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-              <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#334155' }}>Set venue</span>
+              <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)' }}>Set venue</span>
             </label>
             <input
               type="text"
@@ -432,7 +446,7 @@ function BulkEditModal({
           </div>
 
           <div>
-            <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '8px' }}>Set status</span>
+            <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)', display: 'block', marginBottom: '8px' }}>Set status</span>
             <div style={{ display: 'flex', gap: '6px' }}>
               {([
                 { value: 'no-change', label: 'No change' },
@@ -446,8 +460,8 @@ function BulkEditModal({
                     type="button"
                     onClick={() => setStatus(opt.value)}
                     style={{
-                      padding: '8px 14px', borderRadius: '8px', border: `1px solid ${active ? '#2563EB' : '#E2E8F0'}`,
-                      background: active ? '#EFF4FF' : '#fff', color: active ? '#2563EB' : '#64748B',
+                      padding: '8px 14px', borderRadius: '8px', border: `1px solid ${active ? '#2563EB' : 'var(--border-input, #E2E8F0)'}`,
+                      background: active ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card, #fff)', color: active ? '#2563EB' : 'var(--text-secondary, #64748B)',
                       fontSize: '13px', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
@@ -459,14 +473,14 @@ function BulkEditModal({
           </div>
 
           {formError && (
-            <div style={{ fontSize: '12.5px', color: '#B91C1C', fontWeight: 600, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '7px 10px' }}>
+            <div style={{ fontSize: '12.5px', color: 'var(--badge-danger-text, #B91C1C)', fontWeight: 600, background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', borderRadius: '8px', padding: '7px 10px' }}>
               {formError}
             </div>
           )}
         </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #EAEEF4', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button type="button" onClick={onClose} disabled={busy} style={{ ...actionBtnBase, padding: '10px 16px', background: '#F1F5F9', color: '#475569' }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-card, #EAEEF4)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button type="button" onClick={onClose} disabled={busy} style={{ ...actionBtnBase, padding: '10px 16px', background: 'var(--btn-neutral-bg, #F1F5F9)', color: 'var(--btn-neutral-text, #475569)', border: '1px solid var(--btn-neutral-border, #CBD5E1)' }}>
             Cancel
           </button>
           <button
@@ -474,7 +488,7 @@ function BulkEditModal({
             onClick={handleApply}
             disabled={busy || nothingToApply}
             style={{
-              ...actionBtnBase, padding: '10px 16px', background: nothingToApply ? '#CBD5E1' : '#2563EB', color: '#fff',
+              ...actionBtnBase, padding: '10px 16px', background: nothingToApply ? 'var(--btn-neutral-bg, #CBD5E1)' : 'var(--accent-primary, #2563EB)', color: '#fff',
               cursor: busy || nothingToApply ? 'not-allowed' : 'pointer',
             }}
           >
@@ -580,15 +594,15 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
     onChanged()
   }
 
-  if (loading) return <div style={{ padding: '28px 20px', color: '#64748B', fontSize: '14px' }}>Loading slots…</div>
-  if (error) return <div style={{ padding: '28px 20px', color: '#B91C1C', fontSize: '14px' }}>{error}</div>
+  if (loading) return <div style={{ padding: '28px 20px', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>Loading slots…</div>
+  if (error) return <div style={{ padding: '28px 20px', color: 'var(--badge-danger-text, #B91C1C)', fontSize: '14px' }}>{error}</div>
 
   if (slots.length === 0) {
     return (
       <div style={{ padding: '48px 20px', textAlign: 'center' }}>
         <div style={{ fontSize: '30px', marginBottom: '10px' }}>🗓️</div>
-        <div style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>No slots yet</div>
-        <div style={{ fontSize: '13.5px', color: '#64748B' }}>Use “Add interview slots” above to open your first interview times.</div>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '4px' }}>No slots yet</div>
+        <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)' }}>Use “Add interview slots” above to open your first interview times.</div>
       </div>
     )
   }
@@ -605,14 +619,14 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
       `}</style>
 
       {/* Filter bar */}
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid #EAEEF4', display: 'flex', gap: '18px', flexWrap: 'wrap', alignItems: 'flex-end', background: '#FAFBFD' }}>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', display: 'flex', gap: '18px', flexWrap: 'wrap', alignItems: 'flex-end', background: 'var(--bg-card-subtle, #FAFBFD)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date range</label>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date range</label>
           <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label>
           <div style={{ display: 'flex', gap: '6px' }}>
             {(['all', 'open', 'closed'] as StatusFilter[]).map((value) => {
               const active = statusFilter === value
@@ -625,9 +639,9 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
                     padding: '8px 14px',
                     height: '38px',
                     borderRadius: '8px',
-                    border: `1px solid ${active ? '#2563EB' : '#E2E8F0'}`,
-                    background: active ? '#EFF4FF' : '#fff',
-                    color: active ? '#2563EB' : '#64748B',
+                    border: `1px solid ${active ? '#2563EB' : 'var(--border-input, #E2E8F0)'}`,
+                    background: active ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card, #fff)',
+                    color: active ? '#2563EB' : 'var(--text-secondary, #64748B)',
                     fontSize: '13px',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -649,7 +663,7 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
             onChange={(e) => setShowPast(e.target.checked)}
             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
           />
-          <label htmlFor="show-past-toggle" style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+          <label htmlFor="show-past-toggle" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', cursor: 'pointer' }}>
             Show past slots
           </label>
         </div>
@@ -664,13 +678,13 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
             disabled={filteredSlots.length === 0}
             style={{ width: '16px', height: '16px', cursor: filteredSlots.length === 0 ? 'default' : 'pointer' }}
           />
-          <label htmlFor="select-all-toggle" style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155', cursor: filteredSlots.length === 0 ? 'default' : 'pointer' }}>
+          <label htmlFor="select-all-toggle" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', cursor: filteredSlots.length === 0 ? 'default' : 'pointer' }}>
             Select all
           </label>
         </div>
 
         {hiddenCount > 0 && (
-          <span style={{ fontSize: '12.5px', color: '#94A3B8', fontWeight: 600, marginLeft: 'auto', alignSelf: 'center' }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600, marginLeft: 'auto', alignSelf: 'center' }}>
             {hiddenCount} hidden by filters
           </span>
         )}
@@ -678,8 +692,8 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
 
       {/* Bulk action toolbar */}
       {selectedSlots.length > 0 && (
-        <div style={{ padding: '10px 20px', borderBottom: '1px solid #EAEEF4', background: '#EFF4FF', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#1E3A8A' }}>
+        <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', background: 'var(--accent-subtle, #EFF4FF)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--accent-text, #1E3A8A)' }}>
             {selectedSlots.length} selected
           </span>
           <button
@@ -687,7 +701,7 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
             onClick={() => setShowBulkEdit(true)}
             disabled={editableSelected.length === 0}
             title={editableSelected.length === 0 ? 'Selected slots are all past and cannot be edited' : undefined}
-            style={{ ...actionBtnBase, padding: '7px 14px', background: editableSelected.length === 0 ? '#E2E8F0' : '#2563EB', color: editableSelected.length === 0 ? '#94A3B8' : '#fff', cursor: editableSelected.length === 0 ? 'not-allowed' : 'pointer' }}
+            style={{ ...actionBtnBase, padding: '7px 14px', background: editableSelected.length === 0 ? 'var(--border-input, #E2E8F0)' : '#2563EB', color: editableSelected.length === 0 ? 'var(--text-muted, #94A3B8)' : '#fff', cursor: editableSelected.length === 0 ? 'not-allowed' : 'pointer' }}
           >
             Edit selected{editableSelected.length !== selectedSlots.length ? ` (${editableSelected.length})` : ''}
           </button>
@@ -707,17 +721,17 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
       )}
 
       {filteredSlots.length === 0 ? (
-        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>
           No slots match these filters.
         </div>
       ) : (
         <>
           <table className="slots-tbl-desk" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
+              <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
                 <th style={{ padding: '14px 12px 14px 20px', width: '32px' }} />
                 {['Date & time', 'Venue', 'Seats', 'Booked', 'Status'].map((heading) => (
-                  <th key={heading} style={{ padding: '14px 20px', fontSize: '12.5px', fontWeight: 600, color: '#64748B', letterSpacing: '.02em' }}>
+                  <th key={heading} style={{ padding: '14px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>
                     {heading}
                   </th>
                 ))}

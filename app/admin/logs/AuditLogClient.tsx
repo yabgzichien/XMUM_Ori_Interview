@@ -18,8 +18,8 @@ import {
 import { fieldLabelStyle, fieldStyle } from '@/app/admin/AdminStaff'
 
 const cardStyle: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid #EAEEF4',
+  background: 'var(--bg-card, #fff)',
+  border: '1px solid var(--border-card, #EAEEF4)',
   borderRadius: '18px',
   boxShadow: '0 1px 2px rgba(16,24,40,.04)',
   overflow: 'hidden',
@@ -27,8 +27,8 @@ const cardStyle: React.CSSProperties = {
 
 const cardHeaderStyle: React.CSSProperties = {
   padding: '16px 20px',
-  borderBottom: '1px solid #EAEEF4',
-  background: '#F8FAFC',
+  borderBottom: '1px solid var(--border-card, #EAEEF4)',
+  background: 'var(--bg-card-subtle, #F8FAFC)',
   display: 'flex',
   alignItems: 'center',
   gap: '8px',
@@ -38,7 +38,7 @@ const thStyle: React.CSSProperties = {
   padding: '16px 20px',
   fontSize: '12.5px',
   fontWeight: 600,
-  color: '#64748B',
+  color: 'var(--text-muted, #64748B)',
   letterSpacing: '.02em',
 }
 
@@ -54,10 +54,10 @@ const pillStyle: React.CSSProperties = {
 const monoStyle: React.CSSProperties = {
   fontSize: '12.5px',
   fontFamily: 'var(--font-jetbrains-mono, monospace)',
-  background: '#F1F5F9',
+  background: 'var(--bg-card-hover, #F1F5F9)',
   padding: '2px 6px',
   borderRadius: '4px',
-  color: '#0F172A',
+  color: 'var(--text-primary, #0F172A)',
 }
 
 /** `datetime-local` gives a value with no zone; treat it as local wall time. */
@@ -181,7 +181,7 @@ export function AuditLogClient({
       <div style={cardStyle}>
         <div style={cardHeaderStyle}>
           <span style={{ fontSize: '16px' }}>🔎</span>
-          <h2 style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Search the log</h2>
+          <h2 style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', margin: 0 }}>Search the log</h2>
         </div>
         <div style={{ padding: '18px 20px' }}>
           <div className="bookings-filter-bar" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -238,7 +238,7 @@ export function AuditLogClient({
             <button
               type="button"
               onClick={reload}
-              style={{ padding: '9px 14px', borderRadius: '9px', border: '1px solid #E2E8F0', background: '#fff', color: '#334155', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer' }}
+              style={{ padding: '9px 14px', borderRadius: '9px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #334155)', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer' }}
             >
               Refresh
             </button>
@@ -259,7 +259,7 @@ export function AuditLogClient({
       <div style={cardStyle}>
         <div style={cardHeaderStyle}>
           <span style={{ fontSize: '16px' }}>🧾</span>
-          <h2 style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Activity</h2>
+          <h2 style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', margin: 0 }}>Activity</h2>
           {!loading && !loadError && (
             <span style={{ marginLeft: 'auto', fontSize: '12.5px', color: '#94A3B8', fontWeight: 600 }}>
               {entries.length}{hasMore ? '+' : ''} {entries.length === 1 ? 'entry' : 'entries'}
@@ -267,11 +267,11 @@ export function AuditLogClient({
           )}
         </div>
 
-        {loading && <div style={{ padding: '20px', color: '#64748B', fontSize: '14px' }}>Loading...</div>}
+        {loading && <div style={{ padding: '20px', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>Loading...</div>}
         {loadError && <div style={{ padding: '20px', color: '#B91C1C', fontSize: '14px' }}>{loadError}</div>}
 
         {!loading && !loadError && entries.length === 0 && (
-          <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>
             {filtersActive ? 'No activity matches these filters.' : 'No activity recorded yet.'}
           </div>
         )}
@@ -282,7 +282,7 @@ export function AuditLogClient({
                 shared .tbl-desk/.tbl-mob rules in globals.css. */}
             <table className="tbl-desk" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
+                <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
                   <th style={{ ...thStyle, width: '160px' }}>When</th>
                   <th style={{ ...thStyle, width: '260px' }}>Who</th>
                   <th style={thStyle}>What</th>
@@ -296,23 +296,23 @@ export function AuditLogClient({
                   const expanded = expandedId === entry.id
                   return (
                     <Fragment key={entry.id}>
-                    <tr style={{ borderBottom: expanded ? 'none' : '1px solid #EAEEF4' }}>
+                    <tr style={{ borderBottom: expanded ? 'none' : '1px solid var(--border-card, #EAEEF4)' }}>
                       <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{formatRelative(entry.occurred_at)}</div>
-                        <div style={{ fontSize: '12.5px', color: '#94A3B8', marginTop: '2px' }}>{formatAbsolute(entry.occurred_at)}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary, #0F172A)' }}>{formatRelative(entry.occurred_at)}</div>
+                        <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)', marginTop: '2px' }}>{formatAbsolute(entry.occurred_at)}</div>
                       </td>
                       <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
-                        <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{entry.actor_name}</div>
+                        <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>{entry.actor_name}</div>
                         {entry.actor_email && (
-                          <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500, marginBottom: '6px' }}>{entry.actor_email}</div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500, marginBottom: '6px' }}>{entry.actor_email}</div>
                         )}
                         <span style={{ ...pillStyle, background: badge.bg, color: badge.fg }}>{badge.text}</span>
                       </td>
                       <td style={{ padding: '18px 20px', verticalAlign: 'top' }}>
-                        <div style={{ fontSize: '14px', color: '#475569', marginBottom: '8px' }}>{entry.summary}</div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-secondary, #475569)', marginBottom: '8px' }}>{entry.summary}</div>
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                           <span style={{ ...pillStyle, background: act.bg, color: act.fg }}>{actionLabel(entry.action)}</span>
-                          <span style={{ ...pillStyle, background: '#F1F5F9', color: '#475569' }}>{auditTableLabel(entry.table_name)}</span>
+                          <span style={{ ...pillStyle, background: 'var(--bg-card-hover, #F1F5F9)', color: 'var(--text-secondary, #475569)' }}>{auditTableLabel(entry.table_name)}</span>
                         </div>
                       </td>
                       <td style={{ padding: '18px 20px', textAlign: 'right', verticalAlign: 'top' }}>
@@ -321,14 +321,14 @@ export function AuditLogClient({
                           onClick={() => toggleExpanded(entry.id)}
                           aria-expanded={expanded}
                           aria-label={expanded ? 'Hide details' : 'Show details'}
-                          style={{ border: '1px solid #E2E8F0', background: '#fff', color: '#64748B', borderRadius: '8px', padding: '4px 9px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                          style={{ border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-muted, #64748B)', borderRadius: '8px', padding: '4px 9px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
                         >
                           {expanded ? '▲' : '▼'}
                         </button>
                       </td>
                     </tr>
                     {expanded && (
-                      <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
                         <td colSpan={4} style={{ padding: '0 20px 18px' }}>
                           <DetailPanel entry={entry} />
                         </td>
@@ -347,19 +347,19 @@ export function AuditLogClient({
                 const act = actionStyle(entry.action)
                 const expanded = expandedId === entry.id
                 return (
-                  <div key={entry.id} style={{ borderBottom: '1px solid #EAEEF4', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', lineHeight: 1.4 }}>{entry.summary}</div>
+                  <div key={entry.id} style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', lineHeight: 1.4 }}>{entry.summary}</div>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       <span style={{ ...pillStyle, background: act.bg, color: act.fg }}>{actionLabel(entry.action)}</span>
-                      <span style={{ ...pillStyle, background: '#F1F5F9', color: '#475569' }}>{auditTableLabel(entry.table_name)}</span>
+                      <span style={{ ...pillStyle, background: 'var(--bg-card-hover, #F1F5F9)', color: 'var(--text-secondary, #475569)' }}>{auditTableLabel(entry.table_name)}</span>
                       <span style={{ ...pillStyle, background: badge.bg, color: badge.fg }}>{badge.text}</span>
                     </div>
-                    <div style={{ fontSize: '13.5px', color: '#475569', fontWeight: 600 }}>
-                      <span style={{ color: '#94A3B8', fontWeight: 500, marginRight: '4px' }}>By:</span>
+                    <div style={{ fontSize: '13.5px', color: 'var(--text-secondary, #475569)', fontWeight: 600 }}>
+                      <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500, marginRight: '4px' }}>By:</span>
                       {entry.actor_name}
-                      {entry.actor_email && <span style={{ color: '#94A3B8', fontWeight: 500 }}> · {entry.actor_email}</span>}
+                      {entry.actor_email && <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}> · {entry.actor_email}</span>}
                     </div>
-                    <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>
+                    <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)' }}>
                       {formatRelative(entry.occurred_at)} · {formatAbsolute(entry.occurred_at)}
                     </div>
                     <button
@@ -382,7 +382,7 @@ export function AuditLogClient({
                   type="button"
                   onClick={loadMore}
                   disabled={loadingMore}
-                  style={{ padding: '12px 16px', borderRadius: '9px', border: '1px solid #E2E8F0', background: '#fff', color: '#334155', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', opacity: loadingMore ? 0.7 : 1 }}
+                  style={{ padding: '12px 16px', borderRadius: '9px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #334155)', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', opacity: loadingMore ? 0.7 : 1 }}
                 >
                   {loadingMore ? 'Loading...' : `Load ${AUDIT_PAGE_SIZE} more`}
                 </button>
@@ -398,29 +398,29 @@ export function AuditLogClient({
 function DetailPanel({ entry }: { entry: AuditEntry }) {
   const rows = diffRows(entry)
   return (
-    <div style={{ padding: '16px', border: '1px solid #EAEEF4', borderRadius: '12px', background: '#F8FAFC' }}>
+    <div style={{ padding: '16px', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '12px', background: 'var(--bg-card-subtle, #F8FAFC)' }}>
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '12px' }}>
-        <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
+        <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)' }}>
           {auditTableLabel(entry.table_name)} record
         </span>
         {entry.record_id && <span style={monoStyle}>{entry.record_id}</span>}
       </div>
 
       {rows.length === 0 ? (
-        <p style={{ margin: 0, fontSize: '12.5px', color: '#94A3B8' }}>No field detail recorded.</p>
+        <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)' }}>No field detail recorded.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {rows.map((row) => (
             <div key={row.field} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'baseline' }}>
-              <span style={{ minWidth: '150px', fontSize: '12.5px', fontWeight: 700, color: '#475569' }}>{row.field}</span>
+              <span style={{ minWidth: '150px', fontSize: '12.5px', fontWeight: 700, color: 'var(--text-secondary, #475569)' }}>{row.field}</span>
               {entry.action !== 'insert' && (
-                <span style={{ fontSize: '13px', color: '#94A3B8', textDecoration: entry.action === 'update' ? 'line-through' : 'none', wordBreak: 'break-word' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted, #94A3B8)', textDecoration: entry.action === 'update' ? 'line-through' : 'none', wordBreak: 'break-word' }}>
                   {row.before}
                 </span>
               )}
-              {entry.action === 'update' && <span style={{ fontSize: '12px', color: '#94A3B8' }}>→</span>}
+              {entry.action === 'update' && <span style={{ fontSize: '12px', color: 'var(--text-muted, #94A3B8)' }}>→</span>}
               {entry.action !== 'delete' && (
-                <span style={{ fontSize: '13px', color: '#0F172A', fontWeight: 600, wordBreak: 'break-word' }}>{row.after}</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-primary, #0F172A)', fontWeight: 600, wordBreak: 'break-word' }}>{row.after}</span>
               )}
             </div>
           ))}

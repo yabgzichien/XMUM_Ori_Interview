@@ -35,8 +35,8 @@ export function SkTable({ rows = 6 }: { rows?: number }) {
   return (
     <div
       style={{
-        background: '#fff',
-        border: '1px solid #EAEEF4',
+        background: 'var(--bg-card, #fff)',
+        border: '1px solid var(--border-card, #EAEEF4)',
         borderRadius: '14px',
         padding: '18px 20px',
       }}

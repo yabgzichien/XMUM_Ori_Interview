@@ -42,11 +42,11 @@ function trackLabel(track: Track | null): string | null {
   return track === 'game_master' ? 'Game Master' : 'Facilitator'
 }
 
-const labelStyle: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }
-const inputStyle: React.CSSProperties = { padding: '8px 10px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '13.5px', fontFamily: 'inherit', color: '#0F172A', outline: 'none' }
+const labelStyle: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }
+const inputStyle: React.CSSProperties = { padding: '8px 10px', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '8px', fontSize: '13.5px', fontFamily: 'inherit', color: 'var(--text-primary, #0F172A)', background: 'var(--bg-input, #fff)', outline: 'none' }
 const primaryBtnStyle: React.CSSProperties = { padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }
-const secondaryBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', color: '#334155', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }
-const dangerBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#FEE2E2', color: '#B91C1C', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }
+const secondaryBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '8px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }
+const dangerBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '8px', border: '1px solid var(--btn-danger-border, #FECACA)', background: 'var(--btn-danger-bg, #FEE2E2)', color: 'var(--btn-danger-text, #B91C1C)', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }
 
 type Props = {
   orientation: Orientation
@@ -122,12 +122,12 @@ export function HeadPracticeDashboard({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div style={{ display: 'flex', borderRadius: '14px', border: '1px solid #EAEEF4', background: '#F8FAFC', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', borderRadius: '14px', border: '1px solid var(--border-card, #EAEEF4)', background: 'var(--bg-card-subtle, #F8FAFC)', overflow: 'hidden' }}>
         {myGroup && (
           <button
             type="button"
             onClick={() => setActiveTab('mygroup')}
-            style={{ flex: 1, padding: '14px 20px', border: 'none', borderRight: '1px solid #EAEEF4', background: activeTab === 'mygroup' ? '#fff' : 'transparent', color: activeTab === 'mygroup' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            style={{ flex: 1, padding: '14px 20px', border: 'none', borderRight: '1px solid var(--border-card, #EAEEF4)', background: activeTab === 'mygroup' ? 'var(--bg-card, #fff)' : 'transparent', color: activeTab === 'mygroup' ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #64748B)', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
             My Group
           </button>
@@ -135,22 +135,22 @@ export function HeadPracticeDashboard({
         <button
           type="button"
           onClick={() => setActiveTab('groups')}
-          style={{ flex: 1, padding: '14px 20px', border: 'none', background: activeTab === 'groups' ? '#fff' : 'transparent', color: activeTab === 'groups' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderRight: '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          style={{ flex: 1, padding: '14px 20px', border: 'none', background: activeTab === 'groups' ? 'var(--bg-card, #fff)' : 'transparent', color: activeTab === 'groups' ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #64748B)', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderRight: '1px solid var(--border-card, #EAEEF4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
         >
           Groups
-          <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'groups' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{groups.length}</span>
+          <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'groups' ? 'var(--bg-card-hover, #F1F5F9)' : 'var(--border-input, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '11.5px', fontWeight: 800 }}>{groups.length}</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('members')}
-          style={{ flex: 1, padding: '14px 20px', border: 'none', background: activeTab === 'members' ? '#fff' : 'transparent', color: activeTab === 'members' ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          style={{ flex: 1, padding: '14px 20px', border: 'none', background: activeTab === 'members' ? 'var(--bg-card, #fff)' : 'transparent', color: activeTab === 'members' ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #64748B)', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
         >
           Committee Members
-          <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'members' ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>{roster.length}</span>
+          <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'members' ? 'var(--bg-card-hover, #F1F5F9)' : 'var(--border-input, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '11.5px', fontWeight: 800 }}>{roster.length}</span>
         </button>
       </div>
 
-      {loading && <div style={{ padding: '20px', color: '#64748B', fontSize: '14px' }}>Loading...</div>}
+      {loading && <div style={{ padding: '20px', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>Loading...</div>}
       {error && <div style={{ padding: '20px', color: '#B91C1C', fontSize: '14px' }}>{error}</div>}
 
       {!loading && !error && activeTab === 'groups' && (
@@ -160,14 +160,14 @@ export function HeadPracticeDashboard({
           )}
 
           {groups.length === 0 && (
-            <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '32px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>
+            <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '32px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>
               {isAdmin ? 'No practice groups created yet for this orientation. Use the form above to add one.' : 'No practice groups created yet for this orientation.'}
             </div>
           )}
 
           {groups.length > 0 && (
-            <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #EAEEF4', fontWeight: 700, fontSize: '15px' }}>
+            <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', fontWeight: 700, fontSize: '15px', color: 'var(--text-primary, #0F172A)' }}>
                 Practice groups ({groups.length})
               </div>
               {groups.map((g) => (
@@ -274,29 +274,29 @@ function CommitteeMemberPicker({ options, value, onChange, onOpen, placeholder =
       {open && coords && typeof document !== 'undefined' && createPortal(
         <div
           ref={menuRef}
-          style={{ position: 'fixed', zIndex: 1000, top: coords.top, left: coords.left, width: coords.width, background: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(16,24,40,.12)', maxHeight: '260px', overflowY: 'auto' }}
+          style={{ position: 'fixed', zIndex: 1000, top: coords.top, left: coords.left, width: coords.width, background: 'var(--bg-card, #fff)', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,.25)', maxHeight: '260px', overflowY: 'auto' }}
         >
           {value && (
             <div
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => { onChange(''); setOpen(false); setQuery('') }}
-              style={{ padding: '8px 12px', fontSize: '12.5px', color: '#94A3B8', cursor: 'pointer', borderBottom: '1px solid #F1F5F9' }}
+              style={{ padding: '8px 12px', fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)', cursor: 'pointer', borderBottom: '1px solid var(--border-card, #F1F5F9)' }}
             >
               Clear selection
             </div>
           )}
           {filtered.length === 0 && (
-            <div style={{ padding: '10px 12px', fontSize: '13px', color: '#94A3B8' }}>No matching committee members.</div>
+            <div style={{ padding: '10px 12px', fontSize: '13px', color: 'var(--text-muted, #94A3B8)' }}>No matching committee members.</div>
           )}
           {filtered.map((m) => (
             <div
               key={m.id}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => { onChange(m.id); setOpen(false); setQuery('') }}
-              style={{ padding: '9px 12px', fontSize: '13.5px', color: '#0F172A', cursor: 'pointer', background: m.id === value ? '#EFF4FF' : 'transparent' }}
+              style={{ padding: '9px 12px', fontSize: '13.5px', color: 'var(--text-primary, #0F172A)', cursor: 'pointer', background: m.id === value ? 'var(--accent-subtle, #EFF4FF)' : 'transparent' }}
             >
               <div style={{ fontWeight: 600 }}>{m.name}{trackLabel(m.track) ? ` · ${trackLabel(m.track)}` : ''}</div>
-              <div style={{ fontSize: '12px', color: '#64748B' }}>{m.email}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)' }}>{m.email}</div>
             </div>
           ))}
         </div>,
@@ -337,7 +337,7 @@ function NewGroupForm({ orientation, orientationYear = 2026, availableLeads, onR
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '20px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+    <form onSubmit={handleSubmit} style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '20px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <label style={labelStyle}>Group name</label>
         <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Team Alpha" style={{ ...inputStyle, width: '220px' }} />
@@ -380,15 +380,15 @@ function CommitteeRosterPanel({ roster, positions, isAdmin, onChanged }: { roste
   if (roster.length === 0) return null
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #EAEEF4', fontWeight: 700, fontSize: '15px' }}>
+    <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', fontWeight: 700, fontSize: '15px', color: 'var(--text-primary, #0F172A)' }}>
         Committee members ({roster.length})
       </div>
       {roster.map((m) => (
-        <div key={m.id} style={{ padding: '14px 20px', borderBottom: '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+        <div key={m.id} style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '14px', color: '#0F172A' }}>{m.name}</div>
-            <div style={{ fontSize: '12.5px', color: '#64748B' }}>{trackLabel(m.track) ? `${trackLabel(m.track)} · ` : ''}{m.email}</div>
+            <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary, #0F172A)' }}>{m.name}</div>
+            <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>{trackLabel(m.track) ? `${trackLabel(m.track)} · ` : ''}{m.email}</div>
           </div>
           {isAdmin ? (
             <select
@@ -403,7 +403,7 @@ function CommitteeRosterPanel({ roster, positions, isAdmin, onChanged }: { roste
               ))}
             </select>
           ) : (
-            <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11.5px', fontWeight: 700, background: m.position ? '#EFF4FF' : '#F1F5F9', color: m.position ? '#2563EB' : '#94A3B8' }}>
+            <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11.5px', fontWeight: 700, background: m.position ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card-hover, #F1F5F9)', color: m.position ? '#2563EB' : 'var(--text-muted, #94A3B8)' }}>
               {positionLabel(m.position)}
             </span>
           )}
@@ -467,28 +467,28 @@ function GroupRow({ group, expanded, onToggle, availableLeads, onRefreshLeads, i
   }
 
   return (
-    <div style={{ borderBottom: '1px solid #EAEEF4' }}>
+    <div style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
       <div
         style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', cursor: 'pointer' }}
         onClick={onToggle}
       >
         <div>
-          <div style={{ fontWeight: 700, fontSize: '15px', color: '#0F172A', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary, #0F172A)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>{group.name}</span>
             {isManagedByUser && (
-              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#2563EB', background: '#EFF4FF', padding: '2px 8px', borderRadius: '99px' }}>
+              <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--btn-accent-text, #2563EB)', background: 'var(--btn-accent-bg, #EFF4FF)', border: '1px solid var(--btn-accent-border, #DBE6FF)', padding: '2px 8px', borderRadius: '99px' }}>
                 your group
               </span>
             )}
           </div>
-          <div style={{ fontSize: '13px', color: '#64748B' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
             Led by {group.lead_name} ({group.lead_email}){isManagedByUser ? ' (your group)' : ''} · {group.member_count}/{group.capacity} members · {group.session_count} session{group.session_count === 1 ? '' : 's'}
           </div>
         </div>
         <span style={{
           padding: '4px 10px', borderRadius: '99px', fontSize: '11.5px', fontWeight: 700,
-          background: group.status === 'open' ? '#ECFDF3' : '#F1F5F9',
-          color: group.status === 'open' ? '#15803D' : '#64748B',
+          background: group.status === 'open' ? '#ECFDF3' : 'var(--bg-card-hover, #F1F5F9)',
+          color: group.status === 'open' ? '#15803D' : 'var(--text-muted, #64748B)',
         }}>
           {group.status === 'open' ? 'Open' : 'Closed'}
         </span>
@@ -498,7 +498,7 @@ function GroupRow({ group, expanded, onToggle, availableLeads, onRefreshLeads, i
         <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }} onClick={(e) => e.stopPropagation()}>
           {isAdmin && (
             editing ? (
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap', background: '#F8FAFC', padding: '14px', borderRadius: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap', background: 'var(--bg-card-subtle, #F8FAFC)', padding: '14px', borderRadius: '10px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={labelStyle}>Name</label>
                   <input type="text" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
@@ -587,7 +587,7 @@ function GroupDetails({ groupId, capacity, isAdmin, onChanged }: {
         {members.length === 0 && <div style={{ fontSize: '13px', color: '#94A3B8' }}>No members yet.</div>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {members.map((m) => (
-            <span key={m.member_id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px 5px 11px', borderRadius: '99px', background: '#F1F5F9', color: '#334155', fontSize: '12.5px', fontWeight: 600 }}>
+            <span key={m.member_id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px 5px 11px', borderRadius: '99px', background: 'var(--bg-card-hover, #F1F5F9)', color: 'var(--text-secondary, #334155)', fontSize: '12.5px', fontWeight: 600 }}>
               {m.profiles?.name ?? m.member_id}
               {isAdmin && (
                 <button
@@ -595,7 +595,7 @@ function GroupDetails({ groupId, capacity, isAdmin, onChanged }: {
                   disabled={removingId === m.member_id}
                   onClick={() => handleRemove(m.member_id, m.profiles?.name ?? 'this member')}
                   aria-label={`Remove ${m.profiles?.name ?? 'member'}`}
-                  style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', borderRadius: '99px', width: '16px', height: '16px', lineHeight: '16px', textAlign: 'center', fontSize: '10px', fontWeight: 700, cursor: removingId === m.member_id ? 'not-allowed' : 'pointer', padding: 0 }}
+                  style={{ border: '1px solid var(--btn-danger-border, #FECACA)', background: 'var(--btn-danger-bg, #FEE2E2)', color: 'var(--btn-danger-text, #EF4444)', borderRadius: '99px', width: '16px', height: '16px', lineHeight: '14px', textAlign: 'center', fontSize: '10px', fontWeight: 700, cursor: removingId === m.member_id ? 'not-allowed' : 'pointer', padding: 0 }}
                 >
                   ×
                 </button>
@@ -616,9 +616,9 @@ function GroupDetails({ groupId, capacity, isAdmin, onChanged }: {
       </div>
       <div style={{ flex: '1 1 220px' }}>
         <div style={{ ...labelStyle, marginBottom: '8px', display: 'block' }}>Sessions</div>
-        {sessions.length === 0 && <div style={{ fontSize: '13px', color: '#94A3B8' }}>No sessions scheduled yet.</div>}
+        {sessions.length === 0 && <div style={{ fontSize: '13px', color: 'var(--text-muted, #94A3B8)' }}>No sessions scheduled yet.</div>}
         {sessions.map((s) => (
-          <div key={s.id} style={{ fontSize: '13px', color: '#334155', marginBottom: '4px' }}>
+          <div key={s.id} style={{ fontSize: '13px', color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
             {formatDateHeading(toLocalDateIso(s.starts_at))} · {formatTimeRange(s.starts_at, s.ends_at)}
             {s.location && <> · {s.location}</>}
           </div>
@@ -678,7 +678,7 @@ function AdminAddMemberForm({ groupId, seatsLeft, onAdded }: {
         >
           + Add member
         </button>
-        <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>
           {seatsLeft === 0 ? 'Group is full — raise the capacity to add more.' : `${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} left`}
         </span>
       </div>
@@ -691,7 +691,7 @@ function AdminAddMemberForm({ groupId, seatsLeft, onAdded }: {
     : candidates
 
   return (
-    <div style={{ marginTop: '10px', padding: '12px', background: '#F8FAFC', border: '1px solid #EAEEF4', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div style={{ marginTop: '10px', padding: '12px', background: 'var(--bg-card-subtle, #F8FAFC)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
         <input
           type="text"
@@ -703,19 +703,19 @@ function AdminAddMemberForm({ groupId, seatsLeft, onAdded }: {
         <button type="button" onClick={() => setOpen(false)} style={secondaryBtnStyle}>Close</button>
       </div>
       {formError && <span style={{ color: '#B91C1C', fontSize: '12.5px' }}>{formError}</span>}
-      {loading && <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>Loading eligible members...</div>}
+      {loading && <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)' }}>Loading eligible members...</div>}
       {!loading && filtered.length === 0 && (
-        <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>
+        <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)' }}>
           {candidates.length === 0
             ? 'No eligible committee members — everyone in this orientation is already in a group.'
             : 'No matches.'}
         </div>
       )}
       {!loading && filtered.map((c) => (
-        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '8px 10px', background: '#fff', border: '1px solid #EAEEF4', borderRadius: '8px' }}>
+        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '8px 10px', background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '8px' }}>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '13px', color: '#0F172A' }}>{c.name}</div>
-            <div style={{ fontSize: '11.5px', color: '#64748B' }}>{c.student_id ?? 'No student ID'} · {c.email}</div>
+            <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary, #0F172A)' }}>{c.name}</div>
+            <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #64748B)' }}>{c.student_id ?? 'No student ID'} · {c.email}</div>
           </div>
           <button
             type="button"

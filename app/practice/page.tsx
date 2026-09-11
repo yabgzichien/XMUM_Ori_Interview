@@ -38,10 +38,10 @@ export default async function PracticePage() {
   return (
     <main className="scr" style={{ width: '100%', maxWidth: '1000px', margin: '0 auto', padding: '32px 16px 48px', boxSizing: 'border-box' }}>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px' }}>
+        <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>
           {orientationLabel} {orientationYear} Practice Groups
         </h1>
-        <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0 }}>
+        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>
           Join a performance practice group for your orientation cycle and keep up with its scheduled sessions.
         </p>
       </div>

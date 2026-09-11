@@ -39,40 +39,40 @@ export default async function Home() {
             <Link href="/book" style={{ display: 'inline-block', padding: '14px 24px', borderRadius: '12px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '15px', cursor: 'pointer', boxShadow: '0 8px 20px -6px rgba(37,99,235,.55)' }}>
               Browse open slots →
             </Link>
-            <Link href="/my-booking" style={{ display: 'inline-block', padding: '14px 22px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#fff', color: '#1E293B', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
+            <Link href="/my-booking" style={{ display: 'inline-block', padding: '14px 22px', borderRadius: '12px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
               Check booking
             </Link>
-            <Link href="/login" style={{ display: 'inline-block', padding: '14px 22px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#fff', color: '#1E293B', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
+            <Link href="/login" style={{ display: 'inline-block', padding: '14px 22px', borderRadius: '12px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
               I&apos;m committee
             </Link>
           </div>
           <div style={{ display: 'flex', gap: '26px', marginTop: '34px' }}>
-            <div><div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-.02em' }}>2</div><div style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 600 }}>tracks</div></div>
-            <div style={{ width: '1px', background: '#E7EBF0' }}></div>
-            <div><div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-.02em' }}>{totalCount}</div><div style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 600 }}>open slots</div></div>
+            <div><div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--text-primary, #0F172A)' }}>2</div><div style={{ fontSize: '13px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>tracks</div></div>
+            <div style={{ width: '1px', background: 'var(--border-card, #E7EBF0)' }}></div>
+            <div><div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--text-primary, #0F172A)' }}>{totalCount}</div><div style={{ fontSize: '13px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>open slots</div></div>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Link href="/book?track=facilitator" className="hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-14px_rgba(16,24,40,.18)]" style={{ textAlign: 'left', cursor: 'pointer', background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '22px', display: 'flex', alignItems: 'center', gap: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', transition: 'transform .15s' }}>
-            <div style={{ width: '54px', height: '54px', borderRadius: '14px', background: '#EFF4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flex: 'none' }}>🎯</div>
+          <Link href="/book?track=facilitator" className="hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-14px_rgba(16,24,40,.18)]" style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '22px', display: 'flex', alignItems: 'center', gap: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', transition: 'transform .15s' }}>
+            <div style={{ width: '54px', height: '54px', borderRadius: '14px', background: 'var(--accent-subtle, #EFF4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flex: 'none' }}>🎯</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: '17px', marginBottom: '3px' }}>Facilitator</div>
-              <div style={{ fontSize: '13.5px', color: '#64748B', lineHeight: 1.45 }}>Guide new students through orientation week.</div>
+              <div style={{ fontWeight: 700, fontSize: '17px', marginBottom: '3px', color: 'var(--text-primary, #0F172A)' }}>Facilitator</div>
+              <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.45 }}>Guide new students through orientation week.</div>
             </div>
             <div style={{ textAlign: 'right', flex: 'none' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: '#2563EB' }}>{facCount}</div>
-              <div style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600 }}>slots</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-text, #2563EB)' }}>{facCount}</div>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>slots</div>
             </div>
           </Link>
-          <Link href="/book?track=game_master" className="hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-14px_rgba(16,24,40,.18)]" style={{ textAlign: 'left', cursor: 'pointer', background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '22px', display: 'flex', alignItems: 'center', gap: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', transition: 'transform .15s' }}>
-            <div style={{ width: '54px', height: '54px', borderRadius: '14px', background: '#F3F0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flex: 'none' }}>🎮</div>
+          <Link href="/book?track=game_master" className="hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-14px_rgba(16,24,40,.18)]" style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '22px', display: 'flex', alignItems: 'center', gap: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', transition: 'transform .15s' }}>
+            <div style={{ width: '54px', height: '54px', borderRadius: '14px', background: 'var(--accent-subtle, #F3F0FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flex: 'none' }}>🎮</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: '17px', marginBottom: '3px' }}>Game Master</div>
-              <div style={{ fontSize: '13.5px', color: '#64748B', lineHeight: 1.45 }}>Run the games, energy & icebreaker stations.</div>
+              <div style={{ fontWeight: 700, fontSize: '17px', marginBottom: '3px', color: 'var(--text-primary, #0F172A)' }}>Game Master</div>
+              <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.45 }}>Run the games, energy & icebreaker stations.</div>
             </div>
             <div style={{ textAlign: 'right', flex: 'none' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: '#2563EB' }}>{gmCount}</div>
-              <div style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600 }}>slots</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-text, #2563EB)' }}>{gmCount}</div>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>slots</div>
             </div>
           </Link>
         </div>

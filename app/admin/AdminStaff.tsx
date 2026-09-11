@@ -30,8 +30,8 @@ const roleLabels: Record<StaffRole, string> = {
 
 // Shared with the other admin screens (see app/admin/logs/AuditLogClient.tsx)
 // so every form control on /admin* looks the same.
-export const fieldLabelStyle: React.CSSProperties = { fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '5px', display: 'block' }
-export const fieldStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: '9px', fontSize: '14px', fontFamily: 'inherit', color: '#475569', backgroundColor: '#fff' }
+export const fieldLabelStyle: React.CSSProperties = { fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px', display: 'block' }
+export const fieldStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '9px', fontSize: '14px', fontFamily: 'inherit', color: 'var(--text-primary, #475569)', backgroundColor: 'var(--bg-input, #fff)' }
 
 type AdminStaffProps = {
   initialInvites?: StaffInvite[]
@@ -218,12 +218,12 @@ export function AdminStaff({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       {/* Invite Form Card */}
-      <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '26px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
+      <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '26px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👋</div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--bg-card-hover, #F1F5F9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👋</div>
           <div>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 2px' }}>Invite Committee</h2>
-            <p style={{ fontSize: '12.5px', color: '#64748B', margin: 0 }}>Add a new administrator, head, or committee member.</p>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 2px', color: 'var(--text-primary, #0F172A)' }}>Invite Committee</h2>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: 0 }}>Add a new administrator, head, or committee member.</p>
           </div>
         </div>
 
@@ -300,13 +300,13 @@ export function AdminStaff({
               onChange={(e) => setGrantAdmin(e.target.checked)}
               style={{ width: '16px', height: '16px', cursor: 'pointer' }}
             />
-            <label htmlFor="grant-admin" style={{ fontSize: '13px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+            <label htmlFor="grant-admin" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary, #334155)', cursor: 'pointer' }}>
               Grant admin access
             </label>
           </div>
 
-          <p style={{ margin: 0, fontSize: '12.5px', color: '#94A3B8' }}>
-            Access level: <strong style={{ color: '#475569' }}>{roleLabels[derivedRole]}</strong>
+          <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)' }}>
+            Access level: <strong style={{ color: 'var(--text-primary, #475569)' }}>{roleLabels[derivedRole]}</strong>
             {' — '}
             {grantAdmin
               ? 'admins see and manage everything.'
@@ -332,12 +332,12 @@ export function AdminStaff({
         </button>
 
         {showManagePositions && (
-          <div style={{ marginTop: '14px', padding: '16px', border: '1px solid #EAEEF4', borderRadius: '12px', background: '#F8FAFC' }}>
-            <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '10px' }}>Committee titles</div>
+          <div style={{ marginTop: '14px', padding: '16px', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '12px', background: 'var(--bg-card-subtle, #F8FAFC)' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '10px' }}>Committee titles</div>
             {positionsError && <p style={{ fontSize: '12.5px', color: '#B91C1C', marginBottom: '10px' }}>{positionsError}</p>}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
               {positions.map((p) => (
-                <span key={p.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px 5px 12px', borderRadius: '99px', background: '#fff', border: '1px solid #E2E8F0', fontSize: '12.5px', fontWeight: 600, color: '#334155' }}>
+                <span key={p.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px 5px 12px', borderRadius: '99px', background: 'var(--bg-card, #fff)', border: '1px solid var(--border-input, #E2E8F0)', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>
                   {p.label}
                   <button
                     type="button"
@@ -358,9 +358,9 @@ export function AdminStaff({
                 onChange={(e) => setNewPositionLabel(e.target.value)}
                 placeholder="e.g. Marketing Lead"
                 required
-                style={{ ...fieldStyle, flex: '1 1 200px', backgroundColor: '#fff' }}
+                style={{ ...fieldStyle, flex: '1 1 200px' }}
               />
-              <button type="submit" disabled={positionBusy} style={{ padding: '10px 16px', borderRadius: '9px', border: 'none', background: '#0F172A', color: '#fff', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', opacity: positionBusy ? 0.7 : 1 }}>
+              <button type="submit" disabled={positionBusy} style={{ padding: '10px 16px', borderRadius: '9px', border: 'none', background: 'var(--text-primary, #0F172A)', color: 'var(--bg-card, #fff)', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', opacity: positionBusy ? 0.7 : 1 }}>
                 Add title
               </button>
             </form>
@@ -372,17 +372,17 @@ export function AdminStaff({
       <CommitteeMembersPanel positions={positions} initialMembers={initialMembers} />
 
       {/* Invites Table Card */}
-      <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #EAEEF4', background: '#F8FAFC', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', background: 'var(--bg-card-subtle, #F8FAFC)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '16px' }}>🔑</span>
-          <h2 style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Active Invites & Committee</h2>
+          <h2 style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', margin: 0 }}>Active Invites & Committee</h2>
         </div>
 
-        {loading && <div style={{ padding: '20px', color: '#64748B', fontSize: '14px' }}>Loading...</div>}
+        {loading && <div style={{ padding: '20px', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>Loading...</div>}
         {loadError && <div style={{ padding: '20px', color: '#B91C1C', fontSize: '14px' }}>{loadError}</div>}
 
         {!loading && !loadError && invites.length === 0 && (
-          <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>No invites yet.</div>
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>No invites yet.</div>
         )}
 
         {!loading && !loadError && invites.length > 0 && (
@@ -391,24 +391,24 @@ export function AdminStaff({
                 card list below is toggled by the shared .tbl-desk/.tbl-mob rules. */}
             <table className="tbl-desk" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #EAEEF4' }}>
-                  <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: '#64748B', letterSpacing: '.02em' }}>Committee Member</th>
-                  <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: '#64748B', letterSpacing: '.02em' }}>Role</th>
-                  <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: '#64748B', letterSpacing: '.02em' }}>Code/Status</th>
+                <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
+                  <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Committee Member</th>
+                  <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Role</th>
+                  <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Code/Status</th>
                   <th style={{ padding: '16px 20px' }}></th>
                 </tr>
               </thead>
               <tbody>
                 {invites.map((inv) => (
-                  <tr key={inv.id} style={{ borderBottom: '1px solid #EAEEF4' }}>
+                  <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
                     <td style={{ padding: '18px 20px' }}>
-                      <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{inv.name}</div>
-                      <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{inv.email}</div>
+                      <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>{inv.name}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>{inv.email}</div>
                     </td>
                     <td style={{ padding: '18px 20px' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#475569' }}>{roleLabels[inv.role]}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>{roleLabels[inv.role]}</div>
                       {inv.position && (
-                        <div style={{ fontSize: '12.5px', color: '#94A3B8', fontWeight: 500, marginTop: '1px' }}>
+                        <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 500, marginTop: '1px' }}>
                           {positions.find((p) => p.value === inv.position)?.label ?? inv.position}
                         </div>
                       )}
@@ -419,7 +419,7 @@ export function AdminStaff({
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: '6px', background: '#FEF3C7', color: '#B45309', fontSize: '12px', fontWeight: 700, width: 'fit-content' }}>Pending</span>
-                          <span style={{ fontSize: '13px', fontFamily: 'var(--font-jetbrains-mono, monospace)', background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.05em', color: '#0F172A', fontWeight: 600 }}>{inv.code}</span>
+                          <span style={{ fontSize: '13px', fontFamily: 'var(--font-jetbrains-mono, monospace)', background: 'var(--bg-card-hover, #F1F5F9)', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.05em', color: 'var(--text-primary, #0F172A)', fontWeight: 600 }}>{inv.code}</span>
                         </div>
                       )}
                     </td>
@@ -438,11 +438,11 @@ export function AdminStaff({
             {/* Mobile list */}
             <div className="tbl-mob">
               {invites.map((inv) => (
-                <div key={inv.id} style={{ borderBottom: '1px solid #EAEEF4', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div key={inv.id} style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>{inv.name}</div>
-                      <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{inv.email}</div>
+                      <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>{inv.name}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>{inv.email}</div>
                     </div>
                     <div>
                       {inv.claimed_at ? (
@@ -453,17 +453,17 @@ export function AdminStaff({
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#475569' }}>
-                      <span style={{ color: '#94A3B8', fontWeight: 500, marginRight: '4px' }}>Role:</span>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                      <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500, marginRight: '4px' }}>Role:</span>
                       {roleLabels[inv.role]}
                       {inv.position && (
-                        <span style={{ color: '#94A3B8', fontWeight: 500 }}> · {positions.find((p) => p.value === inv.position)?.label ?? inv.position}</span>
+                        <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}> · {positions.find((p) => p.value === inv.position)?.label ?? inv.position}</span>
                       )}
                     </div>
                     {!inv.claimed_at && (
-                      <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ color: '#94A3B8', fontWeight: 500, marginRight: '6px' }}>Code:</span>
-                        <span style={{ fontSize: '13px', fontFamily: 'var(--font-jetbrains-mono, monospace)', background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.05em', color: '#0F172A' }}>{inv.code}</span>
+                      <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500, marginRight: '6px' }}>Code:</span>
+                        <span style={{ fontSize: '13px', fontFamily: 'var(--font-jetbrains-mono, monospace)', background: 'var(--bg-card-hover, #F1F5F9)', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.05em', color: 'var(--text-primary, #0F172A)' }}>{inv.code}</span>
                       </div>
                     )}
                   </div>
@@ -498,12 +498,12 @@ function MemberAvatar({ name, email, avatarUrl }: { name: string; email: string;
       <img
         src={avatarUrl}
         alt=""
-        style={{ width: '36px', height: '36px', borderRadius: '99px', objectFit: 'cover', border: '1px solid #EAEEF4', flexShrink: 0 }}
+        style={{ width: '36px', height: '36px', borderRadius: '99px', objectFit: 'cover', border: '1px solid var(--border-card, #EAEEF4)', flexShrink: 0 }}
       />
     )
   }
   return (
-    <div style={{ width: '36px', height: '36px', borderRadius: '99px', background: '#EEF2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: '#475569', flexShrink: 0 }}>
+    <div style={{ width: '36px', height: '36px', borderRadius: '99px', background: 'var(--bg-card-subtle, #EEF2F7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary, #475569)', flexShrink: 0 }}>
       {initialsFor(name, email)}
     </div>
   )
@@ -598,22 +598,22 @@ function CommitteeMembersPanel({
   }
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #EAEEF4', background: '#F8FAFC', display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', background: 'var(--bg-card-subtle, #F8FAFC)', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '16px' }}>🧑‍🤝‍🧑</span>
-        <h2 style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Committee Members</h2>
+        <h2 style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', margin: 0 }}>Committee Members</h2>
       </div>
 
-      {loading && <div style={{ padding: '20px', color: '#64748B', fontSize: '14px' }}>Loading...</div>}
+      {loading && <div style={{ padding: '20px', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>Loading...</div>}
       {loadError && <div style={{ padding: '20px', color: '#B91C1C', fontSize: '14px' }}>{loadError}</div>}
       {!loading && !loadError && members.length === 0 && (
-        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>No active committee members yet.</div>
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>No active committee members yet.</div>
       )}
 
       {!loading && !loadError && members.map((m) => {
         const permanent = !m.orientation
         return (
-          <div key={m.id} style={{ padding: '14px 20px', borderBottom: '1px solid #EAEEF4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+          <div key={m.id} style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-card, #EAEEF4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '180px' }}>
               <MemberAvatar name={m.name} email={m.email} avatarUrl={m.avatar_url} />
               <div>
@@ -624,18 +624,18 @@ function CommitteeMembersPanel({
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
                     disabled={busyId === m.id}
-                    style={{ padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: '7px', fontSize: '13.5px', fontFamily: 'inherit', width: '160px' }}
+                    style={{ padding: '6px 8px', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '7px', fontSize: '13.5px', fontFamily: 'inherit', width: '160px', background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)' }}
                   />
                   <button type="button" disabled={busyId === m.id} onClick={() => saveRename(m.id)} style={{ padding: '6px 10px', borderRadius: '7px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>Save</button>
-                  <button type="button" disabled={busyId === m.id} onClick={() => setRenamingId(null)} style={{ padding: '6px 10px', borderRadius: '7px', border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                  <button type="button" disabled={busyId === m.id} onClick={() => setRenamingId(null)} style={{ padding: '6px 10px', borderRadius: '7px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
                 </div>
               ) : (
-                <div style={{ fontWeight: 600, fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {m.name}
-                  <button type="button" onClick={() => startRename(m)} style={{ padding: 0, border: 'none', background: 'none', color: '#94A3B8', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Rename</button>
+                  <button type="button" onClick={() => startRename(m)} style={{ padding: 0, border: 'none', background: 'none', color: 'var(--text-muted, #94A3B8)', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Rename</button>
                 </div>
               )}
-              <div style={{ fontSize: '12.5px', color: '#64748B' }}>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>
                 {memberRoleLabels[m.role]}{m.orientation ? ` · ${m.orientation}` : ' · permanent'} · {m.email}
               </div>
               </div>

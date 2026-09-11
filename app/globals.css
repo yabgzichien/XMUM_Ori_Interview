@@ -81,9 +81,66 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Semantic Theme Variables */
+  --bg-page: #F6F8FC;
+  --bg-card: #ffffff;
+  --bg-card-subtle: #F8FAFC;
+  --bg-card-hover: #F1F5F9;
+  --bg-input: #ffffff;
+  --border-card: #EAEEF4;
+  --border-input: #E2E8F0;
+  --border-subtle: #EAEEF4;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --text-faint: #94A3B8;
+  --accent-subtle: #EFF4FF;
+  --accent-border: #DBE6FF;
+  --accent-text: #2563EB;
+  --bg-page-gradient: linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 50%, #F8FAFC 100%);
+
+  /* Badges & Status Pills */
+  --badge-success-bg: #ECFDF3;
+  --badge-success-text: #15803D;
+  --badge-success-border: #BBF7D0;
+  --badge-danger-bg: #FEF2F2;
+  --badge-danger-text: #B91C1C;
+  --badge-danger-border: #FECACA;
+  --badge-warning-bg: #FEF3C7;
+  --badge-warning-text: #B45309;
+  --badge-warning-border: #FDE68A;
+  --badge-neutral-bg: #F1F5F9;
+  --badge-neutral-text: #94A3B8;
+  --badge-neutral-border: #E2E8F0;
+  --badge-facilitator-bg: #EFF4FF;
+  --badge-facilitator-text: #2563EB;
+  --badge-facilitator-border: #DBE6FF;
+  --badge-gm-bg: #F3F0FF;
+  --badge-gm-text: #7C3AED;
+  --badge-gm-border: #DDD6FE;
+
+  /* Action & Selection Buttons */
+  --btn-active-bg: #EFF4FF;
+  --btn-active-border: #2563EB;
+  --btn-active-text: #2563EB;
+  --btn-active-subtext: #3B82F6;
+  --btn-danger-bg: #FEE2E2;
+  --btn-danger-text: #EF4444;
+  --btn-danger-border: #FECACA;
+  --btn-neutral-bg: #F1F5F9;
+  --btn-neutral-text: #475569;
+  --btn-neutral-border: #E2E8F0;
+  --btn-success-bg: #ECFDF3;
+  --btn-success-text: #15803D;
+  --btn-success-border: #BBF7D0;
+  --btn-accent-bg: #EFF6FF;
+  --btn-accent-text: #2563EB;
+  --btn-accent-border: #DBE6FF;
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -115,6 +172,62 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Semantic Theme Variables */
+  --bg-page: #0B0F19;
+  --bg-card: #131B2E;
+  --bg-card-subtle: #192237;
+  --bg-card-hover: #1E2A44;
+  --bg-input: #0B0F19;
+  --border-card: #1E293B;
+  --border-input: #2D3B55;
+  --border-subtle: #1E293B;
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-faint: #64748B;
+  --accent-subtle: rgba(37, 99, 235, 0.18);
+  --accent-border: rgba(59, 130, 246, 0.35);
+  --accent-text: #60A5FA;
+  --bg-page-gradient: #0B0F19;
+
+  /* Badges & Status Pills */
+  --badge-success-bg: rgba(16, 185, 129, 0.16);
+  --badge-success-text: #34D399;
+  --badge-success-border: rgba(52, 211, 153, 0.3);
+  --badge-danger-bg: rgba(239, 68, 68, 0.16);
+  --badge-danger-text: #F87171;
+  --badge-danger-border: rgba(248, 113, 113, 0.3);
+  --badge-warning-bg: rgba(245, 158, 11, 0.16);
+  --badge-warning-text: #FBBF24;
+  --badge-warning-border: rgba(251, 191, 36, 0.3);
+  --badge-neutral-bg: rgba(148, 163, 184, 0.12);
+  --badge-neutral-text: #94A3B8;
+  --badge-neutral-border: rgba(148, 163, 184, 0.2);
+  --badge-facilitator-bg: rgba(37, 99, 235, 0.2);
+  --badge-facilitator-text: #60A5FA;
+  --badge-facilitator-border: rgba(96, 165, 250, 0.3);
+  --badge-gm-bg: rgba(139, 92, 246, 0.2);
+  --badge-gm-text: #C084FC;
+  --badge-gm-border: rgba(192, 132, 252, 0.3);
+
+  /* Action & Selection Buttons */
+  --btn-active-bg: rgba(37, 99, 235, 0.25);
+  --btn-active-border: #3B82F6;
+  --btn-active-text: #93C5FD;
+  --btn-active-subtext: #60A5FA;
+  --btn-danger-bg: rgba(239, 68, 68, 0.18);
+  --btn-danger-text: #F87171;
+  --btn-danger-border: rgba(239, 68, 68, 0.35);
+  --btn-neutral-bg: #1E2A44;
+  --btn-neutral-text: #CBD5E1;
+  --btn-neutral-border: #2D3B55;
+  --btn-success-bg: rgba(16, 185, 129, 0.18);
+  --btn-success-text: #34D399;
+  --btn-success-border: rgba(52, 211, 153, 0.35);
+  --btn-accent-bg: rgba(37, 99, 235, 0.22);
+  --btn-accent-text: #60A5FA;
+  --btn-accent-border: rgba(59, 130, 246, 0.35);
 }
 
 @layer base {
@@ -123,7 +236,9 @@
   }
 
   body {
-    @apply bg-[#F6F8FC] text-[#0F172A] antialiased m-0;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    @apply antialiased m-0;
     overflow-x: hidden;
     max-width: 100vw;
     width: 100%;
@@ -207,13 +322,13 @@ input:focus, textarea:focus, select:focus {
   box-sizing: border-box;
 }
 .nav-mobile-toggle { display: none !important; }
-.nav-mobile-menu { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-bottom: 1px solid #EAEEF4; padding: 12px 16px; gap: 4px; z-index: 200; box-shadow: 0 8px 24px -8px rgba(0,0,0,0.12); }
+.nav-mobile-menu { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card, #fff); border-bottom: 1px solid var(--border-card, #EAEEF4); padding: 12px 16px; gap: 4px; z-index: 200; box-shadow: 0 8px 24px -8px rgba(0,0,0,0.12); }
 .nav-mobile-menu.open { display: flex; }
 
 /* ─── Stats cards ─── */
 .stat-card {
-  background: #fff;
-  border: 1px solid #EAEEF4;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-card, #EAEEF4);
   border-radius: 12px;
   padding: 12px 18px;
   display: flex;
@@ -223,19 +338,19 @@ input:focus, textarea:focus, select:focus {
 .stat-card-label {
   font-size: 12.5px;
   font-weight: 600;
-  color: #64748B;
+  color: var(--text-muted, #64748B);
   margin-bottom: 4px;
 }
 .stat-card-value {
   font-size: 22px;
   font-weight: 800;
-  color: #0F172A;
+  color: var(--text-primary, #0F172A);
   line-height: 1.15;
 }
 .stat-card-hint {
   font-size: 11.5px;
   font-weight: 600;
-  color: #94A3B8;
+  color: var(--text-faint, #94A3B8);
   margin-top: 2px;
 }
 .stat-label-short {
@@ -245,8 +360,8 @@ input:focus, textarea:focus, select:focus {
 /* ─── Tab Group ─── */
 .tab-group {
   display: flex;
-  border-bottom: 1px solid #EAEEF4;
-  background: #F8FAFC;
+  border-bottom: 1px solid var(--border-card, #EAEEF4);
+  background: var(--bg-card-subtle, #F8FAFC);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -485,4 +600,453 @@ input:focus, textarea:focus, select:focus {
   .hero-h1 {
     font-size: 30px !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE COMPREHENSIVE RULES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: var(--bg-page) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ─── Navigation & Header ─── */
+.dark header {
+  background-color: var(--bg-card) !important;
+  border-bottom-color: var(--border-card) !important;
+}
+
+.dark .nav-mobile-menu {
+  background: var(--bg-card) !important;
+  border-bottom-color: var(--border-card) !important;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.6) !important;
+}
+
+.dark .nav-links a {
+  color: var(--text-secondary);
+}
+
+.dark .nav-mobile-toggle span {
+  background-color: var(--text-secondary) !important;
+}
+
+/* ─── Stats Cards ─── */
+.dark .stat-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .stat-card-value {
+  color: var(--text-primary) !important;
+}
+
+.dark .stat-card-label {
+  color: var(--text-muted) !important;
+}
+
+.dark .stat-card-hint {
+  color: var(--text-faint) !important;
+}
+
+/* ─── Tab Group ─── */
+.dark .tab-group {
+  background: var(--bg-card-subtle) !important;
+  border-bottom-color: var(--border-card) !important;
+}
+
+.dark .tab-group button {
+  border-color: var(--border-card) !important;
+  color: var(--text-muted) !important;
+}
+
+.dark .tab-badge {
+  background: var(--bg-card-hover) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* ─── Form & Dashboard Cards ─── */
+.dark .form-card,
+.dark .login-card,
+.dark .register-card,
+.dark .my-booking-card,
+.dark .candidate-modal-inner,
+.dark .email-editor-modal-inner {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+  box-shadow: 0 8px 30px -16px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* ─── Inputs, Textareas, Selects ─── */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+.dark select,
+.dark textarea {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-input) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-faint) !important;
+}
+
+.dark select option {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ─── Filter Bars & Toolbars ─── */
+.dark .bookings-filter-bar {
+  background: var(--bg-card-subtle) !important;
+  border-bottom-color: var(--border-card) !important;
+}
+
+/* ─── Tables (Desktop & Mobile) ─── */
+.dark table.tbl-desk {
+  border-color: var(--border-card) !important;
+}
+
+.dark table.tbl-desk thead tr {
+  border-bottom-color: var(--border-card) !important;
+  background-color: var(--bg-card-subtle) !important;
+}
+
+.dark table.tbl-desk th {
+  color: var(--text-muted) !important;
+  background-color: var(--bg-card-subtle) !important;
+  border-color: var(--border-card) !important;
+}
+
+.dark table.tbl-desk td {
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark table.tbl-desk tbody tr {
+  border-bottom-color: var(--border-card) !important;
+}
+
+.dark table.tbl-desk tbody tr:hover {
+  background-color: var(--bg-card-hover) !important;
+}
+
+.dark .tbl-mob > div {
+  border-bottom-color: var(--border-card) !important;
+}
+
+.dark .booking-row {
+  border-bottom-color: var(--border-card) !important;
+}
+
+.dark .booking-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+}
+
+/* ─── Modals & Overlays ─── */
+.dark .candidate-modal-overlay,
+.dark .email-editor-modal-overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+.dark .candidate-modal-inner > div,
+.dark .email-editor-modal-inner > div {
+  border-color: var(--border-card) !important;
+}
+
+/* ─── Calendar Popovers ─── */
+.dark .date-picker-popover {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ─── Skeletons ─── */
+.dark .sk {
+  background: #1E293B !important;
+}
+
+/* ─── Selection ─── */
+.dark ::selection {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+/* ─── Dark Mode Form Elements ─── */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+.dark select,
+.dark textarea {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-input) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.dark select option {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* ─── Default Headings in Dark Mode ─── */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: var(--text-primary);
+}
+
+/* ─── Catch-all Attribute Overrides for Hardcoded Light Styles (Hex + RGB + Spaceless) ─── */
+.dark [style*="background: #fff" i],
+.dark [style*="background:#fff" i],
+.dark [style*="background: #ffffff" i],
+.dark [style*="background:#ffffff" i],
+.dark [style*="background-color: #fff" i],
+.dark [style*="background-color:#fff" i],
+.dark [style*="background-color: #ffffff" i],
+.dark [style*="background-color:#ffffff" i],
+.dark [style*="background: rgb(255, 255, 255)" i],
+.dark [style*="background:rgb(255, 255, 255)" i],
+.dark [style*="background: rgb(255,255,255)" i],
+.dark [style*="background:rgb(255,255,255)" i],
+.dark [style*="background-color: rgb(255, 255, 255)" i],
+.dark [style*="background-color:rgb(255, 255, 255)" i],
+.dark [style*="background-color: rgb(255,255,255)" i],
+.dark [style*="background-color:rgb(255,255,255)" i] {
+  background-color: var(--bg-card) !important;
+}
+
+.dark [style*="background: #F8FAFC" i],
+.dark [style*="background:#F8FAFC" i],
+.dark [style*="background-color: #F8FAFC" i],
+.dark [style*="background-color:#F8FAFC" i],
+.dark [style*="background: #FAFBFD" i],
+.dark [style*="background:#FAFBFD" i],
+.dark [style*="background-color: #FAFBFD" i],
+.dark [style*="background-color:#FAFBFD" i],
+.dark [style*="background: #FAFBFB" i],
+.dark [style*="background:#FAFBFB" i],
+.dark [style*="background-color: #FAFBFB" i],
+.dark [style*="background-color:#FAFBFB" i],
+.dark [style*="background: #F5F8FF" i],
+.dark [style*="background:#F5F8FF" i],
+.dark [style*="background-color: #F5F8FF" i],
+.dark [style*="background-color:#F5F8FF" i],
+.dark [style*="background: rgb(248, 250, 252)" i],
+.dark [style*="background:rgb(248, 250, 252)" i],
+.dark [style*="background: rgb(248,250,252)" i],
+.dark [style*="background:rgb(248,250,252)" i],
+.dark [style*="background-color: rgb(248, 250, 252)" i],
+.dark [style*="background-color:rgb(248, 250, 252)" i],
+.dark [style*="background-color: rgb(248,250,252)" i],
+.dark [style*="background-color:rgb(248,250,252)" i],
+.dark [style*="background: rgb(250, 251, 253)" i],
+.dark [style*="background:rgb(250, 251, 253)" i],
+.dark [style*="background: rgb(250,251,253)" i],
+.dark [style*="background:rgb(250,251,253)" i],
+.dark [style*="background-color: rgb(250, 251, 253)" i],
+.dark [style*="background-color:rgb(250, 251, 253)" i],
+.dark [style*="background-color: rgb(250,251,253)" i],
+.dark [style*="background-color:rgb(250,251,253)" i] {
+  background-color: var(--bg-card-subtle) !important;
+}
+
+.dark [style*="background: #F1F5F9" i],
+.dark [style*="background:#F1F5F9" i],
+.dark [style*="background-color: #F1F5F9" i],
+.dark [style*="background-color:#F1F5F9" i],
+.dark [style*="background: #EEF2F7" i],
+.dark [style*="background:#EEF2F7" i],
+.dark [style*="background-color: #EEF2F7" i],
+.dark [style*="background-color:#EEF2F7" i],
+.dark [style*="background: rgb(241, 245, 249)" i],
+.dark [style*="background:rgb(241, 245, 249)" i],
+.dark [style*="background: rgb(241,245,249)" i],
+.dark [style*="background:rgb(241,245,249)" i],
+.dark [style*="background-color: rgb(241, 245, 249)" i],
+.dark [style*="background-color:rgb(241, 245, 249)" i],
+.dark [style*="background-color: rgb(241,245,249)" i],
+.dark [style*="background-color:rgb(241,245,249)" i],
+.dark [style*="background: rgb(238, 242, 247)" i],
+.dark [style*="background:rgb(238, 242, 247)" i],
+.dark [style*="background: rgb(238,242,247)" i],
+.dark [style*="background:rgb(238,242,247)" i],
+.dark [style*="background-color: rgb(238, 242, 247)" i],
+.dark [style*="background-color:rgb(238, 242, 247)" i],
+.dark [style*="background-color: rgb(238,242,247)" i],
+.dark [style*="background-color:rgb(238,242,247)" i] {
+  background-color: var(--bg-card-hover) !important;
+}
+
+.dark [style*="#EAEEF4" i],
+.dark [style*="#E2E8F0" i],
+.dark [style*="rgb(234, 238, 244)" i],
+.dark [style*="rgb(234,238,244)" i],
+.dark [style*="rgb(226, 232, 240)" i],
+.dark [style*="rgb(226,232,240)" i] {
+  border-color: var(--border-card) !important;
+}
+
+.dark [style*="color: #0F172A" i],
+.dark [style*="color:#0F172A" i],
+.dark [style*="color: #1E293B" i],
+.dark [style*="color:#1E293B" i],
+.dark [style*="color: rgb(15, 23, 42)" i],
+.dark [style*="color:rgb(15, 23, 42)" i],
+.dark [style*="color: rgb(15,23,42)" i],
+.dark [style*="color:rgb(15,23,42)" i],
+.dark [style*="color: rgb(30, 41, 59)" i],
+.dark [style*="color:rgb(30, 41, 59)" i],
+.dark [style*="color: rgb(30,41,59)" i],
+.dark [style*="color:rgb(30,41,59)" i] {
+  color: var(--text-primary) !important;
+}
+
+.dark [style*="color: #334155" i],
+.dark [style*="color:#334155" i],
+.dark [style*="color: #475569" i],
+.dark [style*="color:#475569" i],
+.dark [style*="color: rgb(51, 65, 85)" i],
+.dark [style*="color:rgb(51, 65, 85)" i],
+.dark [style*="color: rgb(51,65,85)" i],
+.dark [style*="color:rgb(51,65,85)" i],
+.dark [style*="color: rgb(71, 85, 105)" i],
+.dark [style*="color:rgb(71, 85, 105)" i],
+.dark [style*="color: rgb(71,85,105)" i],
+.dark [style*="color:rgb(71,85,105)" i] {
+  color: var(--text-secondary) !important;
+}
+
+.dark [style*="color: #64748B" i],
+.dark [style*="color:#64748B" i],
+.dark [style*="color: rgb(100, 116, 139)" i],
+.dark [style*="color:rgb(100, 116, 139)" i],
+.dark [style*="color: rgb(100,116,139)" i],
+.dark [style*="color:rgb(100,116,139)" i] {
+  color: var(--text-muted) !important;
+}
+
+/* ─── Danger / Error Alerts & Badges ─── */
+.dark [style*="background: #FEF2F2" i],
+.dark [style*="background:#FEF2F2" i],
+.dark [style*="background: #FEE2E2" i],
+.dark [style*="background:#FEE2E2" i],
+.dark [style*="background-color: #FEF2F2" i],
+.dark [style*="background-color:#FEF2F2" i],
+.dark [style*="background-color: #FEE2E2" i],
+.dark [style*="background-color:#FEE2E2" i],
+.dark [style*="background: rgb(254, 242, 242)" i],
+.dark [style*="background: rgb(254, 226, 226)" i] {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.dark [style*="#FECACA" i],
+.dark [style*="#FCA5A5" i] {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.dark [style*="color: #B91C1C" i],
+.dark [style*="color:#B91C1C" i],
+.dark [style*="color: rgb(185, 28, 28)" i] {
+  color: #F87171 !important;
+}
+
+/* ─── Success Badges & Banners ─── */
+.dark [style*="background: #ECFDF3" i],
+.dark [style*="background:#ECFDF3" i],
+.dark [style*="background: #DCFCE7" i],
+.dark [style*="background:#DCFCE7" i],
+.dark [style*="background-color: #ECFDF3" i],
+.dark [style*="background-color:#ECFDF3" i],
+.dark [style*="background-color: #DCFCE7" i],
+.dark [style*="background-color:#DCFCE7" i],
+.dark [style*="background: rgb(236, 253, 243)" i],
+.dark [style*="background: rgb(220, 252, 231)" i] {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+.dark [style*="#BBF7D0" i] {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark [style*="color: #15803D" i],
+.dark [style*="color:#15803D" i],
+.dark [style*="color: #166534" i],
+.dark [style*="color:#166534" i],
+.dark [style*="color: rgb(21, 128, 61)" i],
+.dark [style*="color: rgb(22, 101, 52)" i] {
+  color: #34D399 !important;
+}
+
+/* ─── Warning & Pending Badges ─── */
+.dark [style*="background: #FEF3C7" i],
+.dark [style*="background:#FEF3C7" i],
+.dark [style*="background: #FFFBEB" i],
+.dark [style*="background:#FFFBEB" i],
+.dark [style*="background: #FFF7ED" i],
+.dark [style*="background:#FFF7ED" i],
+.dark [style*="background-color: #FEF3C7" i],
+.dark [style*="background-color:#FEF3C7" i],
+.dark [style*="background-color: #FFFBEB" i],
+.dark [style*="background-color:#FFFBEB" i],
+.dark [style*="background: rgb(254, 243, 199)" i] {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.dark [style*="#FDE68A" i] {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.dark [style*="color: #B45309" i],
+.dark [style*="color:#B45309" i],
+.dark [style*="color: #92400E" i],
+.dark [style*="color:#92400E" i],
+.dark [style*="color: #C2410C" i],
+.dark [style*="color:#C2410C" i],
+.dark [style*="color: rgb(180, 83, 9)" i],
+.dark [style*="color: rgb(146, 64, 14)" i] {
+  color: #FBBF24 !important;
+}
+
+/* ─── Accent Links & Subtle Backgrounds ─── */
+.dark [style*="background: #EFF4FF" i],
+.dark [style*="background:#EFF4FF" i],
+.dark [style*="background: #EFF6FF" i],
+.dark [style*="background:#EFF6FF" i],
+.dark [style*="background-color: #EFF4FF" i],
+.dark [style*="background-color:#EFF4FF" i],
+.dark [style*="background-color: #EFF6FF" i],
+.dark [style*="background-color:#EFF6FF" i],
+.dark [style*="background: rgb(239, 244, 255)" i],
+.dark [style*="background: rgb(239, 246, 255)" i] {
+  background-color: var(--accent-subtle) !important;
+}
+
+.dark [style*="#DBE6FF" i] {
+  border-color: var(--accent-border) !important;
+}
+
+.dark [style*="color: #2563EB" i],
+.dark [style*="color:#2563EB" i],
+.dark [style*="color: #1D4ED8" i],
+.dark [style*="color:#1D4ED8" i],
+.dark [style*="color: rgb(37, 99, 235)" i] {
+  color: var(--accent-text) !important;
 }

@@ -83,7 +83,7 @@ export function ProfileClient({ profile }: { profile: Profile }) {
   const displayUrl = previewUrl ?? avatarUrl
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '28px', boxShadow: '0 8px 30px -16px rgba(16,24,40,.16)' }}>
+    <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '28px', boxShadow: '0 8px 30px -16px rgba(16,24,40,.16)' }}>
       {toastElement}
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', width: '96px', height: '96px', flexShrink: 0 }}>
@@ -92,17 +92,17 @@ export function ProfileClient({ profile }: { profile: Profile }) {
             <img
               src={displayUrl}
               alt="Profile picture"
-              style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #EAEEF4', opacity: busy === 'upload' ? 0.6 : 1 }}
+              style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-card, #EAEEF4)', opacity: busy === 'upload' ? 0.6 : 1 }}
             />
           ) : (
-            <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: '#EEF2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '30px', color: '#475569', opacity: busy === 'upload' ? 0.6 : 1 }}>
+            <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'var(--bg-card-subtle, #EEF2F7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '30px', color: 'var(--text-secondary, #475569)', opacity: busy === 'upload' ? 0.6 : 1 }}>
               {initials}
             </div>
           )}
         </div>
         <div style={{ flex: 1, minWidth: '180px' }}>
-          <div style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A' }}>{profile.name || profile.email}</div>
-          <div style={{ fontSize: '13.5px', color: '#64748B', marginTop: '2px' }}>{profile.email}</div>
+          <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>{profile.name || profile.email}</div>
+          <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>{profile.email}</div>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '99px', background: '#EFF4FF', color: '#2563EB', fontSize: '12px', fontWeight: 700, border: '1px solid #DBE6FF', marginTop: '8px' }}>
             {roleLabel}
           </span>
@@ -130,13 +130,13 @@ export function ProfileClient({ profile }: { profile: Profile }) {
             type="button"
             onClick={handleRemove}
             disabled={busy !== null}
-            style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#64748B', fontWeight: 600, fontSize: '14px', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1 }}
+            style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-muted, #64748B)', fontWeight: 600, fontSize: '14px', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1 }}
           >
             {busy === 'remove' ? 'Removing...' : 'Remove picture'}
           </button>
         )}
       </div>
-      <p style={{ fontSize: '12.5px', color: '#94A3B8', marginTop: '12px', marginBottom: 0 }}>
+      <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)', marginTop: '12px', marginBottom: 0 }}>
         JPG, PNG, or WEBP. Up to 3MB.
       </p>
     </div>

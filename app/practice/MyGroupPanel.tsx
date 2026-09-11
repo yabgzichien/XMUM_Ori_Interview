@@ -93,11 +93,11 @@ const DURATION_PRESETS = [30, 60, 90, 120]
 
 // --- Styles ---
 
-const inputStyle: React.CSSProperties = { padding: '9px 11px', border: '1px solid #E2E8F0', borderRadius: '9px', fontSize: '13.5px', fontFamily: 'inherit', color: '#0F172A', outline: 'none', background: '#fff', boxSizing: 'border-box', transition: 'border-color 0.2s' }
+const inputStyle: React.CSSProperties = { padding: '9px 11px', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '9px', fontSize: '13.5px', fontFamily: 'inherit', color: 'var(--text-primary, #0F172A)', outline: 'none', background: 'var(--bg-input, #fff)', boxSizing: 'border-box', transition: 'border-color 0.2s' }
 const primaryBtnStyle: React.CSSProperties = { padding: '9px 15px', borderRadius: '9px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s, opacity 0.2s' }
-const secondaryBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '9px', border: '1px solid #E2E8F0', background: '#fff', color: '#334155', fontWeight: 600, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s' }
+const secondaryBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '9px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s' }
 const dangerBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '9px', border: 'none', background: '#FEE2E2', color: '#B91C1C', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s' }
-const fieldLabelStyle: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px' }
+const fieldLabelStyle: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px' }
 
 // --- UI primitives ---
 
@@ -137,10 +137,10 @@ function ConfirmDialog({
       `}</style>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: '#fff', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.12)', animation: 'slideUp 0.2s ease-out' }}
+        style={{ background: 'var(--bg-card, #fff)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.12)', border: '1px solid var(--border-card, #EAEEF4)', animation: 'slideUp 0.2s ease-out' }}
       >
-        <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>{title}</h3>
-        <p style={{ margin: '0 0 24px 0', fontSize: '14.5px', color: '#64748B', lineHeight: 1.5 }}>{message}</p>
+        <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>{title}</h3>
+        <p style={{ margin: '0 0 24px 0', fontSize: '14.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <button type="button" onClick={onCancel} style={secondaryBtnStyle}>Cancel</button>
           <button type="button" onClick={onConfirm} style={isDanger ? dangerBtnStyle : primaryBtnStyle}>{confirmLabel}</button>
@@ -345,14 +345,14 @@ export function MyGroupPanel({ myGroup, currentUserId, onGroupChanged }: { myGro
       )}
 
       {/* ── Group header ─────────────────────────────────────────────── */}
-      <div style={{ background: '#fff', border: '1px solid #EAEEF4', borderRadius: '18px', padding: '24px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
+      <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '24px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: editingGroup ? '14px' : 0, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: '12px', fontWeight: 700, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
               {myGroup.is_lead ? 'You lead this group' : 'Your group'}
             </div>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>{myGroup.name}</h2>
-            <p style={{ color: '#64748B', fontSize: '13.5px', margin: '4px 0 0' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: 'var(--text-primary, #0F172A)' }}>{myGroup.name}</h2>
+            <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '13.5px', margin: '4px 0 0' }}>
               Performance Lead: {myGroup.lead_name} · {myGroup.member_count}/{myGroup.capacity} members
               {seatsLeft > 0 ? ` · ${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} left` : ' · full'}
             </p>
@@ -363,7 +363,7 @@ export function MyGroupPanel({ myGroup, currentUserId, onGroupChanged }: { myGro
         </div>
 
         {editingGroup && (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap', background: '#F8FAFC', padding: '14px', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap', background: 'var(--bg-card-subtle, #F8FAFC)', padding: '14px', borderRadius: '10px' }}>
             <div style={{ flex: '1 1 200px' }}>
               <label style={fieldLabelStyle} htmlFor="mgp-group-name">Group name</label>
               <input id="mgp-group-name" type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} style={{ ...inputStyle, width: '100%' }} />
@@ -383,7 +383,7 @@ export function MyGroupPanel({ myGroup, currentUserId, onGroupChanged }: { myGro
 
       {/* ── Tabs ─────────────────────────────────────────────────────── */}
       <div className="mgp-tabpanel">
-        <div style={{ display: 'flex', borderBottom: '1px solid #EAEEF4', background: '#F8FAFC' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-card, #EAEEF4)', background: 'var(--bg-card-subtle, #F8FAFC)' }}>
           {([
             { key: 'sessions' as const, label: 'Sessions', count: upcoming.length },
             { key: 'members' as const, label: 'Members', count: members.length },
@@ -392,10 +392,10 @@ export function MyGroupPanel({ myGroup, currentUserId, onGroupChanged }: { myGro
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              style={{ flex: 1, padding: '16px 20px', border: 'none', background: activeTab === tab.key ? '#fff' : 'transparent', color: activeTab === tab.key ? '#0F172A' : '#64748B', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderRight: idx === 0 ? '1px solid #EAEEF4' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}
+              style={{ flex: 1, padding: '16px 20px', border: 'none', background: activeTab === tab.key ? 'var(--bg-card, #fff)' : 'transparent', color: activeTab === tab.key ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #64748B)', fontWeight: 700, fontSize: '14.5px', cursor: 'pointer', borderRight: idx === 0 ? '1px solid var(--border-card, #EAEEF4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}
             >
               {tab.label}
-              <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === tab.key ? '#F1F5F9' : '#E2E8F0', color: '#475569', fontSize: '11.5px', fontWeight: 800 }}>
+              <span style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === tab.key ? 'var(--bg-card-hover, #F1F5F9)' : 'var(--border-input, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '11.5px', fontWeight: 800 }}>
                 {tab.count}
               </span>
             </button>
@@ -445,16 +445,16 @@ export function MyGroupPanel({ myGroup, currentUserId, onGroupChanged }: { myGro
         ) : (
           <>
             {members.length === 0 && (
-              <div style={{ padding: '24px', color: '#64748B', fontSize: '13.5px' }}>No members yet.</div>
+              <div style={{ padding: '24px', color: 'var(--text-muted, #64748B)', fontSize: '13.5px' }}>No members yet.</div>
             )}
             {members.map((m) => (
-              <div key={m.member_id} style={{ padding: '14px 24px', borderBottom: '1px solid #EAEEF4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ fontWeight: 600, fontSize: '14px', color: '#0F172A' }}>
+              <div key={m.member_id} style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-card, #EAEEF4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary, #0F172A)' }}>
                   {m.member_name}
                   {m.member_id === currentUserId && <span style={{ color: '#2563EB', fontWeight: 700 }}> (You)</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11.5px', fontWeight: 700, background: m.position ? '#EFF4FF' : '#F1F5F9', color: m.position ? '#2563EB' : '#94A3B8' }}>
+                  <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11.5px', fontWeight: 700, background: m.position ? '#EFF4FF' : 'var(--bg-card-hover, #F1F5F9)', color: m.position ? '#2563EB' : 'var(--text-muted, #94A3B8)' }}>
                     {positionLabel(m.position)}
                   </span>
                   {myGroup.is_lead && m.member_id !== myGroup.lead_id && (
@@ -532,11 +532,11 @@ function SessionSection({
 }) {
   return (
     <div style={{ opacity: muted ? 0.72 : 1 }}>
-      <div style={{ padding: '12px 24px', background: '#FAFBFD', borderBottom: '1px solid #EAEEF4', borderTop: '1px solid #EAEEF4', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div style={{ padding: '12px 24px', background: 'var(--bg-card-subtle, #FAFBFD)', borderBottom: '1px solid var(--border-card, #EAEEF4)', borderTop: '1px solid var(--border-card, #EAEEF4)', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {title} · {sessions.length}
       </div>
       {sessions.length === 0 ? (
-        emptyMessage ? <div style={{ padding: '24px', color: '#64748B', fontSize: '13.5px' }}>{emptyMessage}</div> : null
+        emptyMessage ? <div style={{ padding: '24px', color: 'var(--text-muted, #64748B)', fontSize: '13.5px' }}>{emptyMessage}</div> : null
       ) : (
         sessions.map((s) => (
           <SessionRow
@@ -636,7 +636,7 @@ function SessionRow({
   if (draft) {
     const durationMinutes = minutesBetween(draft.startTime, draft.endTime)
     return (
-      <div style={{ padding: '16px 24px', borderBottom: '1px solid #EAEEF4', background: '#FAFBFD' }}>
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-card, #EAEEF4)', background: 'var(--bg-card-subtle, #FAFBFD)' }}>
         <div className="mgp-edit-grid">
           <div>
             <label style={fieldLabelStyle}>Date</label>
@@ -659,7 +659,7 @@ function SessionRow({
           <button type="button" disabled={saving} onClick={handleSave} style={{ ...primaryBtnStyle, opacity: saving ? 0.7 : 1 }}>{saving ? 'Saving…' : 'Save changes'}</button>
           <button type="button" onClick={() => setDraft(null)} style={secondaryBtnStyle}>Cancel</button>
           {durationMinutes > 0 && (
-            <span style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 600 }}>{formatDuration(durationMinutes)}</span>
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', fontWeight: 600 }}>{formatDuration(durationMinutes)}</span>
           )}
         </div>
         {valError && <InlineError message={valError} />}
@@ -674,10 +674,10 @@ function SessionRow({
   return (
     <div className="mgp-session-row">
       <div>
-        <div style={{ fontWeight: 700, fontSize: '14px', color: '#0F172A' }}>{formatDateHeading(toLocalDateIso(session.starts_at))}</div>
-        <div style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>
+        <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary, #0F172A)' }}>{formatDateHeading(toLocalDateIso(session.starts_at))}</div>
+        <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>
           {formatTimeRange(session.starts_at, session.ends_at)}
-          {duration && <span style={{ color: '#94A3B8' }}> · {duration}</span>}
+          {duration && <span style={{ color: 'var(--text-muted, #94A3B8)' }}> · {duration}</span>}
           {session.location && <> · 📍 {session.location}</>}
         </div>
       </div>
@@ -757,8 +757,8 @@ function NewSessionForm({
   }
 
   return (
-    <div style={{ padding: '18px 24px', background: '#FAFBFD', borderBottom: '1px solid #EAEEF4' }}>
-      <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', marginBottom: '12px' }}>Schedule a practice session</div>
+    <div style={{ padding: '18px 24px', background: 'var(--bg-card-subtle, #FAFBFD)', borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
+      <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '12px' }}>Schedule a practice session</div>
 
       <div className="mgp-form-grid">
         <div>
@@ -793,7 +793,7 @@ function NewSessionForm({
           />
         </div>
         <div>
-          <label style={fieldLabelStyle} htmlFor="ns-location">Location <span style={{ color: '#94A3B8', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+          <label style={fieldLabelStyle} htmlFor="ns-location">Location <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
           <input
             id="ns-location"
             type="text"
@@ -806,7 +806,7 @@ function NewSessionForm({
       </div>
 
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '12px', alignItems: 'center' }}>
-        <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 700, marginRight: '2px' }}>Length</span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted, #94A3B8)', fontWeight: 700, marginRight: '2px' }}>Length</span>
         {DURATION_PRESETS.map((minutes) => {
           const active = durationMinutes === minutes
           return (
@@ -817,9 +817,9 @@ function NewSessionForm({
               style={{
                 padding: '5px 12px',
                 borderRadius: '99px',
-                border: `1px solid ${active ? '#2563EB' : '#E2E8F0'}`,
-                background: active ? '#EFF4FF' : '#fff',
-                color: active ? '#2563EB' : '#64748B',
+                border: `1px solid ${active ? '#2563EB' : 'var(--border-input, #E2E8F0)'}`,
+                background: active ? '#EFF4FF' : 'var(--bg-card, #fff)',
+                color: active ? '#2563EB' : 'var(--text-muted, #64748B)',
                 fontSize: '12.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -833,7 +833,7 @@ function NewSessionForm({
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '14px' }}>
-        <div style={{ fontSize: '12.5px', color: preview ? '#334155' : '#94A3B8', fontWeight: 600 }}>
+        <div style={{ fontSize: '12.5px', color: preview ? 'var(--text-secondary, #334155)' : 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>
           {preview ?? 'Fill in a date and time to preview the session.'}
         </div>
         <button
@@ -896,11 +896,11 @@ function AddMemberForm({
 
   if (!open) {
     return (
-      <div style={{ padding: '16px 24px', background: '#FAFBFD', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-        <button type="button" onClick={handleOpen} disabled={seatsLeft === 0} style={{ ...primaryBtnStyle, background: seatsLeft === 0 ? '#CBD5E1' : '#2563EB', cursor: seatsLeft === 0 ? 'not-allowed' : 'pointer' }}>
+      <div style={{ padding: '16px 24px', background: 'var(--bg-card-subtle, #FAFBFD)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <button type="button" onClick={handleOpen} disabled={seatsLeft === 0} style={{ ...primaryBtnStyle, background: seatsLeft === 0 ? 'var(--border-input, #CBD5E1)' : '#2563EB', cursor: seatsLeft === 0 ? 'not-allowed' : 'pointer' }}>
           + Add member
         </button>
-        <span style={{ fontSize: '12.5px', color: '#94A3B8', fontWeight: 600 }}>
+        <span style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>
           {seatsLeft === 0 ? 'Group is full — raise the capacity to add more.' : `${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} left`}
         </span>
       </div>
@@ -913,7 +913,7 @@ function AddMemberForm({
     : candidates
 
   return (
-    <div style={{ padding: '16px 24px', background: '#FAFBFD', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div style={{ padding: '16px 24px', background: 'var(--bg-card-subtle, #FAFBFD)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
         <input
           type="text"
@@ -924,19 +924,19 @@ function AddMemberForm({
         />
         <button type="button" onClick={() => setOpen(false)} style={secondaryBtnStyle}>Close</button>
       </div>
-      {loading && <div style={{ fontSize: '13px', color: '#94A3B8' }}>Loading eligible members…</div>}
+      {loading && <div style={{ fontSize: '13px', color: 'var(--text-muted, #94A3B8)' }}>Loading eligible members…</div>}
       {!loading && filtered.length === 0 && (
-        <div style={{ fontSize: '13px', color: '#94A3B8' }}>
+        <div style={{ fontSize: '13px', color: 'var(--text-muted, #94A3B8)' }}>
           {candidates.length === 0
             ? 'No eligible committee members left — everyone in this orientation is already in a group.'
             : 'No matches.'}
         </div>
       )}
       {!loading && filtered.map((c) => (
-        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#fff', border: '1px solid #EAEEF4', borderRadius: '10px' }}>
+        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '10px' }}>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '13.5px', color: '#0F172A' }}>{c.name}</div>
-            <div style={{ fontSize: '12px', color: '#64748B' }}>{c.student_id ?? 'No student ID'} · {c.email}</div>
+            <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--text-primary, #0F172A)' }}>{c.name}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)' }}>{c.student_id ?? 'No student ID'} · {c.email}</div>
           </div>
           <button type="button" disabled={addingId === c.id || seatsLeft === 0} onClick={() => handleAdd(c.id)} style={primaryBtnStyle}>
             {addingId === c.id ? 'Adding…' : 'Add'}
