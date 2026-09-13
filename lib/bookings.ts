@@ -13,7 +13,8 @@ export type PublicBookingInput = {
   name: string
   studentId: string
   email: string
-  experiences: string
+  contactNumber?: string
+  experiences?: string
   links?: string
 }
 

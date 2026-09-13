@@ -18,7 +18,7 @@ import {
   setCommitteePosition,
   type CommitteePositionOption,
 } from '@/lib/practice'
-import { ORIENTATIONS, DEFAULT_ORIENTATION, DEFAULT_ORIENTATION_YEAR, type Orientation } from '@/lib/orientation'
+import { DEFAULT_ORIENTATION, DEFAULT_ORIENTATION_YEAR, type Orientation } from '@/lib/orientation'
 import { addInviteAction } from '@/app/actions/inviteAction'
 
 const roleLabels: Record<StaffRole, string> = {
@@ -56,7 +56,7 @@ export function AdminStaff({
   const [email, setEmail] = useState('')
   const [position, setPosition] = useState('')
   const [grantAdmin, setGrantAdmin] = useState(false)
-  const [orientation, setOrientation] = useState<Orientation>(DEFAULT_ORIENTATION)
+  const orientation: Orientation = DEFAULT_ORIENTATION
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -276,20 +276,6 @@ export function AdminStaff({
                 ))}
               </select>
             </div>
-            {!grantAdmin && (
-              <div style={{ flex: '1 1 200px' }}>
-                <label style={fieldLabelStyle}>Orientation</label>
-                <select
-                  value={orientation}
-                  onChange={(e) => setOrientation(e.target.value as Orientation)}
-                  style={fieldStyle}
-                >
-                  {ORIENTATIONS.map((o) => (
-                    <option key={o.key} value={o.key}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

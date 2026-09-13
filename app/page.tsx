@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
-import { createClient } from '@/lib/supabase/server'
-import { DEFAULT_ORIENTATION, DEFAULT_ORIENTATION_YEAR } from '@/lib/orientation'
 
 export default async function Home() {
   const profile = await getCurrentProfile()
@@ -11,69 +9,21 @@ export default async function Home() {
     redirect(profile.role === 'committee' || profile.role === 'performance_lead' ? '/practice' : '/head')
   }
 
-  const supabase = await createClient()
-  // Must match the defaults /book opens with, otherwise the counts advertised
-  // here don't match the slots the applicant actually lands on.
-  const args = { p_orientation: DEFAULT_ORIENTATION, p_year: DEFAULT_ORIENTATION_YEAR }
-  const [{ data: facSlots }, { data: gmSlots }] = await Promise.all([
-    supabase.rpc('available_slots', { p_track: 'facilitator', ...args }),
-    supabase.rpc('available_slots', { p_track: 'game_master', ...args }),
-  ])
-
-  // Only slots that still have a free seat are worth advertising as "open".
-  const countOpen = (slots: { seats_left: number }[] | null) =>
-    slots?.filter((s) => s.seats_left > 0).length ?? 0
-
-  const facCount = countOpen(facSlots)
-  const gmCount = countOpen(gmSlots)
-  const totalCount = facCount + gmCount
-
   return (
-    <main className="scr page-main" style={{ width: '100%', maxWidth: '1120px', margin: '0 auto', padding: '56px 22px 80px', boxSizing: 'border-box' }}>
-      <div className="hero-2" style={{ display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: '48px', alignItems: 'center' }}>
-        <div>
-          <h1 className="hero-h1" style={{ fontSize: '48px', lineHeight: 1.04, letterSpacing: '-.03em', fontWeight: 800, margin: '0 0 18px', textWrap: 'balance' }}>
-            Book your<br/>orientation interview
-          </h1>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '28px' }}>
-            <Link href="/book" style={{ display: 'inline-block', padding: '14px 24px', borderRadius: '12px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '15px', cursor: 'pointer', boxShadow: '0 8px 20px -6px rgba(37,99,235,.55)' }}>
-              Browse open slots →
-            </Link>
-            <Link href="/my-booking" style={{ display: 'inline-block', padding: '14px 22px', borderRadius: '12px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
-              Check booking
-            </Link>
-            <Link href="/login" style={{ display: 'inline-block', padding: '14px 22px', borderRadius: '12px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
-              I&apos;m committee
-            </Link>
-          </div>
-          <div style={{ display: 'flex', gap: '26px', marginTop: '34px' }}>
-            <div><div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--text-primary, #0F172A)' }}>2</div><div style={{ fontSize: '13px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>tracks</div></div>
-            <div style={{ width: '1px', background: 'var(--border-card, #E7EBF0)' }}></div>
-            <div><div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--text-primary, #0F172A)' }}>{totalCount}</div><div style={{ fontSize: '13px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>open slots</div></div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Link href="/book?track=facilitator" className="hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-14px_rgba(16,24,40,.18)]" style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '22px', display: 'flex', alignItems: 'center', gap: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', transition: 'transform .15s' }}>
-            <div style={{ width: '54px', height: '54px', borderRadius: '14px', background: 'var(--accent-subtle, #EFF4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flex: 'none' }}>🎯</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: '17px', marginBottom: '3px', color: 'var(--text-primary, #0F172A)' }}>Facilitator</div>
-              <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.45 }}>Guide new students through orientation week.</div>
-            </div>
-            <div style={{ textAlign: 'right', flex: 'none' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-text, #2563EB)' }}>{facCount}</div>
-              <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>slots</div>
-            </div>
+    <main className="scr page-main" style={{ width: '100%', maxWidth: '1120px', margin: '0 auto', padding: '80px 22px 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(80vh - 80px)', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: '820px', width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <h1 className="hero-h1" style={{ fontSize: '64px', lineHeight: 1.08, letterSpacing: '-.035em', fontWeight: 800, margin: '0 0 20px', textAlign: 'center', textWrap: 'balance' }}>
+          Book your<br/>Orientation Interview
+        </h1>
+        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '36px' }}>
+          <Link href="/book" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '16px 32px', borderRadius: '14px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '16px', cursor: 'pointer', boxShadow: '0 10px 25px -5px rgba(37,99,235,.55)' }}>
+            Book your Interview
           </Link>
-          <Link href="/book?track=game_master" className="hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-14px_rgba(16,24,40,.18)]" style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '22px', display: 'flex', alignItems: 'center', gap: '18px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', transition: 'transform .15s' }}>
-            <div style={{ width: '54px', height: '54px', borderRadius: '14px', background: 'var(--accent-subtle, #F3F0FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flex: 'none' }}>🎮</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: '17px', marginBottom: '3px', color: 'var(--text-primary, #0F172A)' }}>Game Master</div>
-              <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.45 }}>Run the games, energy & icebreaker stations.</div>
-            </div>
-            <div style={{ textAlign: 'right', flex: 'none' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-text, #2563EB)' }}>{gmCount}</div>
-              <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>slots</div>
-            </div>
+          <Link href="/my-booking" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '16px 28px', borderRadius: '14px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 700, fontSize: '16px', cursor: 'pointer' }}>
+            Check booking
+          </Link>
+          <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '16px 28px', borderRadius: '14px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 700, fontSize: '16px', cursor: 'pointer' }}>
+            I&apos;m committee
           </Link>
         </div>
       </div>

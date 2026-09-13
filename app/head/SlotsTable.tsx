@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { formatDateHeading, formatTimeRange, isPastSlot, toLocalDateIso } from '@/lib/booking-helpers'
 import { bulkDeleteSlots, bulkUpdateSlots, deleteSlot, updateSlot, type HeadSlot } from '@/lib/head'
 import { DateRangePicker, type DateRange } from '@/components/DateRangePicker'
@@ -12,8 +12,6 @@ type Props = {
   error: string | null
   onChanged: () => void
 }
-
-type StatusFilter = 'all' | 'open' | 'closed'
 
 const actionBtnBase: React.CSSProperties = {
   padding: '7px 12px',
@@ -37,12 +35,6 @@ const neutralBtnStyle: React.CSSProperties = {
   background: 'var(--btn-neutral-bg, #F1F5F9)',
   color: 'var(--btn-neutral-text, #475569)',
   border: '1px solid var(--btn-neutral-border, #E2E8F0)',
-}
-const reopenBtnStyle: React.CSSProperties = {
-  ...actionBtnBase,
-  background: 'var(--btn-success-bg, #ECFDF3)',
-  color: 'var(--btn-success-text, #15803D)',
-  border: '1px solid var(--btn-success-border, #BBF7D0)',
 }
 
 const cellInputStyle: React.CSSProperties = {
@@ -68,7 +60,7 @@ function useSlotActions(slot: HeadSlot, onChanged: () => void) {
   const isPast = isPastSlot(slot.ends_at)
   const seatsLeft = Math.max(0, slot.capacity - slot.booked_count)
 
-  async function patch(update: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>>) {
+  async function patch(update: Partial<Pick<HeadSlot, 'capacity' | 'venue'>>) {
     setBusy(true)
     setFeedback(null)
     const { error } = await updateSlot(slot.id, update)
@@ -111,13 +103,8 @@ function useSlotActions(slot: HeadSlot, onChanged: () => void) {
     if (!(await patch({ venue: next }))) setVenue(slot.venue ?? '')
   }
 
-  async function handleToggleStatus() {
-    await patch({ status: slot.status === 'open' ? 'closed' : 'open' })
-  }
-
   async function handleDelete() {
     if (!window.confirm('Delete this slot? This will cancel any bookings.')) return
-    await patch({ status: 'closed' })
     setBusy(true)
     const { error } = await deleteSlot(slot.id)
     setBusy(false)
@@ -132,19 +119,8 @@ function useSlotActions(slot: HeadSlot, onChanged: () => void) {
     capacity, setCapacity,
     venue, setVenue,
     busy, feedback, isPast, seatsLeft,
-    handleSaveCapacity, handleSaveVenue, handleToggleStatus, handleDelete,
+    handleSaveCapacity, handleSaveVenue, handleDelete,
   }
-}
-
-function StatusPill({ status, isPast }: { status: HeadSlot['status']; isPast: boolean }) {
-  if (isPast) {
-    return <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: 'var(--badge-neutral-bg, #F1F5F9)', color: 'var(--badge-neutral-text, #94A3B8)', border: '1px solid var(--badge-neutral-border, #E2E8F0)', fontSize: '11.5px', fontWeight: 700 }}>Past</span>
-  }
-  return status === 'open' ? (
-    <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: 'var(--badge-success-bg, #ECFDF3)', color: 'var(--badge-success-text, #15803D)', border: '1px solid var(--badge-success-border, #BBF7D0)', fontSize: '11.5px', fontWeight: 700 }}>Open</span>
-  ) : (
-    <span style={{ display: 'inline-flex', padding: '3.5px 8px', borderRadius: '6px', background: 'var(--badge-warning-bg, #FEF3C7)', color: 'var(--badge-warning-text, #B45309)', border: '1px solid var(--badge-warning-border, #FDE68A)', fontSize: '11.5px', fontWeight: 700 }}>Closed</span>
-  )
 }
 
 function SeatsBar({ booked, capacity }: { booked: number; capacity: number }) {
@@ -163,34 +139,19 @@ function SeatsBar({ booked, capacity }: { booked: number; capacity: number }) {
 }
 
 function RowActions({
-  slot, busy, isPast, onToggleStatus, onDelete,
+  busy, onDelete,
 }: {
-  slot: HeadSlot
   busy: boolean
-  isPast: boolean
-  onToggleStatus: () => void
   onDelete: () => void
 }) {
-  const hasBookings = slot.booked_count > 0
   return (
     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-      {!isPast && (
-        <button
-          disabled={busy}
-          onClick={onToggleStatus}
-          type="button"
-          style={slot.status === 'open' ? neutralBtnStyle : reopenBtnStyle}
-          title={slot.status === 'open' ? 'Hide this slot from applicants' : 'Make this slot bookable again'}
-        >
-          {slot.status === 'open' ? 'Close' : 'Reopen'}
-        </button>
-      )}
       <button
-        disabled={busy || hasBookings}
+        disabled={busy}
         onClick={onDelete}
         type="button"
-        style={{ ...deleteBtnStyle, opacity: hasBookings ? 0.5 : 1, cursor: hasBookings ? 'not-allowed' : 'pointer' }}
-        title={hasBookings ? 'Cancel its bookings first' : 'Delete slot'}
+        style={deleteBtnStyle}
+        title="Delete slot"
       >
         Delete
       </button>
@@ -253,16 +214,13 @@ function SlotRowDesktop({
         <td style={{ padding: '16px 20px' }}>
           <SeatsBar booked={slot.booked_count} capacity={slot.capacity} />
         </td>
-        <td style={{ padding: '16px 20px' }}>
-          <StatusPill status={slot.status} isPast={a.isPast} />
-        </td>
         <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-          <RowActions slot={slot} busy={a.busy} isPast={a.isPast} onToggleStatus={a.handleToggleStatus} onDelete={a.handleDelete} />
+          <RowActions busy={a.busy} onDelete={a.handleDelete} />
         </td>
       </tr>
       {a.feedback && (
         <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
-          <td colSpan={7} style={{ padding: '0 20px 12px' }}>
+          <td colSpan={6} style={{ padding: '0 20px 12px' }}>
             <div style={{ fontSize: '12.5px', color: 'var(--badge-danger-text, #B91C1C)', fontWeight: 600, background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', borderRadius: '8px', padding: '7px 10px' }}>
               {a.feedback}
             </div>
@@ -303,7 +261,6 @@ function SlotRowMobile({
             </div>
           </div>
         </div>
-        <StatusPill status={slot.status} isPast={a.isPast} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px', gap: '10px', alignItems: 'end' }}>
@@ -335,7 +292,7 @@ function SlotRowMobile({
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
         <SeatsBar booked={slot.booked_count} capacity={slot.capacity} />
-        <RowActions slot={slot} busy={a.busy} isPast={a.isPast} onToggleStatus={a.handleToggleStatus} onDelete={a.handleDelete} />
+        <RowActions busy={a.busy} onDelete={a.handleDelete} />
       </div>
 
       {a.feedback && (
@@ -352,21 +309,20 @@ function BulkEditModal({
 }: {
   count: number
   onClose: () => void
-  onApply: (patch: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>>) => Promise<void>
+  onApply: (patch: Partial<Pick<HeadSlot, 'capacity' | 'venue'>>) => Promise<void>
 }) {
   const [applyCapacity, setApplyCapacity] = useState(false)
   const [capacity, setCapacity] = useState('')
   const [applyVenue, setApplyVenue] = useState(false)
   const [venue, setVenue] = useState('')
-  const [status, setStatus] = useState<'no-change' | 'open' | 'closed'>('no-change')
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const nothingToApply = !applyCapacity && !applyVenue && status === 'no-change'
+  const nothingToApply = !applyCapacity && !applyVenue
 
   async function handleApply() {
     setFormError(null)
-    const patch: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>> = {}
+    const patch: Partial<Pick<HeadSlot, 'capacity' | 'venue'>> = {}
 
     if (applyCapacity) {
       const next = Number(capacity)
@@ -383,7 +339,6 @@ function BulkEditModal({
       }
       patch.venue = venue.trim()
     }
-    if (status !== 'no-change') patch.status = status
 
     setBusy(true)
     await onApply(patch)
@@ -445,33 +400,6 @@ function BulkEditModal({
             />
           </div>
 
-          <div>
-            <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)', display: 'block', marginBottom: '8px' }}>Set status</span>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {([
-                { value: 'no-change', label: 'No change' },
-                { value: 'open', label: 'Open' },
-                { value: 'closed', label: 'Closed' },
-              ] as const).map((opt) => {
-                const active = status === opt.value
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setStatus(opt.value)}
-                    style={{
-                      padding: '8px 14px', borderRadius: '8px', border: `1px solid ${active ? '#2563EB' : 'var(--border-input, #E2E8F0)'}`,
-                      background: active ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card, #fff)', color: active ? '#2563EB' : 'var(--text-secondary, #64748B)',
-                      fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           {formError && (
             <div style={{ fontSize: '12.5px', color: 'var(--badge-danger-text, #B91C1C)', fontWeight: 600, background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', borderRadius: '8px', padding: '7px 10px' }}>
               {formError}
@@ -502,8 +430,6 @@ function BulkEditModal({
 
 export function SlotsTable({ slots, loading, error, onChanged }: Props) {
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
-  const [showPast, setShowPast] = useState(false)
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showBulkEdit, setShowBulkEdit] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
@@ -516,33 +442,21 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
         if (dateRange.start && slotDate < toLocalDateIso(dateRange.start.toISOString())) return false
         if (dateRange.end && slotDate > toLocalDateIso(dateRange.end.toISOString())) return false
       }
-      if (!showPast && isPastSlot(slot.ends_at)) return false
-      if (statusFilter !== 'all' && slot.status !== statusFilter) return false
       return true
     })
-  }, [slots, dateRange, showPast, statusFilter])
+  }, [slots, dateRange])
 
   const hiddenCount = slots.length - filteredSlots.length
 
-  // Selection can only ever reference slots that are still on screen — prune
-  // anything that fell out of the current filter or was deleted elsewhere.
-  useEffect(() => {
-    const visibleIds = new Set(filteredSlots.map((s) => s.id))
-    setSelectedIds((prev) => {
-      const next = new Set([...prev].filter((id) => visibleIds.has(id)))
-      return next.size === prev.size ? prev : next
-    })
-  }, [filteredSlots])
-
   const selectedSlots = useMemo(() => filteredSlots.filter((s) => selectedIds.has(s.id)), [filteredSlots, selectedIds])
-  const deletableSelected = useMemo(() => selectedSlots.filter((s) => s.booked_count === 0), [selectedSlots])
-  const editableSelected = useMemo(() => selectedSlots.filter((s) => !isPastSlot(s.ends_at)), [selectedSlots])
+  const deletableSelected = selectedSlots
+  const editableSelected = selectedSlots
 
   const allVisibleSelected = filteredSlots.length > 0 && filteredSlots.every((s) => selectedIds.has(s.id))
   const someVisibleSelected = filteredSlots.some((s) => selectedIds.has(s.id))
 
   function toggleSelectAll() {
-    setSelectedIds((prev) => {
+    setSelectedIds(() => {
       if (allVisibleSelected) return new Set()
       return new Set(filteredSlots.map((s) => s.id))
     })
@@ -561,7 +475,7 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
     setSelectedIds(new Set())
   }
 
-  async function handleBulkEdit(patch: Partial<Pick<HeadSlot, 'capacity' | 'status' | 'venue'>>) {
+  async function handleBulkEdit(patch: Partial<Pick<HeadSlot, 'capacity' | 'venue'>>) {
     const ids = editableSelected.map((s) => s.id)
     const { error: err } = await bulkUpdateSlots(ids, patch)
     if (err) {
@@ -576,10 +490,7 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
 
   async function handleBulkDelete() {
     if (deletableSelected.length === 0) return
-    const skipped = selectedSlots.length - deletableSelected.length
-    const confirmMsg = skipped > 0
-      ? `Delete ${deletableSelected.length} slot(s)? ${skipped} selected slot(s) have bookings and will be skipped.`
-      : `Delete ${deletableSelected.length} slot(s)? This disappears from the public booking page.`
+    const confirmMsg = `Delete ${deletableSelected.length} slot(s)? This will cancel any bookings in those slots.`
     if (!window.confirm(confirmMsg)) return
 
     setBulkDeleting(true)
@@ -625,49 +536,6 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
           <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {(['all', 'open', 'closed'] as StatusFilter[]).map((value) => {
-              const active = statusFilter === value
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setStatusFilter(value)}
-                  style={{
-                    padding: '8px 14px',
-                    height: '38px',
-                    borderRadius: '8px',
-                    border: `1px solid ${active ? '#2563EB' : 'var(--border-input, #E2E8F0)'}`,
-                    background: active ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card, #fff)',
-                    color: active ? '#2563EB' : 'var(--text-secondary, #64748B)',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {value}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '38px' }}>
-          <input
-            type="checkbox"
-            id="show-past-toggle"
-            checked={showPast}
-            onChange={(e) => setShowPast(e.target.checked)}
-            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-          />
-          <label htmlFor="show-past-toggle" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', cursor: 'pointer' }}>
-            Show past slots
-          </label>
-        </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '38px' }}>
           <input
             type="checkbox"
@@ -700,19 +568,17 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
             type="button"
             onClick={() => setShowBulkEdit(true)}
             disabled={editableSelected.length === 0}
-            title={editableSelected.length === 0 ? 'Selected slots are all past and cannot be edited' : undefined}
             style={{ ...actionBtnBase, padding: '7px 14px', background: editableSelected.length === 0 ? 'var(--border-input, #E2E8F0)' : '#2563EB', color: editableSelected.length === 0 ? 'var(--text-muted, #94A3B8)' : '#fff', cursor: editableSelected.length === 0 ? 'not-allowed' : 'pointer' }}
           >
-            Edit selected{editableSelected.length !== selectedSlots.length ? ` (${editableSelected.length})` : ''}
+            Edit selected
           </button>
           <button
             type="button"
             onClick={handleBulkDelete}
             disabled={bulkDeleting || deletableSelected.length === 0}
-            title={deletableSelected.length === 0 ? 'Selected slots all have bookings' : undefined}
             style={{ ...deleteBtnStyle, padding: '7px 14px', opacity: deletableSelected.length === 0 ? 0.5 : 1, cursor: bulkDeleting || deletableSelected.length === 0 ? 'not-allowed' : 'pointer' }}
           >
-            {bulkDeleting ? 'Deleting…' : `Delete selected${deletableSelected.length !== selectedSlots.length ? ` (${deletableSelected.length})` : ''}`}
+            {bulkDeleting ? 'Deleting…' : `Delete selected (${deletableSelected.length})`}
           </button>
           <button type="button" onClick={clearSelection} style={{ ...neutralBtnStyle, padding: '7px 14px', marginLeft: 'auto' }}>
             Clear selection
@@ -730,7 +596,7 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
                 <th style={{ padding: '14px 12px 14px 20px', width: '32px' }} />
-                {['Date & time', 'Venue', 'Seats', 'Booked', 'Status'].map((heading) => (
+                {['Date & time', 'Venue', 'Seats', 'Booked'].map((heading) => (
                   <th key={heading} style={{ padding: '14px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>
                     {heading}
                   </th>

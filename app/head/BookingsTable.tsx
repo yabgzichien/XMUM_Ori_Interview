@@ -62,15 +62,13 @@ function formatTrack(track: string | undefined | null): string {
 }
 
 function formatStatusText(status: string | undefined | null): string {
-  const s = status || 'pending'
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  if (status === 'approved') return 'Approved'
+  return 'Rejected'
 }
 
-function cycleStatus(current: string | undefined | null): 'pending' | 'approved' | 'failed' {
-  const s = current || 'pending'
-  if (s === 'pending') return 'approved'
-  if (s === 'approved') return 'failed'
-  return 'pending'
+function cycleStatus(current: string | undefined | null): 'approved' | 'rejected' {
+  if (current === 'approved') return 'rejected'
+  return 'approved'
 }
 
 type InviteState = 'not_invited' | 'pending' | 'registered'
@@ -88,6 +86,7 @@ function inviteButtonLabel(state: InviteState, busy: boolean): string {
 
 export function BookingsTable({ bookings, loading, error, track, orientation, orientationYear = 2026, onChanged }: Props) {
   const [filter, setFilter] = useState('')
+  const [positionFilter, setPositionFilter] = useState<'all' | 'facilitator' | 'game_master'>('all')
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [selectedBooking, setSelectedBooking] = useState<HeadBooking | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
@@ -103,8 +102,9 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   async function handleExportExcel() {
     setExporting(true)
     try {
+      const exportTrack = positionFilter !== 'all' ? positionFilter : track
       const params = new URLSearchParams({
-        track,
+        track: exportTrack,
         orientation,
         year: String(orientationYear),
       })
@@ -123,7 +123,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
 
       const blob = await res.blob()
       const disposition = res.headers.get('Content-Disposition')
-      let filename = `${orientation}_${orientationYear}_${track === 'game_master' ? 'GM' : 'Facilitator'}_Interview_Time_Slot_Export.xlsx`
+      let filename = `${orientation}_${orientationYear}_${exportTrack === 'game_master' ? 'GM' : 'Facilitator'}_Interview_Time_Slot_Export.xlsx`
       if (disposition) {
         const utf8Match = disposition.match(/filename\*=UTF-8''([^;\n]+)/i)
         if (utf8Match && utf8Match[1]) {
@@ -160,6 +160,10 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   const filtered = useMemo(() => {
     const needle = filter.trim().toLowerCase()
     return bookings.filter((b) => {
+      if (positionFilter !== 'all') {
+        const bookingTrack = b.track || track
+        if (bookingTrack !== positionFilter) return false
+      }
       if (needle) {
         const matchesText =
           b.applicant_name?.toLowerCase().includes(needle) ||
@@ -184,7 +188,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
       }
       return true
     })
-  }, [bookings, filter, dateRange, showPast])
+  }, [bookings, filter, dateRange, showPast, positionFilter, track])
 
   async function handleInviteCommittee() {
     if (approvedBookings.length === 0) return
@@ -244,7 +248,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
     }
   }
 
-  async function handleStatusChange(bookingId: string, status: 'pending' | 'failed' | 'approved') {
+  async function handleStatusChange(bookingId: string, status: 'approved' | 'rejected') {
     const { error: updateErr } = await updateInterviewStatus(bookingId, status)
     if (updateErr) {
       showToast(updateErr.message, 'error')
@@ -287,6 +291,63 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filter by Date Range</label>
           <DateRangePicker value={dateRange} onChange={setDateRange} />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Position</label>
+          <div style={{ display: 'inline-flex', background: 'var(--bg-input, #fff)', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '8px', padding: '3px', height: '38px', boxSizing: 'border-box' }}>
+            <button
+              type="button"
+              onClick={() => setPositionFilter('all')}
+              style={{
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: positionFilter === 'all' ? 'var(--text-primary, #0F172A)' : 'transparent',
+                color: positionFilter === 'all' ? 'var(--bg-card, #fff)' : 'var(--text-secondary, #64748B)',
+                transition: 'all .12s',
+              }}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setPositionFilter('facilitator')}
+              style={{
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: positionFilter === 'facilitator' ? '#2563EB' : 'transparent',
+                color: positionFilter === 'facilitator' ? '#fff' : 'var(--text-secondary, #64748B)',
+                transition: 'all .12s',
+              }}
+            >
+              Faci
+            </button>
+            <button
+              type="button"
+              onClick={() => setPositionFilter('game_master')}
+              style={{
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: positionFilter === 'game_master' ? '#7C3AED' : 'transparent',
+                color: positionFilter === 'game_master' ? '#fff' : 'var(--text-secondary, #64748B)',
+                transition: 'all .12s',
+              }}
+            >
+              GM
+            </button>
+          </div>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px' }}>
@@ -396,7 +457,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Position</th>
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Venue</th>
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Time</th>
-                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Experiences</th>
+                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Contact Number</th>
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Status</th>
                 <th style={{ padding: '16px 20px' }}></th>
               </tr>
@@ -458,12 +519,13 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                         fontSize: '12px',
                         fontWeight: 700,
                         cursor: 'pointer',
-                        border: b.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : b.interview_status === 'failed' ? '1px solid var(--badge-danger-border, #FECACA)' : '1px solid var(--badge-neutral-border, #E2E8F0)',
+                        border: b.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : '1px solid var(--badge-danger-border, #FECACA)',
                         transition: 'all 0.15s ease',
-                        background: b.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : b.interview_status === 'failed' ? 'var(--badge-danger-bg, #FEF2F2)' : 'var(--badge-neutral-bg, #F1F5F9)',
-                        color: b.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : b.interview_status === 'failed' ? 'var(--badge-danger-text, #B91C1C)' : 'var(--text-secondary, #475569)',
+                        background: b.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : 'var(--badge-danger-bg, #FEF2F2)',
+                        color: b.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : 'var(--badge-danger-text, #B91C1C)',
                       }}
                       className="status-badge-btn"
+                      title={`Click to mark as ${cycleStatus(b.interview_status) === 'approved' ? 'Approved' : 'Rejected'}`}
                     >
                       {formatStatusText(b.interview_status)}
                     </button>
@@ -540,7 +602,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                 </div>
                 {b.experiences && (
                   <div style={{ fontSize: '13px', color: 'var(--text-secondary, #475569)', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                    <strong style={{ color: 'var(--text-primary, #334155)', display: 'block', marginBottom: '2px' }}>Experiences:</strong>
+                    <strong style={{ color: 'var(--text-primary, #334155)', display: 'block', marginBottom: '2px' }}>Contact Number:</strong>
                     {b.experiences}
                   </div>
                 )}
@@ -562,12 +624,13 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                         fontSize: '12px',
                         fontWeight: 700,
                         cursor: 'pointer',
-                        border: b.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : b.interview_status === 'failed' ? '1px solid var(--badge-danger-border, #FECACA)' : '1px solid var(--badge-neutral-border, #E2E8F0)',
+                        border: b.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : '1px solid var(--badge-danger-border, #FECACA)',
                         transition: 'all 0.15s ease',
-                        background: b.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : b.interview_status === 'failed' ? 'var(--badge-danger-bg, #FEF2F2)' : 'var(--badge-neutral-bg, #F1F5F9)',
-                        color: b.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : b.interview_status === 'failed' ? 'var(--badge-danger-text, #B91C1C)' : 'var(--text-secondary, #475569)',
+                        background: b.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : 'var(--badge-danger-bg, #FEF2F2)',
+                        color: b.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : 'var(--badge-danger-text, #B91C1C)',
                       }}
                       className="status-badge-btn"
+                      title={`Click to mark as ${cycleStatus(b.interview_status) === 'approved' ? 'Approved' : 'Rejected'}`}
                     >
                       {formatStatusText(b.interview_status)}
                     </button>
@@ -747,24 +810,25 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                           fontSize: '13px',
                           fontWeight: 700,
                           cursor: 'pointer',
-                          border: selectedBooking.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : selectedBooking.interview_status === 'failed' ? '1px solid var(--badge-danger-border, #FECACA)' : '1px solid var(--badge-neutral-border, #E2E8F0)',
+                          border: selectedBooking.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : '1px solid var(--badge-danger-border, #FECACA)',
                           transition: 'all 0.15s ease',
-                          background: selectedBooking.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : selectedBooking.interview_status === 'failed' ? 'var(--badge-danger-bg, #FEF2F2)' : 'var(--badge-neutral-bg, #F1F5F9)',
-                          color: selectedBooking.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : selectedBooking.interview_status === 'failed' ? 'var(--badge-danger-text, #B91C1C)' : 'var(--text-secondary, #475569)',
+                          background: selectedBooking.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : 'var(--badge-danger-bg, #FEF2F2)',
+                          color: selectedBooking.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : 'var(--badge-danger-text, #B91C1C)',
                           marginTop: '4px',
                           width: '100%',
                           maxWidth: '130px',
                         }}
                         className="status-badge-btn"
+                        title={`Click to mark as ${cycleStatus(selectedBooking.interview_status) === 'approved' ? 'Approved' : 'Rejected'}`}
                       >
                         {formatStatusText(selectedBooking.interview_status)}
                       </button>
                     </div>
                   </div>
 
-                  {/* Experiences Section */}
+                  {/* Contact Number Section */}
                   <div style={{ marginTop: '4px' }}>
-                    <label style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Experiences & Answers</label>
+                    <label style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Contact Number</label>
                     <div style={{
                       background: 'var(--bg-card-subtle, #F8FAFC)',
                       border: '1px solid var(--border-card, #EAEEF4)',
@@ -777,7 +841,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                       overflowY: 'auto',
                       whiteSpace: 'pre-wrap',
                     }}>
-                      {selectedBooking.experiences || <span style={{ color: 'var(--text-muted, #94A3B8)', fontStyle: 'italic' }}>No experiences specified.</span>}
+                      {selectedBooking.experiences || <span style={{ color: 'var(--text-muted, #94A3B8)', fontStyle: 'italic' }}>No contact number specified.</span>}
                     </div>
                   </div>
 

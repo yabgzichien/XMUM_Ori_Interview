@@ -5074,3 +5074,261 @@ grant execute on function confirm_reservation(uuid, text, text, text, text) to a
 grant execute on function available_slots(track, orientation, int) to anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ==========================================
+-- MIGRATION: 0038_purge_past_slots_and_cascade_delete.sql
+-- ==========================================
+
+-- 0038_purge_past_slots_and_cascade_delete.sql
+-- 1. Cascade delete bookings when a slot is deleted
+ALTER TABLE bookings
+  DROP CONSTRAINT IF EXISTS bookings_slot_id_fkey,
+  ADD CONSTRAINT bookings_slot_id_fkey
+    FOREIGN KEY (slot_id) REFERENCES slots(id) ON DELETE CASCADE;
+
+-- 2. Function to purge all past slots from the database (ended slots)
+CREATE OR REPLACE FUNCTION purge_past_slots()
+RETURNS int
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  deleted_count int;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM slots
+    WHERE ends_at <= now()
+    RETURNING id
+  )
+  SELECT count(*) INTO deleted_count FROM deleted;
+  RETURN deleted_count;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION purge_past_slots() TO anon, authenticated;
+
+-- 3. Update head_slots to purge past slots on invocation
+DROP FUNCTION IF EXISTS head_slots(track, orientation);
+DROP FUNCTION IF EXISTS head_slots(track, orientation, int);
+CREATE OR REPLACE FUNCTION head_slots(p_track track, p_orientation orientation, p_year int DEFAULT 2026)
+RETURNS TABLE (
+  id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
+  capacity int, status slot_status, booked_count bigint, venue text
+)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT (auth_managed_track() = p_track OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized for this track';
+  END IF;
+
+  -- Automatically remove all past interview slots from the database
+  PERFORM purge_past_slots();
+
+  RETURN QUERY
+    SELECT s.id, s.track, s.orientation, s.orientation_year, s.starts_at, s.ends_at, s.capacity, s.status,
+           count(b.*) FILTER (WHERE b.status = 'booked') AS booked_count, s.venue
+    FROM slots s
+    LEFT JOIN bookings b ON b.slot_id = s.id
+    WHERE s.track = p_track AND s.orientation = p_orientation AND s.orientation_year = p_year
+    GROUP BY s.id
+    ORDER BY s.starts_at;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION head_slots(track, orientation, int) TO authenticated;
+
+-- 4. Update available_slots to purge past slots on invocation
+DROP FUNCTION IF EXISTS available_slots(track, orientation);
+DROP FUNCTION IF EXISTS available_slots(track, orientation, int);
+CREATE OR REPLACE FUNCTION available_slots(p_track track, p_orientation orientation, p_year int DEFAULT 2026)
+RETURNS TABLE (
+  id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
+  capacity int, booked_count bigint, seats_left bigint, venue text
+)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  -- Automatically purge past slots
+  PERFORM purge_past_slots();
+
+  RETURN QUERY
+    SELECT s.id, s.track, s.orientation, s.orientation_year, s.starts_at, s.ends_at, s.capacity,
+           count(b.*) FILTER (WHERE b.status = 'booked') AS booked_count,
+           s.capacity
+             - count(b.*) FILTER (WHERE b.status = 'booked')
+             - (SELECT count(*) FROM slot_holds h
+                  WHERE h.slot_id = s.id AND NOT h.released AND h.held_at > now() - interval '10 minutes')
+             AS seats_left,
+           s.venue
+    FROM slots s
+    LEFT JOIN bookings b ON b.slot_id = s.id
+    WHERE s.track = p_track AND s.orientation = p_orientation AND s.orientation_year = p_year
+      AND s.status = 'open' AND s.starts_at > now()
+    GROUP BY s.id
+    ORDER BY s.starts_at;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION available_slots(track, orientation, int) TO anon, authenticated;
+
+-- 5. Run initial purge of existing past slots
+SELECT purge_past_slots();
+
+NOTIFY pgrst, 'reload schema';
+
+-- ==========================================
+-- MIGRATION: 0039_head_bookings_allow_all_positions.sql
+-- ==========================================
+
+-- MIGRATION: 0039_head_bookings_allow_all_positions.sql
+-- Allow head_bookings to return bookings for all tracks when p_track is null or specified,
+-- and allow any head (facilitator or GM) and admins to manage bookings across positions.
+
+DROP FUNCTION IF EXISTS head_bookings(track, orientation, int);
+
+CREATE OR REPLACE FUNCTION head_bookings(
+  p_track track DEFAULT NULL,
+  p_orientation orientation DEFAULT 'december',
+  p_year int DEFAULT 2026
+)
+RETURNS TABLE (
+  booking_id uuid, slot_id uuid, track track, orientation orientation, orientation_year int, starts_at timestamptz, ends_at timestamptz,
+  applicant_name text, applicant_email text, student_id text, experiences text,
+  interview_notes text, created_at timestamptz, interview_status text, venue text,
+  invited_at timestamptz, invite_claimed_at timestamptz
+)
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+BEGIN
+  IF NOT (auth_managed_track() IS NOT NULL OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized for bookings';
+  END IF;
+
+  RETURN QUERY
+    SELECT b.id, b.slot_id, b.track, b.orientation, b.orientation_year, s.starts_at, s.ends_at,
+           b.applicant_name, b.applicant_email, b.student_id, b.experiences,
+           b.interview_notes, b.created_at, b.interview_status::text, s.venue,
+           si.created_at, si.claimed_at
+    FROM bookings b
+    JOIN slots s ON s.id = b.slot_id
+    LEFT JOIN staff_invites si ON si.email = b.applicant_email
+    WHERE (p_track IS NULL OR b.track = p_track)
+      AND b.orientation = p_orientation
+      AND b.orientation_year = p_year
+      AND b.status = 'booked'
+    ORDER BY s.starts_at, b.applicant_name;
+END $$;
+
+REVOKE EXECUTE ON FUNCTION head_bookings(track, orientation, int) FROM public;
+GRANT EXECUTE ON FUNCTION head_bookings(track, orientation, int) TO authenticated;
+
+-- Allow heads and admins to cancel bookings across positions
+CREATE OR REPLACE FUNCTION head_cancel_booking(p_booking uuid)
+RETURNS bookings
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  b bookings;
+BEGIN
+  SELECT * INTO b FROM bookings WHERE id = p_booking FOR UPDATE;
+  IF b IS NULL THEN
+    RAISE EXCEPTION 'booking not found';
+  END IF;
+  IF NOT (auth_managed_track() IS NOT NULL OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized to cancel this booking';
+  END IF;
+  IF b.status <> 'booked' THEN
+    RAISE EXCEPTION 'booking is not active';
+  END IF;
+  UPDATE bookings SET status = 'cancelled' WHERE id = p_booking RETURNING * INTO b;
+  RETURN b;
+END $$;
+
+REVOKE EXECUTE ON FUNCTION head_cancel_booking(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION head_cancel_booking(uuid) TO authenticated;
+
+-- Allow heads and admins to update interview status across positions
+CREATE OR REPLACE FUNCTION head_update_interview_status(
+  p_booking uuid,
+  p_status text
+) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  b bookings;
+BEGIN
+  SELECT * INTO b FROM bookings WHERE id = p_booking;
+  IF b IS NULL THEN
+    RAISE EXCEPTION 'booking not found';
+  END IF;
+
+  IF NOT (auth_managed_track() IS NOT NULL OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized to update this booking';
+  END IF;
+
+  IF p_status NOT IN ('pending', 'failed', 'approved') THEN
+    RAISE EXCEPTION 'invalid status: %', p_status;
+  END IF;
+
+  UPDATE bookings
+  SET interview_status = p_status
+  WHERE id = p_booking;
+END $$;
+
+REVOKE EXECUTE ON FUNCTION head_update_interview_status(uuid, text) FROM public;
+GRANT EXECUTE ON FUNCTION head_update_interview_status(uuid, text) TO authenticated;
+
+-- ==========================================
+-- MIGRATION: 0040_unify_interview_status.sql
+-- ==========================================
+
+-- MIGRATION: 0040_unify_interview_status.sql
+-- Unify interview status to two statuses: 'rejected' and 'approved'.
+-- Default is 'rejected'.
+
+-- 1. Drop existing check constraint first so rows can be updated to 'rejected'
+ALTER TABLE bookings
+  DROP CONSTRAINT IF EXISTS bookings_interview_status_check;
+
+-- 2. Migrate any existing pending or failed rows to rejected
+UPDATE bookings
+SET interview_status = 'rejected'
+WHERE interview_status IS NULL OR interview_status IN ('pending', 'failed') OR interview_status <> 'approved';
+
+-- 3. Update default value on bookings table
+ALTER TABLE bookings
+  ALTER COLUMN interview_status SET DEFAULT 'rejected';
+
+-- 4. Add updated check constraint to only allow approved and rejected
+ALTER TABLE bookings
+  ADD CONSTRAINT bookings_interview_status_check
+  CHECK (interview_status IN ('approved', 'rejected'));
+
+-- 5. Update head_update_interview_status RPC function
+CREATE OR REPLACE FUNCTION head_update_interview_status(
+  p_booking uuid,
+  p_status text
+) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  b bookings;
+BEGIN
+  SELECT * INTO b FROM bookings WHERE id = p_booking;
+  IF b IS NULL THEN
+    RAISE EXCEPTION 'booking not found';
+  END IF;
+
+  IF NOT (auth_managed_track() IS NOT NULL OR is_admin()) THEN
+    RAISE EXCEPTION 'not authorized to update this booking';
+  END IF;
+
+  IF p_status NOT IN ('approved', 'rejected') THEN
+    RAISE EXCEPTION 'invalid status: %', p_status;
+  END IF;
+
+  UPDATE bookings
+  SET interview_status = p_status
+  WHERE id = p_booking;
+END $$;
+
+REVOKE EXECUTE ON FUNCTION head_update_interview_status(uuid, text) FROM public;
+GRANT EXECUTE ON FUNCTION head_update_interview_status(uuid, text) TO authenticated;
+
+NOTIFY pgrst, 'reload schema';

@@ -108,7 +108,7 @@ export function InvitesTable({ bookings, loading, error, track, orientation, ori
 
       {!loading && !error && invited.length === 0 && (
         <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>
-          No committee invites sent yet — invite approved applicants from the Booked Applicants tab.
+          No committee invites sent yet.
         </div>
       )}
 

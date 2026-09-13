@@ -6,7 +6,6 @@ import { SlotsTable } from '@/app/head/SlotsTable'
 import { BookingsTable } from '@/app/head/BookingsTable'
 import { InvitesTable } from '@/app/head/InvitesTable'
 import { getHeadSlots, getHeadBookings, type HeadBooking, type HeadSlot, type Track, type Orientation } from '@/lib/head'
-import { isPastSlot } from '@/lib/booking-helpers'
 
 type Props = {
   track: Track
@@ -86,7 +85,7 @@ export function HeadDashboard({
 
     async function run() {
       setBookingsLoading(true)
-      const { data, error } = await getHeadBookings(track, orientation, orientationYear)
+      const { data, error } = await getHeadBookings(null, orientation, orientationYear)
       if (!active) return
       setBookingsLoading(false)
       if (error) {
@@ -102,44 +101,14 @@ export function HeadDashboard({
     return () => {
       active = false
     }
-  }, [track, orientation, orientationYear, bookingsToken])
-
-  // "Slots" counts slot rows; "seats" counts capacity across them. Keeping the
-  // two apart matters once a slot can seat more than one applicant.
-  const totalSeats = slots.reduce((acc, slot) => acc + slot.capacity, 0)
-  const bookedSeats = slots.reduce((acc, slot) => acc + slot.booked_count, 0)
-  const upcomingSlots = slots.filter((slot) => !isPastSlot(slot.ends_at))
-  const openSeatsLeft = upcomingSlots
-    .filter((slot) => slot.status === 'open')
-    .reduce((acc, slot) => acc + Math.max(0, slot.capacity - slot.booked_count), 0)
-  const fillRate = totalSeats > 0 ? Math.round((bookedSeats / totalSeats) * 100) : 0
-
-  const stats: { label: string; shortLabel: string; value: string; hint?: string }[] = [
-    { label: 'Slots', shortLabel: 'Slots', value: String(slots.length), hint: `${upcomingSlots.length} upcoming` },
-    { label: 'Seats booked', shortLabel: 'Booked', value: `${bookedSeats} / ${totalSeats}`, hint: `${fillRate}% filled` },
-    { label: 'Seats still open', shortLabel: 'Open', value: String(openSeatsLeft), hint: 'upcoming & open' },
-    { label: 'Applicants', shortLabel: 'Applicants', value: String(bookings.length), hint: 'active bookings' },
-  ]
+  }, [orientation, orientationYear, bookingsToken])
 
   const invitedBookings = bookings.filter((b) => b.invited_at)
   const registeredCount = invitedBookings.filter((b) => b.invite_claimed_at).length
 
   return (
     <>
-      <div className="stats-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
-        {stats.map((stat) => (
-          <div key={stat.label} className="stat-card">
-            <span className="stat-card-label">
-              <span className="stat-label-full">{stat.label}</span>
-              <span className="stat-label-short">{stat.shortLabel}</span>
-            </span>
-            <span className="stat-card-value">{stat.value}</span>
-            {stat.hint && <span className="stat-card-hint">{stat.hint}</span>}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ marginTop: '24px', marginBottom: '20px' }}>
+      <div style={{ marginBottom: '20px' }}>
         <BulkCreateForm track={track} orientation={orientation} orientationYear={orientationYear} profileId={profileId} existingSlots={slots} onCreated={refreshSlots} />
       </div>
 

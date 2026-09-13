@@ -7,9 +7,8 @@ import { confirmReservationAction } from '@/app/actions/bookingAction'
 import { formatCountdown, formatDateHeading, formatTimeRange, toLocalDateIso, type AvailableSlot } from '@/lib/booking-helpers'
 import {
   DEFAULT_ORIENTATION,
-  ORIENTATIONS,
+  Orientation,
   isOrientation,
-  type Orientation,
 } from '@/lib/orientation'
 
 const HOLD_STORAGE_KEY = 'xmumori-book-hold'
@@ -112,8 +111,7 @@ export function BookClient({
   const [name, setName] = useState('')
   const [studentId, setStudentId] = useState('')
   const [email, setEmail] = useState('')
-  const [experiences, setExperiences] = useState('')
-  const [links, setLinks] = useState('')
+  const [contactNumber, setContactNumber] = useState('')
   const [filterDate, setFilterDate] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
@@ -236,10 +234,6 @@ export function BookClient({
     }
   }, [orientation, reloadToken])
 
-  const openCount = useCallback(
-    (t: Track) => slotsByTrack[t].filter((s) => s.seats_left > 0).length,
-    [slotsByTrack],
-  )
 
   const availableDates = useMemo(
     () => Array.from(new Set(slots.map((s) => toLocalDateIso(s.starts_at)))).sort(),
@@ -260,8 +254,8 @@ export function BookClient({
     : !looksLikeEmail(email)
       ? 'That doesn’t look like a valid email address.'
       : null
-  const experiencesError = !experiences.trim() ? 'A sentence or two is enough.' : null
-  const formInvalid = Boolean(nameError || studentIdError || emailError || experiencesError)
+  const contactError = !contactNumber.trim() ? 'Please provide a contact number.' : null
+  const formInvalid = Boolean(nameError || studentIdError || emailError || contactError)
 
   async function confirmBooking() {
     if (!selectedSlot || !holdToken) return
@@ -276,8 +270,7 @@ export function BookClient({
         name: name.trim(),
         studentId: studentId.trim(),
         email: email.trim(),
-        experiences: experiences.trim(),
-        links: links.trim(),
+        contactNumber: contactNumber.trim(),
       })
     } catch {
       setSubmitting(false)
@@ -359,20 +352,6 @@ export function BookClient({
     setStep(2)
   }
 
-  function bookAnother() {
-    setConfirmation(null)
-    setName('')
-    setStudentId('')
-    setEmail('')
-    setExperiences('')
-    setLinks('')
-    setFilterDate('')
-    setShowErrors(false)
-    setSubmitError(null)
-    clearHold()
-    setStep(1)
-    loadSlots()
-  }
 
   return (
     <main className="scr book-page-main" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 24px 48px', boxSizing: 'border-box' }}>
@@ -486,10 +465,7 @@ export function BookClient({
       `}</style>
 
       <div style={{ marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.025em', margin: '0 0 4px', color: 'var(--text-primary, #0F172A)' }}>Book an interview</h1>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14px', margin: 0 }}>
-          Please fill in your details in 10 minutes. The slots will be open to others after the timer ends
-        </p>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.025em', margin: '0 0 4px', color: 'var(--text-primary, #0F172A)' }}>Book an Interview</h1>
       </div>
 
       {/* Stepper */}
@@ -514,57 +490,27 @@ export function BookClient({
       {step === 1 && (
         <div className="scr">
           <div style={{ marginBottom: '14px' }}>
-            <label style={sectionLabelStyle}>Select orientation</label>
-            <div className="book-orientations">
-              {ORIENTATIONS.map((o) => {
-                const active = orientation === o.key
+            <label style={sectionLabelStyle}>Select position</label>
+            <div className="book-tracks">
+              {TRACKS.map((t) => {
+                const active = track === t.key
                 return (
                   <button
-                    key={o.key}
+                    key={t.key}
                     type="button"
-                    onClick={() => { setOrientation(o.key); setFilterDate('') }}
-                    className="book-orientation-btn"
+                    onClick={() => { setTrack(t.key); setSelectedId(null); setFilterDate('') }}
+                    className="book-track-btn"
                     style={{
                       border: `1.5px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
                       background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
                     }}
                   >
-                    <span className="book-orientation-icon" style={{ fontSize: '20px', flexShrink: 0 }}>{o.icon}</span>
-                    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
-                      <span className="book-orientation-title" style={{ fontWeight: 700, fontSize: '15px', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>{o.label}</span>
-                      <span className="book-orientation-sub" style={{ fontSize: '12.5px', color: active ? 'var(--btn-active-subtext, #3B82F6)' : 'var(--text-muted, #64748B)', fontWeight: 500 }}>Orientation</span>
-                    </span>
+                    <span className="book-track-icon" style={{ fontSize: '20px', flexShrink: 0 }}>{t.icon}</span>
+                    <span className="book-track-title" style={{ fontWeight: 700, fontSize: '15px', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>{t.title}</span>
                   </button>
                 )
               })}
             </div>
-          </div>
-
-          <div className="book-tracks">
-            {TRACKS.map((t) => {
-              const active = track === t.key
-              const count = openCount(t.key)
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => { setTrack(t.key); setSelectedId(null); setFilterDate('') }}
-                  className="book-track-btn"
-                  style={{
-                    border: `1.5px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
-                    background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
-                  }}
-                >
-                  <span className="book-track-icon" style={{ fontSize: '20px', flexShrink: 0 }}>{t.icon}</span>
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25 }}>
-                    <span className="book-track-title" style={{ fontWeight: 700, fontSize: '15px', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>{t.title}</span>
-                    <span className="book-track-sub" style={{ fontSize: '12.5px', color: active ? 'var(--btn-active-subtext, #3B82F6)' : 'var(--text-muted, #64748B)', fontWeight: 500 }}>
-                      {loading ? 'Loading…' : count === 0 ? 'No slots open' : `${count} slot${count === 1 ? '' : 's'} open`}
-                    </span>
-                  </span>
-                </button>
-              )
-            })}
           </div>
 
           {/* Date filter */}
@@ -728,8 +674,10 @@ export function BookClient({
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
-                    <label style={fieldLabelStyle} htmlFor="bk-name">Full name</label>
-                    <input id="bk-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aisha Rahman" style={fieldStyle} />
+                    <label style={fieldLabelStyle} htmlFor="bk-name">
+                      Full name <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}>(according to your student ID)</span>
+                    </label>
+                    <input id="bk-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Yang Zi Chien" style={fieldStyle} />
                     {showErrors && nameError && <FieldError message={nameError} />}
                   </div>
                   <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
@@ -745,22 +693,16 @@ export function BookClient({
                     </div>
                   </div>
                   <div>
-                    <label style={fieldLabelStyle} htmlFor="bk-experience">Relevant experience</label>
-                    <textarea
-                      id="bk-experience"
-                      value={experiences}
-                      onChange={(e) => setExperiences(e.target.value)}
-                      placeholder="Clubs, events, leadership, gaming, or anything you'd like us to know."
-                      rows={4}
-                      style={{ ...fieldStyle, resize: 'vertical', lineHeight: 1.5 }}
+                    <label style={fieldLabelStyle} htmlFor="bk-contact">Contact number</label>
+                    <input
+                      id="bk-contact"
+                      type="tel"
+                      value={contactNumber}
+                      onChange={(e) => setContactNumber(e.target.value)}
+                      placeholder="e.g. 012-3456789"
+                      style={fieldStyle}
                     />
-                    {showErrors && experiencesError && <FieldError message={experiencesError} />}
-                  </div>
-                  <div>
-                    <label style={fieldLabelStyle} htmlFor="bk-links">
-                      Relevant links <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}>(optional)</span>
-                    </label>
-                    <input id="bk-links" value={links} onChange={(e) => setLinks(e.target.value)} placeholder="e.g. Portfolio, GitHub, LinkedIn" style={fieldStyle} />
+                    {showErrors && contactError && <FieldError message={contactError} />}
                   </div>
                 </div>
 
@@ -821,10 +763,7 @@ export function BookClient({
             <div style={{ width: '56px', height: '56px', borderRadius: '99px', background: 'var(--badge-success-bg, #ECFDF3)', border: '1px solid var(--badge-success-border, #BBF7D0)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', animation: 'pop .4s ease' }}>
               <span style={{ fontSize: '30px', color: 'var(--badge-success-text, #16A34A)' }}>✓</span>
             </div>
-            <h2 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>You&apos;re booked!</h2>
-            <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14px', margin: '0 0 18px', lineHeight: 1.55 }}>
-              We&apos;ve emailed a confirmation to <strong style={{ color: 'var(--text-primary, #334155)' }}>{confirmation.email}</strong>. Bring your student ID on the day.
-            </p>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 18px', color: 'var(--text-primary, #0F172A)' }}>Booked!</h2>
 
             <div style={{ background: 'var(--bg-card-subtle, #F8FAFC)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '14px', padding: '14px', marginBottom: '16px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted, #94A3B8)', marginBottom: '6px' }}>Student ID</div>
@@ -846,13 +785,10 @@ export function BookClient({
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
               <a href="/my-booking" style={{ padding: '12px 18px', borderRadius: '11px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }}>
                 View my booking
               </a>
-              <button type="button" onClick={bookAnother} style={{ padding: '12px 18px', borderRadius: '11px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #1E293B)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                Book another
-              </button>
             </div>
           </div>
         </div>

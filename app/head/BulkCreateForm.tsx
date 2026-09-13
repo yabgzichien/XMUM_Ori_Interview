@@ -240,10 +240,7 @@ export function BulkCreateForm({
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--accent-subtle, #EFF4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🗓️</div>
         <div>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 2px', color: 'var(--text-primary, #0F172A)' }}>Add interview slots</h2>
-          <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: 0 }}>
-            Pick the days, set one time window, and back-to-back slots are generated for every day at once.
-          </p>
+          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text-primary, #0F172A)' }}>Add interview slots</h2>
         </div>
       </div>
 
@@ -261,7 +258,7 @@ export function BulkCreateForm({
               <label style={labelStyle}>Selected</label>
               {dates.length === 0 ? (
                 <div style={{ border: '1px dashed var(--border-input, #E2E8F0)', borderRadius: '12px', padding: '18px', fontSize: '13px', color: 'var(--text-muted, #94A3B8)', background: 'var(--bg-card-subtle, #FAFBFD)' }}>
-                  No days selected yet. Click dates in the calendar — an amber dot means that day already has slots.
+                  No days selected yet.
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -359,7 +356,7 @@ export function BulkCreateForm({
                   </div>
                   <div>
                     <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px', display: 'block' }}>
-                      Venue <span style={{ color: '#E11D48', fontWeight: 700 }}>*</span> <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 400 }}>— shown to applicants and emailed to them</span>
+                      Venue <span style={{ color: '#E11D48', fontWeight: 700 }}>*</span>
                     </span>
                     <input
                       type="text"

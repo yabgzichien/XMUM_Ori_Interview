@@ -10,14 +10,16 @@ export async function confirmReservationAction(
 ): Promise<{ data: PublicBooking | null; error: string | null }> {
   const supabase = await createClient()
 
-  const combinedExperiences = input.experiences.trim() + (input.links?.trim() ? `\n\nRelevant Links:\n${input.links.trim()}` : '')
+  const contactOrExp = input.contactNumber?.trim()
+    ? input.contactNumber.trim()
+    : ((input.experiences?.trim() || '') + (input.links?.trim() ? `\n\nRelevant Links:\n${input.links.trim()}` : '')).trim()
 
   const { data, error } = await supabase.rpc('confirm_reservation', {
     p_token: token,
     p_name: input.name,
     p_student_id: input.studentId || null,
     p_email: input.email,
-    p_experiences: combinedExperiences,
+    p_experiences: contactOrExp || null,
   })
 
   if (error || !data) {

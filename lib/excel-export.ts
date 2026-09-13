@@ -167,7 +167,7 @@ export async function generateInterviewBookingWorkbook({
   workbook.created = new Date()
 
   // Filter slots and bookings by date range if provided
-  const activeBookings = bookings.filter((b) => b.interview_status !== 'failed')
+  const activeBookings = bookings
 
   let filteredSlots = slots
   if (startDate) {
@@ -473,7 +473,7 @@ export async function generateInterviewBookingWorkbook({
           if (zebraFill) idCell.fill = zebraFill
 
           const contactCell = ws.getCell(currRow, cStart + 3)
-          contactCell.value = ''
+          contactCell.value = booking?.experiences || ''
           contactCell.font = { name: 'Arial', size: 10, bold: false, color: { argb: 'FF000000' } }
           contactCell.alignment = { horizontal: 'center', vertical: 'middle' }
           contactCell.border = thinBorderAll

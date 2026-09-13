@@ -35,7 +35,7 @@ export type HeadBooking = {
   experiences: string | null
   interview_notes: string | null
   created_at: string
-  interview_status: 'pending' | 'failed' | 'approved'
+  interview_status: 'approved' | 'rejected' | string
   venue?: string
   // From a left join on staff_invites in the head_bookings RPC (0031). Null
   // until a committee invite is sent; invite_claimed_at is null until the
@@ -71,9 +71,16 @@ export async function getHeadSlots(track: Track, orientation: Orientation, orien
   return { data: (data as HeadSlot[] | null) ?? null, error }
 }
 
-export async function getHeadBookings(track: Track, orientation: Orientation, orientationYear: number = 2026) {
+export async function getHeadBookings(track?: Track | null, orientation: Orientation = 'december', orientationYear: number = 2026) {
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_bookings', { p_track: track, p_orientation: orientation, p_year: orientationYear })
+  const params: { p_track?: Track; p_orientation: Orientation; p_year: number } = {
+    p_orientation: orientation,
+    p_year: orientationYear,
+  }
+  if (track) {
+    params.p_track = track
+  }
+  const { data, error } = await supabase.rpc('head_bookings', params)
   return { data: (data as HeadBooking[] | null) ?? null, error }
 }
 
@@ -150,7 +157,7 @@ export async function updateTrackWindow(
 
 export async function updateInterviewStatus(
   bookingId: string,
-  status: 'pending' | 'failed' | 'approved',
+  status: 'approved' | 'rejected' | string,
 ) {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('head_update_interview_status', {

@@ -179,18 +179,12 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
         <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '17px', boxShadow: '0 4px 12px -3px rgba(37,99,235,.5)', flexShrink: 0 }}>X</div>
           <div style={{ lineHeight: 1.15, whiteSpace: 'nowrap' }}>
-            <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>XMUM Orientation</div>
+            <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>2026 XMUM December Orientation</div>
             <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Interview Booking</div>
           </div>
         </Link>
         {/* Desktop links */}
         <div className="nav-links flex items-center gap-[8px]">
-          <Link href="/book" style={{ padding: '9px 13px', borderRadius: '10px', border: 'none', background: pathname === '/book' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/book' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-            Book
-          </Link>
-          <Link href="/my-booking" style={{ padding: '9px 13px', borderRadius: '10px', border: 'none', background: pathname === '/my-booking' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/my-booking' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-            Check booking
-          </Link>
           <Link href="/login" style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
             Committee
           </Link>
@@ -212,12 +206,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
       {/* Mobile dropdown */}
       <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
         <ThemeToggle mobile />
-        <Link href="/book" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/book' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/book' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
-          📝 Book an Interview
-        </Link>
-        <Link href="/my-booking" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/my-booking' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/my-booking' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
-          🔍 Check Booking
-        </Link>
         <Link href="/login" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/login' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/login' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
           🔐 Committee Login
         </Link>

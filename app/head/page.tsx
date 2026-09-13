@@ -19,12 +19,6 @@ function isOrientation(value: string | string[] | undefined): value is Orientati
 import { createClient } from '@/lib/supabase/server'
 import type { HeadSlot, HeadBooking } from '@/lib/head'
 
-const ORIENTATIONS: { key: Orientation; label: string; icon: string }[] = [
-  { key: 'february', label: 'February', icon: '🌸' },
-  { key: 'april', label: 'April', icon: '🌿' },
-  { key: 'december', label: 'December', icon: '❄️' },
-]
-
 export default async function HeadPage({
   searchParams,
 }: {
@@ -69,41 +63,20 @@ export default async function HeadPage({
   const supabase = await createClient()
   const [slotsRes, bookingsRes] = await Promise.all([
     supabase.rpc('head_slots', { p_track: track, p_orientation: orientation, p_year: orientationYear }),
-    supabase.rpc('head_bookings', { p_track: track, p_orientation: orientation, p_year: orientationYear }),
+    supabase.rpc('head_bookings', { p_orientation: orientation, p_year: orientationYear }),
   ])
   const initialSlots = (slotsRes.data as HeadSlot[] | null) ?? []
   const initialBookings = (bookingsRes.data as HeadBooking[] | null) ?? []
 
-  const orientationLabel = ORIENTATIONS.find(o => o.key === orientation)?.label || 'February'
-  const visibleOrientations = isRestricted ? ORIENTATIONS.filter(o => o.key === orientation) : ORIENTATIONS
+  const orientationLabel = orientation.charAt(0).toUpperCase() + orientation.slice(1)
 
   return (
     <main className="scr head-page-main" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px', boxSizing: 'border-box' }}>
       <div className="head-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>{orientationLabel} {orientationYear} Orientation Dashboard</h1>
-          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>Manage interview slots and review applicants.</p>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: 0, color: 'var(--text-primary, #0F172A)' }}>{orientationLabel} {orientationYear} Orientation Dashboard</h1>
         </div>
         <div className="head-header-controls" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end' }}>
-          {/* Orientation Tabs */}
-          <div className="head-orientation-tabs" style={{ display: 'flex', gap: '8px' }}>
-            {visibleOrientations.map(o => (
-              <Link
-                key={o.key}
-                href={`/head?orientation=${o.key}&track=${track}&year=${orientationYear}`}
-                style={{
-                  padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-                  background: orientation === o.key ? 'var(--accent-subtle, #EFF4FF)' : 'var(--bg-card, #fff)',
-                  color: orientation === o.key ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #475569)',
-                  border: orientation === o.key ? '1px solid var(--accent-text, #2563EB)' : '1px solid var(--border-input, #E2E8F0)',
-                  transition: 'all 0.15s',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                }}
-              >
-                <span>{o.icon}</span> {o.label}
-              </Link>
-            ))}
-          </div>
           {/* Track Tabs (Admin only) */}
           {isAdmin && (
             <div className="track-toggle-group" style={{ display: 'flex', gap: '8px' }}>
