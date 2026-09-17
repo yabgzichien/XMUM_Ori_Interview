@@ -126,6 +126,12 @@ export function BookClient({
   const [reserveError, setReserveError] = useState<string | null>(null)
   const [holdDead, setHoldDead] = useState(false)
 
+  const holdTokenRef = useRef<string | null>(null)
+  const stepRef = useRef(step)
+  useEffect(() => {
+    stepRef.current = step
+  }, [step])
+
   const slots = slotsByTrack[track]
 
   const [reloadToken, setReloadToken] = useState(0)
@@ -135,7 +141,12 @@ export function BookClient({
 
   useEffect(() => {
     const raw = sessionStorage.getItem(HOLD_STORAGE_KEY)
-    if (!raw) return
+    if (!raw) {
+      if (typeof window !== 'undefined' && !window.history.state?.bookStep) {
+        window.history.replaceState({ bookStep: 1 }, '')
+      }
+      return
+    }
     try {
       const saved = JSON.parse(raw) as {
         token: string
@@ -146,6 +157,9 @@ export function BookClient({
       }
       if (saved.expiresAt <= Date.now()) {
         sessionStorage.removeItem(HOLD_STORAGE_KEY)
+        if (typeof window !== 'undefined' && !window.history.state?.bookStep) {
+          window.history.replaceState({ bookStep: 1 }, '')
+        }
         return
       }
       if (saved.orientation !== orientation) {
@@ -157,19 +171,48 @@ export function BookClient({
         // side so the seat doesn't sit orphaned until it naturally expires.
         releaseHold(saved.token)
         sessionStorage.removeItem(HOLD_STORAGE_KEY)
+        if (typeof window !== 'undefined' && !window.history.state?.bookStep) {
+          window.history.replaceState({ bookStep: 1 }, '')
+        }
         return
       }
+      holdTokenRef.current = saved.token
       setHoldToken(saved.token)
       setHoldExpiresAt(saved.expiresAt)
       setTrack(saved.track)
       setSelectedId(saved.slotId)
       setStep(2)
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({ bookStep: 2 }, '')
+      }
     } catch {
       sessionStorage.removeItem(HOLD_STORAGE_KEY)
+      if (typeof window !== 'undefined' && !window.history.state?.bookStep) {
+        window.history.replaceState({ bookStep: 1 }, '')
+      }
     }
     // Runs once on mount only — restoring a hold shouldn't re-fire on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    const handlePopState = async () => {
+      // If the user was on Step 2 and navigated back (e.g. browser back button):
+      if (stepRef.current === 2) {
+        const token = holdTokenRef.current
+        if (token) {
+          await releaseHold(token)
+        }
+        clearHold()
+        setStep(1)
+        setSubmitError(null)
+        loadSlots()
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [loadSlots])
 
   useEffect(() => {
     if (step !== 2 || !holdExpiresAt) {
@@ -186,18 +229,26 @@ export function BookClient({
   // (e.g. an admin deleted it while the hold was active), don't strand the
   // applicant on a blank step 2 — bounce back to the picker.
   useEffect(() => {
-    if (step === 2 && !loading && !slots.find((s) => s.id === selectedId)) {
-      if (holdToken) releaseHold(holdToken)
+    if (
+      step === 2 &&
+      !loading &&
+      selectedId &&
+      !slotsByTrack.facilitator.some((s) => s.id === selectedId) &&
+      !slotsByTrack.game_master.some((s) => s.id === selectedId)
+    ) {
+      const token = holdTokenRef.current || holdToken
+      if (token) releaseHold(token)
       clearHold()
       setStep(1)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, loading, slots, selectedId, holdToken])
+  }, [step, loading, slotsByTrack, selectedId, holdToken])
 
   const holdExpired = remainingMs !== null && remainingMs <= 0
   const holdLocked = holdExpired || holdDead
 
   function clearHold() {
+    holdTokenRef.current = null
     setHoldToken(null)
     setHoldExpiresAt(null)
     setRemainingMs(null)
@@ -224,7 +275,9 @@ export function BookClient({
       if (!active) return
       setSlotsByTrack({ facilitator: fac.data ?? [], game_master: gm.data ?? [] })
       setLoadError(fac.error?.message ?? gm.error?.message ?? null)
-      setSelectedId(null)
+      if (stepRef.current === 1) {
+        setSelectedId(null)
+      }
       setLoading(false)
     }
 
@@ -240,10 +293,19 @@ export function BookClient({
     [slots],
   )
 
+  useEffect(() => {
+    if (availableDates.length > 0 && (!filterDate || !availableDates.includes(filterDate))) {
+      setFilterDate(availableDates[0])
+    }
+  }, [availableDates, filterDate])
+
   const filteredSlots = useMemo(
     () => (filterDate ? slots.filter((s) => toLocalDateIso(s.starts_at) === filterDate) : slots),
     [slots, filterDate],
   )
+
+  const openSlots = useMemo(() => filteredSlots.filter((s) => s.seats_left > 0), [filteredSlots])
+  const fullSlots = useMemo(() => filteredSlots.filter((s) => s.seats_left <= 0), [filteredSlots])
 
   const selectedSlot = slots.find((s) => s.id === selectedId) ?? null
 
@@ -289,6 +351,9 @@ export function BookClient({
         track,
         slot: selectedSlot,
       })
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({ bookStep: 3 }, '')
+      }
       setStep(3)
       return
     }
@@ -320,8 +385,13 @@ export function BookClient({
   }
 
   async function goBackToStep1() {
-    if (holdToken) {
-      await releaseHold(holdToken)
+    if (typeof window !== 'undefined' && window.history.state?.bookStep === 2) {
+      window.history.back()
+      return
+    }
+    const token = holdTokenRef.current || holdToken
+    if (token) {
+      await releaseHold(token)
     }
     clearHold()
     setStep(1)
@@ -343,15 +413,67 @@ export function BookClient({
     }
 
     const expiresAt = Date.now() + HOLD_TTL_MS
+    holdTokenRef.current = data.token
     setHoldToken(data.token)
     setHoldExpiresAt(expiresAt)
     sessionStorage.setItem(
       HOLD_STORAGE_KEY,
       JSON.stringify({ token: data.token, expiresAt, slotId: selectedSlot.id, track, orientation }),
     )
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ bookStep: 2 }, '')
+    }
     setStep(2)
   }
 
+  function renderSlotCard(sl: AvailableSlot) {
+    const seatsLeft = sl.seats_left
+    const status = seatsLeft <= 0 ? 'full' : seatsLeft <= 2 ? 'few' : 'open'
+    const selected = sl.id === selectedId
+    const full = status === 'full'
+    const dateHeading = formatDateHeading(toLocalDateIso(sl.starts_at))
+    const [cardDay, ...cardRest] = dateHeading.split(',')
+    return (
+      <button
+        key={sl.id}
+        type="button"
+        disabled={full}
+        onClick={() => setSelectedId(sl.id)}
+        style={{
+          textAlign: 'left',
+          width: '100%',
+          padding: '16px',
+          borderRadius: '14px',
+          cursor: full ? 'not-allowed' : 'pointer',
+          opacity: full ? 0.55 : 1,
+          background: selected ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
+          border: `1.5px solid ${selected ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
+          boxShadow: selected ? '0 8px 22px -12px rgba(37,99,235,.5)' : 'none',
+          transition: 'border-color .12s, box-shadow .12s',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '3px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800, color: selected ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>
+                {cardDay}
+              </span>
+              <span>,{cardRest.join(',')}</span>
+            </div>
+            <div style={{ fontSize: '17px', fontWeight: 800, letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>
+              {formatTimeRange(sl.starts_at, sl.ends_at)}
+            </div>
+          </div>
+          {status === 'open' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-success-bg, #ECFDF3)', color: 'var(--badge-success-text, #15803D)', border: '1px solid var(--badge-success-border, #BBF7D0)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{seatsLeft} left</span>}
+          {status === 'few' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-warning-bg, #FFF7ED)', color: 'var(--badge-warning-text, #C2410C)', border: '1px solid var(--badge-warning-border, #FDE68A)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{seatsLeft} left</span>}
+          {status === 'full' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-neutral-bg, #F1F5F9)', color: 'var(--badge-neutral-text, #94A3B8)', border: '1px solid var(--badge-neutral-border, #E2E8F0)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>Full</span>}
+        </div>
+        {selected && (
+          <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-text, #2563EB)', fontSize: '13px', fontWeight: 700 }}>✓ Selected</div>
+        )}
+      </button>
+    )
+  }
 
   return (
     <main className="scr book-page-main" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 24px 48px', boxSizing: 'border-box' }}>
@@ -518,36 +640,26 @@ export function BookClient({
             <div style={{ marginBottom: '14px' }}>
               <label style={sectionLabelStyle}>Filter by date</label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                {[{ value: '', label: 'All dates' }, ...availableDates.map((d) => ({ value: d, label: formatDateHeading(d).replace(/, \d{4}$/, '') }))].map((option) => {
-                  const active = filterDate === option.value
-                  const hasOpen = option.value === ''
-                    ? slots.some((s) => s.seats_left > 0)
-                    : slots.some((s) => toLocalDateIso(s.starts_at) === option.value && s.seats_left > 0)
+                {availableDates.map((d) => {
+                  const label = formatDateHeading(d).replace(/, \d{4}$/, '')
+                  const [dayOfWeek, ...restParts] = label.split(',')
+                  const dateRest = restParts.join(',')
+                  const active = filterDate === d
+                  const hasOpen = slots.some((s) => toLocalDateIso(s.starts_at) === d && s.seats_left > 0)
                   return (
                     <button
-                      key={option.value || 'all'}
+                      key={d}
                       type="button"
-                      onClick={() => { setFilterDate(option.value); setSelectedId(null) }}
-                      style={{ padding: '8px 16px', borderRadius: '99px', border: `1.5px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`, background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-secondary, #475569)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s ease', opacity: hasOpen ? 1 : 0.65, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      onClick={() => { setFilterDate(d); setSelectedId(null) }}
+                      style={{ padding: '8px 16px', borderRadius: '99px', border: `1.5px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`, background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-secondary, #475569)', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease', opacity: hasOpen ? 1 : 0.65, display: 'inline-flex', alignItems: 'baseline', gap: '2px' }}
                     >
-                      {option.label}
-                      {!hasOpen && <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted, #94A3B8)' }}>(Full)</span>}
+                      <span style={{ fontSize: '15.5px', fontWeight: 800 }}>{dayOfWeek}</span>
+                      <span>,{dateRest}</span>
+                      {!hasOpen && <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted, #94A3B8)', marginLeft: '4px' }}>(Full)</span>}
                     </button>
                   )
                 })}
               </div>
-
-              {filterDate && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '10px', background: 'var(--bg-card-subtle, #F8FAFC)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '10px', padding: '6px 12px', width: 'fit-content' }}>
-                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>{getDayOfWeek(filterDate)}</span>
-                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted, #94A3B8)' }} />
-                  {slots.some((s) => toLocalDateIso(s.starts_at) === filterDate && s.seats_left > 0) ? (
-                    <span style={{ fontSize: '13px', color: 'var(--badge-success-text, #10B981)', fontWeight: 600 }}>Open interviews available</span>
-                  ) : (
-                    <span style={{ fontSize: '13px', color: 'var(--badge-warning-text, #F97316)', fontWeight: 600 }}>All interviews fully booked</span>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
@@ -557,64 +669,41 @@ export function BookClient({
             </div>
           )}
 
-          <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
-            {loading ? (
-              <div style={{ gridColumn: '1 / -1', fontSize: '14px', color: 'var(--text-muted, #64748B)', padding: '20px' }}>Loading slots…</div>
-            ) : filteredSlots.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px', background: 'var(--bg-card-subtle, #F8FAFC)', borderRadius: '14px', border: '1px dashed var(--border-input, #E2E8F0)' }}>
-                {slots.length === 0
-                  ? 'No interview slots are open for this track yet. Check back soon.'
-                  : 'No slots on that date. Try another date or clear the filter.'}
+          {loading ? (
+            <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', padding: '20px' }}>Loading slots…</div>
+          ) : filteredSlots.length === 0 ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px', background: 'var(--bg-card-subtle, #F8FAFC)', borderRadius: '14px', border: '1px dashed var(--border-input, #E2E8F0)' }}>
+              {slots.length === 0
+                ? 'No interview slots are open for this track yet. Check back soon.'
+                : 'No slots on that date. Try another date or clear the filter.'}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Available slots */}
+              <div>
+                <label style={sectionLabelStyle}>Available slots ({openSlots.length})</label>
+                {openSlots.length > 0 ? (
+                  <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+                    {openSlots.map(renderSlotCard)}
+                  </div>
+                ) : (
+                  <div style={{ padding: '24px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '13.5px', background: 'var(--bg-card-subtle, #F8FAFC)', borderRadius: '14px', border: '1px dashed var(--border-input, #E2E8F0)' }}>
+                    No available slots on this date.
+                  </div>
+                )}
               </div>
-            ) : (
-              filteredSlots.map((sl) => {
-                const seatsLeft = sl.seats_left
-                const status = seatsLeft <= 0 ? 'full' : seatsLeft <= 2 ? 'few' : 'open'
-                const selected = sl.id === selectedId
-                const full = status === 'full'
-                return (
-                  <button
-                    key={sl.id}
-                    type="button"
-                    disabled={full}
-                    onClick={() => setSelectedId(sl.id)}
-                    style={{
-                      textAlign: 'left',
-                      width: '100%',
-                      padding: '16px',
-                      borderRadius: '14px',
-                      cursor: full ? 'not-allowed' : 'pointer',
-                      opacity: full ? 0.55 : 1,
-                      background: selected ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
-                      border: `1.5px solid ${selected ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
-                      boxShadow: selected ? '0 8px 22px -12px rgba(37,99,235,.5)' : 'none',
-                      transition: 'border-color .12s, box-shadow .12s',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '3px' }}>
-                          {formatDateHeading(toLocalDateIso(sl.starts_at))}
-                        </div>
-                        <div style={{ fontSize: '17px', fontWeight: 800, letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>
-                          {formatTimeRange(sl.starts_at, sl.ends_at)}
-                        </div>
-                        <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', marginTop: '4px', fontWeight: 600 }}>
-                          📍 {sl.venue?.trim() || 'Venue TBA'}
-                        </div>
-                      </div>
-                      {status === 'open' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-success-bg, #ECFDF3)', color: 'var(--badge-success-text, #15803D)', border: '1px solid var(--badge-success-border, #BBF7D0)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{seatsLeft} left</span>}
-                      {status === 'few' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-warning-bg, #FFF7ED)', color: 'var(--badge-warning-text, #C2410C)', border: '1px solid var(--badge-warning-border, #FDE68A)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{seatsLeft} left</span>}
-                      {status === 'full' && <span style={{ padding: '4px 9px', borderRadius: '99px', background: 'var(--badge-neutral-bg, #F1F5F9)', color: 'var(--badge-neutral-text, #94A3B8)', border: '1px solid var(--badge-neutral-border, #E2E8F0)', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>Full</span>}
-                    </div>
-                    {selected && (
-                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-text, #2563EB)', fontSize: '13px', fontWeight: 700 }}>✓ Selected</div>
-                    )}
-                  </button>
-                )
-              })
-            )}
-          </div>
+
+              {/* Full slots */}
+              {fullSlots.length > 0 && (
+                <div>
+                  <label style={sectionLabelStyle}>Full slots ({fullSlots.length})</label>
+                  <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+                    {fullSlots.map(renderSlotCard)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '13.5px', color: selectedSlot ? 'var(--text-secondary, #334155)' : 'var(--text-muted, #94A3B8)', fontWeight: selectedSlot ? 600 : 400 }}>
