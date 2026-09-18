@@ -45,7 +45,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
       : profile.email?.slice(0, 2) || 'SC'
     ).toUpperCase()
     const isStaff = profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin'
-    const practiceHref = profile.role === 'admin' ? '/head/practice' : '/practice'
     return (
       <header style={{ background: 'var(--bg-card, #fff)', borderBottom: '1px solid var(--border-card, #EAEEF4)', position: 'relative', zIndex: 100 }}>
         <div className="nav-container">
@@ -61,9 +60,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
                   Interview
                 </Link>
               )}
-              <Link href={practiceHref} style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
-                Practice Groups
-              </Link>
               {profile.role === 'admin' && (
                 <Link href="/admin" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname === '/admin' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/admin' ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
                   Committee
@@ -132,9 +128,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
               📊 Interview
             </Link>
           )}
-          <Link href={practiceHref} onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/practice') || pathname.startsWith('/head/practice') ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
-            🎭 Practice Groups
-          </Link>
           {profile.role === 'admin' && (
             <Link href="/admin" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/admin' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/admin' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
               👥 Committee
