@@ -51,7 +51,8 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
         <div className="nav-container">
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '16px', flexShrink: 0 }}>X</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
               <div style={{ fontWeight: 800, fontSize: '15px', whiteSpace: 'nowrap' }}>XMUM <span style={{ color: '#94A3B8', fontWeight: 600 }}>Committee</span></div>
             </Link>
             <nav className="nav-links flex gap-[4px]">
@@ -177,7 +178,8 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
     <header style={{ background: 'var(--bg-card, #fff)', borderBottom: '1px solid var(--border-card, #EAEEF4)', position: 'relative', zIndex: 100 }}>
       <div className="nav-container">
         <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-          <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'linear-gradient(140deg, #2563EB, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '17px', boxShadow: '0 4px 12px -3px rgba(37,99,235,.5)', flexShrink: 0 }}>X</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '38px', height: '38px', objectFit: 'contain', flexShrink: 0 }} />
           <div style={{ lineHeight: 1.15, whiteSpace: 'nowrap' }}>
             <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>2026 XMUM December Orientation</div>
             <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Interview Booking</div>

@@ -262,10 +262,10 @@ export function MyBookingClient() {
         }}>
           <span style={{ fontSize: '26px' }}>🎫</span>
         </div>
-        <h1 style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-primary, #0F172A)', margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
+        <h1 className="font-title" style={{ fontSize: '30px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', margin: '0 0 8px 0', letterSpacing: '-0.01em' }}>
           Check My Booking
         </h1>
-        <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
+        <p className="font-subtitle" style={{ fontSize: '16px', color: 'var(--text-muted, #64748B)', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
           Enter your Student ID to view or manage your interview booking.
         </p>
       </div>

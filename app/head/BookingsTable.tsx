@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { formatDateHeading, formatTimeRange, isPastSlot, toLocalDateIso } from '@/lib/booking-helpers'
-import { cancelBooking, updateInterviewStatus, type HeadBooking } from '@/lib/head'
+import { cancelBooking, type HeadBooking } from '@/lib/head'
 import type { Orientation } from '@/lib/head'
 import { DateRangePicker, type DateRange } from '@/components/DateRangePicker'
 import { saveInterviewNotesAction } from '@/app/actions/saveNotesAction'
-import { bulkInviteApprovedAction, inviteApprovedBookingAction } from '@/app/actions/inviteCommitteeAction'
 import { errorMessage } from '@/lib/utils'
 import { useToast } from '@/components/Toast'
 
@@ -30,58 +29,11 @@ const cancelBtnStyle: React.CSSProperties = {
   transition: 'background .15s',
 }
 
-const inviteOneBtnStyle: React.CSSProperties = {
-  padding: '8px 14px',
-  borderRadius: '8px',
-  border: '1px solid var(--btn-accent-border, #DBE6FF)',
-  background: 'var(--btn-accent-bg, #EFF6FF)',
-  color: 'var(--btn-accent-text, #2563EB)',
-  fontWeight: 700,
-  fontSize: '13px',
-  cursor: 'pointer',
-  transition: 'background .15s',
-}
-
-const registeredBadgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '8px 14px',
-  borderRadius: '8px',
-  background: 'var(--badge-success-bg, #ECFDF3)',
-  color: 'var(--badge-success-text, #15803D)',
-  border: '1px solid var(--badge-success-border, #BBF7D0)',
-  fontWeight: 700,
-  fontSize: '13px',
-}
-
 function formatTrack(track: string | undefined | null): string {
   if (!track) return '-'
   if (track === 'game_master') return 'Game Master'
   if (track === 'facilitator') return 'Facilitator'
   return track.charAt(0).toUpperCase() + track.slice(1)
-}
-
-function formatStatusText(status: string | undefined | null): string {
-  if (status === 'approved') return 'Approved'
-  return 'Rejected'
-}
-
-function cycleStatus(current: string | undefined | null): 'approved' | 'rejected' {
-  if (current === 'approved') return 'rejected'
-  return 'approved'
-}
-
-type InviteState = 'not_invited' | 'pending' | 'registered'
-
-function inviteState(b: HeadBooking): InviteState {
-  if (b.invite_claimed_at) return 'registered'
-  if (b.invited_at) return 'pending'
-  return 'not_invited'
-}
-
-function inviteButtonLabel(state: InviteState, busy: boolean): string {
-  if (busy) return 'Sending...'
-  return state === 'pending' ? 'Send Invite Again' : 'Invite'
 }
 
 export function BookingsTable({ bookings, loading, error, track, orientation, orientationYear = 2026, onChanged }: Props) {
@@ -91,8 +43,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   const [selectedBooking, setSelectedBooking] = useState<HeadBooking | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
   const [showPast, setShowPast] = useState<boolean>(true)
-  const [invitingCommittee, setInvitingCommittee] = useState(false)
-  const [invitingBookingId, setInvitingBookingId] = useState<string | null>(null)
   const [notesValue, setNotesValue] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
@@ -153,10 +103,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
     }
   }
 
-  const approvedBookings = useMemo(() => {
-    return bookings.filter((b) => b.interview_status === 'approved')
-  }, [bookings])
-
   const filtered = useMemo(() => {
     const needle = filter.trim().toLowerCase()
     return bookings.filter((b) => {
@@ -189,73 +135,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
       return true
     })
   }, [bookings, filter, dateRange, showPast, positionFilter, track])
-
-  async function handleInviteCommittee() {
-    if (approvedBookings.length === 0) return
-    if (!window.confirm(`Invite ${approvedBookings.length} approved applicant(s) to the committee?`)) return
-    setInvitingCommittee(true)
-    try {
-      const res = await bulkInviteApprovedAction(track, orientation, orientationYear)
-      if (res.error) {
-        showToast(`Failed to invite: ${res.error}`, 'error')
-      } else {
-        const parts: string[] = []
-        if (res.invited > 0) parts.push(`Invited ${res.invited} new committee member${res.invited === 1 ? '' : 's'}.`)
-        if (res.resent > 0) parts.push(`Resent ${res.resent} pending invite${res.resent === 1 ? '' : 's'}.`)
-        if (res.alreadyClaimed > 0) parts.push(`${res.alreadyClaimed} already registered.`)
-        if (res.failed > 0) parts.push(`${res.failed} failed.`)
-        const msg = parts.length > 0 ? parts.join(' ') : 'All approved applicants are already registered.'
-        showToast(msg, res.failed > 0 ? 'info' : 'success')
-        onChanged()
-      }
-    } catch (err: unknown) {
-      showToast(`Failed to invite to committee: ${errorMessage(err)}`, 'error')
-    } finally {
-      setInvitingCommittee(false)
-    }
-  }
-
-  async function handleInviteOne(b: HeadBooking) {
-    const alreadySent = inviteState(b) === 'pending'
-    const confirmMsg = alreadySent
-      ? `Resend the committee invite code to ${b.applicant_name}?`
-      : `Send a committee invite code to ${b.applicant_name}?`
-    if (!window.confirm(confirmMsg)) return
-    setInvitingBookingId(b.booking_id)
-    try {
-      const res = await inviteApprovedBookingAction(b.booking_id, track, orientation, orientationYear)
-      if (res.error) {
-        showToast(`Failed to invite ${b.applicant_name}: ${res.error}`, 'error')
-      } else if (res.status === 'already_claimed') {
-        showToast(`${b.applicant_name} already activated their committee account.`, 'info')
-      } else if (res.status === 'resent') {
-        showToast(`Invite code resent to ${b.applicant_name}.`, 'success')
-      } else {
-        showToast(`Invite code sent to ${b.applicant_name}.`, 'success')
-      }
-      if (!res.error) {
-        onChanged()
-        // Reflect the send immediately so an open modal's button flips to
-        // "Send Invite Again" without waiting on the background refetch.
-        if (res.status !== 'already_claimed' && selectedBooking?.booking_id === b.booking_id && !selectedBooking.invited_at) {
-          setSelectedBooking({ ...selectedBooking, invited_at: new Date().toISOString() })
-        }
-      }
-    } catch (err: unknown) {
-      showToast(`Failed to invite ${b.applicant_name}: ${errorMessage(err)}`, 'error')
-    } finally {
-      setInvitingBookingId(null)
-    }
-  }
-
-  async function handleStatusChange(bookingId: string, status: 'approved' | 'rejected') {
-    const { error: updateErr } = await updateInterviewStatus(bookingId, status)
-    if (updateErr) {
-      showToast(updateErr.message, 'error')
-      return
-    }
-    onChanged()
-  }
 
   async function handleCancel(b: HeadBooking) {
     if (!window.confirm(`Cancel ${b.applicant_name}'s booking? This frees the seat.`)) {
@@ -387,32 +266,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
           >
             <span>📊</span> {exporting ? 'Exporting...' : 'Export to Excel'}
           </button>
-
-          {approvedBookings.length > 0 && (
-            <button
-              type="button"
-              onClick={handleInviteCommittee}
-              disabled={invitingCommittee}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                background: '#2563EB',
-                color: '#fff',
-                fontSize: '13.5px',
-                fontWeight: 700,
-                cursor: invitingCommittee ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 12px -3px rgba(37,99,235,.35)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-                opacity: invitingCommittee ? 0.7 : 1,
-              }}
-            >
-              <span>🎭</span> {invitingCommittee ? 'Inviting...' : `Invite Approved to Committee (${approvedBookings.length})`}
-            </button>
-          )}
         </div>
       </div>
 
@@ -458,7 +311,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Venue</th>
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Time</th>
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Contact Number</th>
-                <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Status</th>
                 <th style={{ padding: '16px 20px' }}></th>
               </tr>
             </thead>
@@ -503,52 +355,8 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                       {b.experiences || <span style={{ opacity: 0.5 }}>-</span>}
                     </p>
                   </td>
-                  <td style={{ padding: '18px 20px', verticalAlign: 'middle' }}>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        const next = cycleStatus(b.interview_status)
-                        handleStatusChange(b.booking_id, next)
-                      }}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '6px 12px',
-                        borderRadius: '99px',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        border: b.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : '1px solid var(--badge-danger-border, #FECACA)',
-                        transition: 'all 0.15s ease',
-                        background: b.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : 'var(--badge-danger-bg, #FEF2F2)',
-                        color: b.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : 'var(--badge-danger-text, #B91C1C)',
-                      }}
-                      className="status-badge-btn"
-                      title={`Click to mark as ${cycleStatus(b.interview_status) === 'approved' ? 'Approved' : 'Rejected'}`}
-                    >
-                      {formatStatusText(b.interview_status)}
-                    </button>
-                  </td>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle', textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', gap: '8px' }}>
-                      {b.interview_status === 'approved' && (
-                        inviteState(b) === 'registered' ? (
-                          <span style={registeredBadgeStyle}>✓ Registered</span>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={invitingBookingId === b.booking_id}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleInviteOne(b)
-                            }}
-                            style={inviteOneBtnStyle}
-                          >
-                            {inviteButtonLabel(inviteState(b), invitingBookingId === b.booking_id)}
-                          </button>
-                        )
-                      )}
                       <button
                         type="button"
                         disabled={cancellingId === b.booking_id}
@@ -606,65 +414,18 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                     {b.experiences}
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 600 }}>Status:</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        const next = cycleStatus(b.interview_status)
-                        handleStatusChange(b.booking_id, next)
-                      }}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '5px 12px',
-                        borderRadius: '99px',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        border: b.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : '1px solid var(--badge-danger-border, #FECACA)',
-                        transition: 'all 0.15s ease',
-                        background: b.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : 'var(--badge-danger-bg, #FEF2F2)',
-                        color: b.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : 'var(--badge-danger-text, #B91C1C)',
-                      }}
-                      className="status-badge-btn"
-                      title={`Click to mark as ${cycleStatus(b.interview_status) === 'approved' ? 'Approved' : 'Rejected'}`}
-                    >
-                      {formatStatusText(b.interview_status)}
-                    </button>
-                  </div>
-                  <div style={{ display: 'inline-flex', gap: '8px' }}>
-                    {b.interview_status === 'approved' && (
-                      inviteState(b) === 'registered' ? (
-                        <span style={registeredBadgeStyle}>✓ Registered</span>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={invitingBookingId === b.booking_id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleInviteOne(b)
-                          }}
-                          style={inviteOneBtnStyle}
-                        >
-                          {inviteButtonLabel(inviteState(b), invitingBookingId === b.booking_id)}
-                        </button>
-                      )
-                    )}
-                    <button
-                      type="button"
-                      disabled={cancellingId === b.booking_id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleCancel(b)
-                      }}
-                      style={cancelBtnStyle}
-                    >
-                      {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
-                    </button>
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    disabled={cancellingId === b.booking_id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCancel(b)
+                    }}
+                    style={cancelBtnStyle}
+                  >
+                    {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
+                  </button>
                 </div>
               </div>
             ))}
@@ -792,38 +553,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                         {selectedBooking.booking_id}
                       </div>
                     </div>
-                    <div>
-                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>Interview Status</label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = cycleStatus(selectedBooking.interview_status)
-                          handleStatusChange(selectedBooking.booking_id, next)
-                          setSelectedBooking({ ...selectedBooking, interview_status: next })
-                        }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '8px 16px',
-                          borderRadius: '99px',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          border: selectedBooking.interview_status === 'approved' ? '1px solid var(--badge-success-border, #BBF7D0)' : '1px solid var(--badge-danger-border, #FECACA)',
-                          transition: 'all 0.15s ease',
-                          background: selectedBooking.interview_status === 'approved' ? 'var(--badge-success-bg, #ECFDF3)' : 'var(--badge-danger-bg, #FEF2F2)',
-                          color: selectedBooking.interview_status === 'approved' ? 'var(--badge-success-text, #15803D)' : 'var(--badge-danger-text, #B91C1C)',
-                          marginTop: '4px',
-                          width: '100%',
-                          maxWidth: '130px',
-                        }}
-                        className="status-badge-btn"
-                        title={`Click to mark as ${cycleStatus(selectedBooking.interview_status) === 'approved' ? 'Approved' : 'Rejected'}`}
-                      >
-                        {formatStatusText(selectedBooking.interview_status)}
-                      </button>
-                    </div>
                   </div>
 
                   {/* Contact Number Section */}
@@ -935,35 +664,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                     >
                       Cancel Booking
                     </button>
-                    {selectedBooking.interview_status === 'approved' && (
-                      inviteState(selectedBooking) === 'registered' ? (
-                        <span style={registeredBadgeStyle}>✓ Registered</span>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={invitingBookingId === selectedBooking.booking_id}
-                          onClick={() => handleInviteOne(selectedBooking)}
-                          style={{
-                            padding: '10px 16px',
-                            borderRadius: '10px',
-                            border: '1px solid var(--btn-accent-border, #BFDBFE)',
-                            background: 'var(--btn-accent-bg, #EFF6FF)',
-                            color: 'var(--btn-accent-text, #2563EB)',
-                            fontWeight: 700,
-                            fontSize: '13.5px',
-                            cursor: invitingBookingId === selectedBooking.booking_id ? 'not-allowed' : 'pointer',
-                            transition: 'background 0.15s',
-                            opacity: invitingBookingId === selectedBooking.booking_id ? 0.7 : 1,
-                          }}
-                        >
-                          {invitingBookingId === selectedBooking.booking_id
-                            ? 'Sending...'
-                            : inviteState(selectedBooking) === 'pending'
-                              ? 'Send Invite Again'
-                              : 'Invite to Committee'}
-                        </button>
-                      )
-                    )}
                   </div>
                   <button
                     onClick={() => setSelectedBooking(null)}

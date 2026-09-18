@@ -74,9 +74,8 @@ function LoginFormInner() {
             }
           }
         `}</style>
-        <div style={{ textAlign: 'center', marginBottom: '26px' }}>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>Committee sign in</h1>
-          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>Heads & admins only. Applicants don&apos;t need an account.</p>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <h1 className="font-title" style={{ fontSize: '32px', fontWeight: 700, letterSpacing: '-.01em', margin: 0, color: 'var(--text-primary, #0F172A)' }}>Committee sign in</h1>
         </div>
         <div className="login-card">
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

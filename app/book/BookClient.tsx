@@ -14,9 +14,9 @@ import {
 const HOLD_STORAGE_KEY = 'xmumori-book-hold'
 const HOLD_TTL_MS = 10 * 60 * 1000
 
-const TRACKS: { key: Track; title: string; icon: string; blurb: string }[] = [
-  { key: 'facilitator', title: 'Facilitator', icon: '🎯', blurb: 'Guide new students through orientation week.' },
-  { key: 'game_master', title: 'Game Master', icon: '🎮', blurb: 'Run the games, energy & icebreaker stations.' },
+const TRACKS: { key: Track; title: string; icon: string }[] = [
+  { key: 'facilitator', title: 'Facilitator', icon: '🎯' },
+  { key: 'game_master', title: 'Game Master', icon: '🎮' },
 ]
 
 function isTrack(value: string | null): value is Track {
@@ -181,9 +181,9 @@ export function BookClient({
       setHoldExpiresAt(saved.expiresAt)
       setTrack(saved.track)
       setSelectedId(saved.slotId)
-      setStep(2)
+      setStep(3)
       if (typeof window !== 'undefined') {
-        window.history.replaceState({ bookStep: 2 }, '')
+        window.history.replaceState({ bookStep: 3 }, '')
       }
     } catch {
       sessionStorage.removeItem(HOLD_STORAGE_KEY)
@@ -197,16 +197,20 @@ export function BookClient({
 
   useEffect(() => {
     const handlePopState = async () => {
-      // If the user was on Step 2 and navigated back (e.g. browser back button):
-      if (stepRef.current === 2) {
+      // If the user was on Step 3 (Your details) and navigated back:
+      if (stepRef.current === 3) {
         const token = holdTokenRef.current
         if (token) {
           await releaseHold(token)
         }
         clearHold()
-        setStep(1)
+        setStep(2)
         setSubmitError(null)
         loadSlots()
+      } else if (stepRef.current === 2) {
+        // If the user was on Step 2 (Choose slot) and navigated back:
+        setStep(1)
+        setSelectedId(null)
       }
     }
 
@@ -215,7 +219,7 @@ export function BookClient({
   }, [loadSlots])
 
   useEffect(() => {
-    if (step !== 2 || !holdExpiresAt) {
+    if (step !== 3 || !holdExpiresAt) {
       setRemainingMs(null)
       return
     }
@@ -227,10 +231,10 @@ export function BookClient({
 
   // If a restored hold's slot no longer exists in the freshly loaded list
   // (e.g. an admin deleted it while the hold was active), don't strand the
-  // applicant on a blank step 2 — bounce back to the picker.
+  // applicant on a blank step 3 — bounce back to the picker.
   useEffect(() => {
     if (
-      step === 2 &&
+      step === 3 &&
       !loading &&
       selectedId &&
       !slotsByTrack.facilitator.some((s) => s.id === selectedId) &&
@@ -239,7 +243,7 @@ export function BookClient({
       const token = holdTokenRef.current || holdToken
       if (token) releaseHold(token)
       clearHold()
-      setStep(1)
+      setStep(2)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, loading, slotsByTrack, selectedId, holdToken])
@@ -352,9 +356,9 @@ export function BookClient({
         slot: selectedSlot,
       })
       if (typeof window !== 'undefined') {
-        window.history.replaceState({ bookStep: 3 }, '')
+        window.history.replaceState({ bookStep: 4 }, '')
       }
-      setStep(3)
+      setStep(4)
       return
     }
 
@@ -384,8 +388,24 @@ export function BookClient({
     setSubmitError(error ?? 'Something went wrong. Please try again.')
   }
 
-  async function goBackToStep1() {
+  function proceedToStep2() {
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ bookStep: 2 }, '')
+    }
+    setStep(2)
+  }
+
+  function goBackToStep1() {
     if (typeof window !== 'undefined' && window.history.state?.bookStep === 2) {
+      window.history.back()
+      return
+    }
+    setStep(1)
+    setSelectedId(null)
+  }
+
+  async function goBackToStep2() {
+    if (typeof window !== 'undefined' && window.history.state?.bookStep === 3) {
       window.history.back()
       return
     }
@@ -394,7 +414,7 @@ export function BookClient({
       await releaseHold(token)
     }
     clearHold()
-    setStep(1)
+    setStep(2)
     setSubmitError(null)
     loadSlots()
   }
@@ -421,9 +441,9 @@ export function BookClient({
       JSON.stringify({ token: data.token, expiresAt, slotId: selectedSlot.id, track, orientation }),
     )
     if (typeof window !== 'undefined') {
-      window.history.pushState({ bookStep: 2 }, '')
+      window.history.pushState({ bookStep: 3 }, '')
     }
-    setStep(2)
+    setStep(3)
   }
 
   function renderSlotCard(sl: AvailableSlot) {
@@ -548,20 +568,16 @@ export function BookClient({
             display: none !important;
           }
           .book-track-btn {
-            padding: 8px 10px !important;
+            padding: 10px 14px !important;
             gap: 8px !important;
             border-radius: 10px !important;
             align-items: center !important;
           }
           .book-track-icon {
-            font-size: 18px !important;
+            font-size: 20px !important;
           }
           .book-track-title {
-            font-size: 13px !important;
-            white-space: nowrap !important;
-          }
-          .book-track-sub {
-            font-size: 11px !important;
+            font-size: 14px !important;
             white-space: nowrap !important;
           }
         }
@@ -574,26 +590,23 @@ export function BookClient({
             font-size: 12px !important;
           }
           .book-track-btn {
-            padding: 7px 6px !important;
+            padding: 8px 10px !important;
             gap: 6px !important;
           }
           .book-track-title {
-            font-size: 12.5px !important;
-          }
-          .book-track-sub {
-            font-size: 10.5px !important;
+            font-size: 13px !important;
           }
         }
       `}</style>
 
       <div style={{ marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.025em', margin: '0 0 4px', color: 'var(--text-primary, #0F172A)' }}>Book an Interview</h1>
+        <h1 className="font-title" style={{ fontSize: '32px', fontWeight: 700, letterSpacing: '-.015em', margin: '0 0 4px', color: 'var(--text-primary, #0F172A)' }}>Book an Interview</h1>
       </div>
 
       {/* Stepper */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px', flexWrap: 'wrap' }}>
-        {[1, 2, 3].map((n) => {
-          const labels: Record<number, string> = { 1: 'Choose slot', 2: 'Your details', 3: 'Confirmed' }
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
+        {[1, 2, 3, 4].map((n) => {
+          const labels: Record<number, string> = { 1: 'Choose position', 2: 'Choose slot', 3: 'Your details', 4: 'Confirmed' }
           const done = step > n
           const active = step === n
           return (
@@ -602,37 +615,133 @@ export function BookClient({
                 {done ? '✓' : n}
               </div>
               <span style={{ fontSize: '13.5px', fontWeight: 600, color: active || done ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #94A3B8)', whiteSpace: 'nowrap' }}>{labels[n]}</span>
-              {n < 3 && <span className="stepper-divider" style={{ width: '26px', height: '2px', background: 'var(--border-input, #E2E8F0)', borderRadius: '2px' }} />}
+              {n < 4 && <span className="stepper-divider" style={{ width: '26px', height: '2px', background: 'var(--border-input, #E2E8F0)', borderRadius: '2px' }} />}
             </div>
           )
         })}
       </div>
 
-      {/* ── Step 1: pick a slot ───────────────────────────────────────── */}
+      {/* ── Step 1: choose position ───────────────────────────────────── */}
       {step === 1 && (
         <div className="scr">
-          <div style={{ marginBottom: '14px' }}>
-            <label style={sectionLabelStyle}>Select position</label>
-            <div className="book-tracks">
-              {TRACKS.map((t) => {
-                const active = track === t.key
-                return (
-                  <button
-                    key={t.key}
-                    type="button"
-                    onClick={() => { setTrack(t.key); setSelectedId(null); setFilterDate('') }}
-                    className="book-track-btn"
-                    style={{
-                      border: `1.5px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
-                      background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
-                    }}
-                  >
-                    <span className="book-track-icon" style={{ fontSize: '20px', flexShrink: 0 }}>{t.icon}</span>
-                    <span className="book-track-title" style={{ fontWeight: 700, fontSize: '15px', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>{t.title}</span>
-                  </button>
-                )
-              })}
+          <div style={{ marginBottom: '22px' }}>
+            <h2 className="font-title" style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '-.015em', color: 'var(--text-primary, #0F172A)' }}>
+              Select your desired position
+            </h2>
+            <p className="font-subtitle" style={{ fontSize: '16px', color: 'var(--text-secondary, #475569)', margin: 0 }}>
+              Choose whether you are applying as an Orientation Facilitator or a Game Master.
+            </p>
+          </div>
+
+          <div className="book-tracks" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            {TRACKS.map((t) => {
+              const active = track === t.key
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => {
+                    setTrack(t.key)
+                    setSelectedId(null)
+                    setFilterDate('')
+                  }}
+                  className="book-track-btn"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '18px 20px',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all .15s ease',
+                    border: `2px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
+                    background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
+                    boxShadow: active ? '0 10px 25px -8px rgba(37,99,235,.25)' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span className="book-track-icon" style={{ fontSize: '26px', lineHeight: 1 }}>{t.icon}</span>
+                    <span className="book-track-title" style={{ fontWeight: 800, fontSize: '18px', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>
+                      {t.title}
+                    </span>
+                  </div>
+                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', border: `2px solid ${active ? '#2563EB' : 'var(--border-input, #CBD5E1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? '#2563EB' : 'transparent', flexShrink: 0 }}>
+                    {active && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff' }} />}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <button
+              type="button"
+              onClick={proceedToStep2}
+              style={{
+                padding: '14px 28px',
+                borderRadius: '12px',
+                border: 'none',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '15px',
+                background: '#2563EB',
+                cursor: 'pointer',
+                boxShadow: '0 8px 20px -6px rgba(37,99,235,.5)',
+              }}
+            >
+              Continue to Select Slot →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: pick a slot ───────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="scr">
+          <div style={{ marginBottom: '18px' }}>
+            <h2 className="font-title" style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '-.015em', color: 'var(--text-primary, #0F172A)' }}>
+              Select an interview slot
+            </h2>
+            <p className="font-subtitle" style={{ fontSize: '16px', color: 'var(--text-secondary, #475569)', margin: 0 }}>
+              Slots are available on a first-come, first-served basis.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>Position:</span>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 12px',
+                borderRadius: '8px',
+                background: track === 'game_master' ? 'var(--badge-gm-bg, #F3F0FF)' : 'var(--badge-facilitator-bg, #EFF4FF)',
+                color: track === 'game_master' ? 'var(--badge-gm-text, #7C3AED)' : 'var(--badge-facilitator-text, #2563EB)',
+                border: `1px solid ${track === 'game_master' ? 'var(--badge-gm-border, #DDD6FE)' : 'var(--badge-facilitator-border, #DBE6FF)'}`,
+                fontWeight: 700,
+                fontSize: '13.5px',
+              }}>
+                <span>{track === 'game_master' ? '🎮' : '🎯'}</span>
+                <span>{track === 'game_master' ? 'Game Master' : 'Facilitator'}</span>
+              </span>
             </div>
+            <button
+              type="button"
+              onClick={goBackToStep1}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-secondary, #475569)',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              ← Change position
+            </button>
           </div>
 
           {/* Date filter */}
@@ -705,20 +814,29 @@ export function BookClient({
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13.5px', color: selectedSlot ? 'var(--text-secondary, #334155)' : 'var(--text-muted, #94A3B8)', fontWeight: selectedSlot ? 600 : 400 }}>
-              {selectedSlot
-                ? `${formatDateHeading(toLocalDateIso(selectedSlot.starts_at))} · ${formatTimeRange(selectedSlot.starts_at, selectedSlot.ends_at)}`
-                : 'Select a slot to continue'}
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
             <button
               type="button"
-              disabled={!selectedSlot || reserving}
-              onClick={reserveAndContinue}
-              style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot && !reserving ? 'var(--accent-primary, #2563EB)' : 'var(--btn-neutral-bg, #CBD5E1)', cursor: selectedSlot && !reserving ? 'pointer' : 'not-allowed', boxShadow: selectedSlot && !reserving ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
+              onClick={goBackToStep1}
+              style={{ padding: '12px 20px', borderRadius: '11px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #334155)', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
             >
-              {reserving ? 'Holding your seat…' : 'Continue →'}
+              ← Back
             </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '13.5px', color: selectedSlot ? 'var(--text-secondary, #334155)' : 'var(--text-muted, #94A3B8)', fontWeight: selectedSlot ? 600 : 400 }}>
+                {selectedSlot
+                  ? `${formatDateHeading(toLocalDateIso(selectedSlot.starts_at))} · ${formatTimeRange(selectedSlot.starts_at, selectedSlot.ends_at)}`
+                  : 'Select a slot to continue'}
+              </span>
+              <button
+                type="button"
+                disabled={!selectedSlot || reserving}
+                onClick={reserveAndContinue}
+                style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot && !reserving ? 'var(--accent-primary, #2563EB)' : 'var(--btn-neutral-bg, #CBD5E1)', cursor: selectedSlot && !reserving ? 'pointer' : 'not-allowed', boxShadow: selectedSlot && !reserving ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
+              >
+                {reserving ? 'Holding your seat…' : 'Continue →'}
+              </button>
+            </div>
           </div>
 
           {reserveError && (
@@ -729,12 +847,12 @@ export function BookClient({
         </div>
       )}
 
-      {/* ── Step 2: details ───────────────────────────────────────────── */}
-      {step === 2 && selectedSlot && (
+      {/* ── Step 3: details ───────────────────────────────────────────── */}
+      {step === 3 && selectedSlot && (
         <div className="scr book-2" style={{ display: 'grid', gridTemplateColumns: '1.5fr .7fr', gap: '16px', alignItems: 'start' }}>
           <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '20px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 14px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>Your details</h2>
+              <h2 className="font-title" style={{ fontSize: '20px', fontWeight: 700, margin: 0, letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>Your details</h2>
               {!holdLocked && remainingMs !== null && (
                 <span style={{
                   fontSize: '13px',
@@ -755,7 +873,7 @@ export function BookClient({
                 <div style={{ marginBottom: '16px', padding: '11px 14px', borderRadius: '10px', background: 'var(--badge-danger-bg, #FEF2F2)', border: '1px solid var(--badge-danger-border, #FECACA)', color: 'var(--badge-danger-text, #B91C1C)', fontSize: '13.5px', fontWeight: 600 }}>
                   Time Exceeded
                 </div>
-                <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                <button type="button" onClick={goBackToStep2} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
                   Choose another slot
                 </button>
               </div>
@@ -802,8 +920,8 @@ export function BookClient({
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
-                  <button type="button" onClick={goBackToStep1} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                    ← Back
+                  <button type="button" onClick={goBackToStep2} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+                    ← Back to slots
                   </button>
                   <button
                     type="button"
@@ -845,14 +963,14 @@ export function BookClient({
         </div>
       )}
 
-      {/* ── Step 3: confirmed ─────────────────────────────────────────── */}
-      {step === 3 && confirmation && (
+      {/* ── Step 4: confirmed ─────────────────────────────────────────── */}
+      {step === 4 && confirmation && (
         <div className="scr" style={{ maxWidth: '560px', margin: '0 auto' }}>
           <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '20px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 14px 40px -18px rgba(16,24,40,.2)' }}>
             <div style={{ width: '56px', height: '56px', borderRadius: '99px', background: 'var(--badge-success-bg, #ECFDF3)', border: '1px solid var(--badge-success-border, #BBF7D0)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', animation: 'pop .4s ease' }}>
               <span style={{ fontSize: '30px', color: 'var(--badge-success-text, #16A34A)' }}>✓</span>
             </div>
-            <h2 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 18px', color: 'var(--text-primary, #0F172A)' }}>Booked!</h2>
+            <h2 className="font-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-.02em', margin: '0 0 18px', color: 'var(--text-primary, #0F172A)' }}>Booked!</h2>
 
             <div style={{ background: 'var(--bg-card-subtle, #F8FAFC)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '14px', padding: '14px', marginBottom: '16px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted, #94A3B8)', marginBottom: '6px' }}>Student ID</div>

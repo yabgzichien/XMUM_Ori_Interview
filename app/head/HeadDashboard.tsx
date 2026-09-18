@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BulkCreateForm } from '@/app/head/BulkCreateForm'
 import { SlotsTable } from '@/app/head/SlotsTable'
 import { BookingsTable } from '@/app/head/BookingsTable'
-import { InvitesTable } from '@/app/head/InvitesTable'
 import { getHeadSlots, getHeadBookings, type HeadBooking, type HeadSlot, type Track, type Orientation } from '@/lib/head'
 
 type Props = {
@@ -33,7 +32,7 @@ export function HeadDashboard({
   const [bookingsLoading, setBookingsLoading] = useState(false)
   const [bookingsError, setBookingsError] = useState<string | null>(null)
 
-  const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'invites'>('slots')
+  const [activeTab, setActiveTab] = useState<'slots' | 'bookings'>('slots')
 
   // Each list reloads when its token bumps. The effects own cancellation so a
   // slow response for one track can't land after the head switched to another.
@@ -103,9 +102,6 @@ export function HeadDashboard({
     }
   }, [orientation, orientationYear, bookingsToken])
 
-  const invitedBookings = bookings.filter((b) => b.invited_at)
-  const registeredCount = invitedBookings.filter((b) => b.invite_claimed_at).length
-
   return (
     <>
       <div style={{ marginBottom: '20px' }}>
@@ -153,7 +149,6 @@ export function HeadDashboard({
               fontSize: '14.5px',
               cursor: 'pointer',
               borderBottom: activeTab === 'bookings' ? 'none' : '1px solid var(--border-card, #EAEEF4)',
-              borderRight: '1px solid var(--border-card, #EAEEF4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -166,31 +161,6 @@ export function HeadDashboard({
             <span><span className="tab-label-full">Booked </span>Applicants</span>
             <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'bookings' ? 'var(--bg-card-hover, #F1F5F9)' : 'var(--border-input, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '11.5px', fontWeight: 800 }}>{bookings.length}</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('invites')}
-            style={{
-              flex: '1 0 auto',
-              padding: '16px 20px',
-              border: 'none',
-              background: activeTab === 'invites' ? 'var(--bg-card, #fff)' : 'transparent',
-              color: activeTab === 'invites' ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #64748B)',
-              fontWeight: 700,
-              fontSize: '14.5px',
-              cursor: 'pointer',
-              borderBottom: activeTab === 'invites' ? 'none' : '1px solid var(--border-card, #EAEEF4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'background 0.2s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span>📋</span>
-            <span>Registration</span>
-            <span className="tab-badge" style={{ padding: '2px 8px', borderRadius: '99px', background: activeTab === 'invites' ? 'var(--bg-card-hover, #F1F5F9)' : 'var(--border-input, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '11.5px', fontWeight: 800 }}>{registeredCount}/{invitedBookings.length}</span>
-          </button>
         </div>
 
         <div style={{ padding: '0', overflowX: 'auto' }}>
@@ -199,9 +169,6 @@ export function HeadDashboard({
           )}
           {activeTab === 'bookings' && (
             <BookingsTable bookings={bookings} loading={bookingsLoading} error={bookingsError} track={track} orientation={orientation} orientationYear={orientationYear} onChanged={refreshBookings} />
-          )}
-          {activeTab === 'invites' && (
-            <InvitesTable bookings={bookings} loading={bookingsLoading} error={bookingsError} track={track} orientation={orientation} orientationYear={orientationYear} onChanged={refreshBookings} />
           )}
         </div>
       </div>

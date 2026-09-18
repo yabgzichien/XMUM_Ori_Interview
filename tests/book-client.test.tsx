@@ -60,37 +60,43 @@ describe('BookClient history and hold release', () => {
       />
     )
 
-    // Step 1: select slot
+    // Step 1: Advance to slot selection
+    const continueToSlotBtn = screen.getByRole('button', { name: /continue to select slot/i })
+    await act(async () => {
+      fireEvent.click(continueToSlotBtn)
+    })
+
+    // Step 2: select slot
     const slotCard = screen.getByText('10:00 AM – 10:15 AM')
     await act(async () => {
       fireEvent.click(slotCard)
     })
 
     // Click Continue
-    const continueBtn = screen.getByRole('button', { name: /continue/i })
+    const continueBtn = screen.getByRole('button', { name: /^continue/i })
     await act(async () => {
       fireEvent.click(continueBtn)
     })
 
-    // Step 2 is active
+    // Step 3 is active
     expect(screen.getByRole('heading', { name: /your details/i })).toBeDefined()
-    expect(window.history.state?.bookStep).toBe(2)
+    expect(window.history.state?.bookStep).toBe(3)
     expect(bookingsModule.reserveSlot).toHaveBeenCalledWith('slot-test-1', null)
 
     // Trigger browser Back (popstate)
     await act(async () => {
-      window.dispatchEvent(new PopStateEvent('popstate', { state: { bookStep: 1 } }))
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { bookStep: 2 } }))
     })
 
     // Should call releaseHold with the hold token
     expect(bookingsModule.releaseHold).toHaveBeenCalledWith('token-abc')
 
-    // Should return to Step 1
-    expect(screen.getByText('Select position')).toBeDefined()
+    // Should return to Step 2
+    expect(screen.getByText('Position:')).toBeDefined()
     expect(sessionStorage.getItem('xmumori-book-hold')).toBeNull()
   })
 
-  it('triggers history.back when clicking in-page Back on Step 2', async () => {
+  it('triggers history.back when clicking in-page Back on Step 3', async () => {
     const historyBackSpy = vi.spyOn(window.history, 'back')
 
     render(
@@ -101,18 +107,23 @@ describe('BookClient history and hold release', () => {
       />
     )
 
-    // Select slot & continue
+    // Step 1: advance to Step 2
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /continue to select slot/i }))
+    })
+
+    // Step 2: Select slot & continue to Step 3
     await act(async () => {
       fireEvent.click(screen.getByText('10:00 AM – 10:15 AM'))
     })
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^continue/i }))
     })
 
     expect(screen.getByRole('heading', { name: /your details/i })).toBeDefined()
 
     // Click in-page Back
-    const backBtn = screen.getByRole('button', { name: /← back/i })
+    const backBtn = screen.getByRole('button', { name: /← back to slots/i })
     await act(async () => {
       fireEvent.click(backBtn)
     })
