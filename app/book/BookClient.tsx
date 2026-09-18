@@ -27,6 +27,10 @@ function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 }
 
+function isSchoolEmail(value: string): boolean {
+  return /^[^\s@]+@xmu\.edu\.my$/i.test(value.trim())
+}
+
 type Confirmation = {
   name: string
   studentId: string
@@ -117,6 +121,7 @@ export function BookClient({
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showErrors, setShowErrors] = useState(false)
+  const [emailTouched, setEmailTouched] = useState(false)
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
 
   const [holdToken, setHoldToken] = useState<string | null>(null)
@@ -315,11 +320,25 @@ export function BookClient({
 
   const nameError = !name.trim() ? 'Tell us your full name.' : null
   const studentIdError = !studentId.trim() ? 'Your student ID is how you look this booking up later.' : null
-  const emailError = !email.trim()
-    ? 'We send your confirmation here.'
-    : !looksLikeEmail(email)
+  const emailTrimmed = email.trim()
+  const emailParts = emailTrimmed.split('@')
+  const domainPart = emailParts.length === 2 ? emailParts[1].toLowerCase() : ''
+  const isTypingSchoolEmail = domainPart.length > 0 && 'xmu.edu.my'.startsWith(domainPart)
+
+  const emailError = !emailTrimmed
+    ? 'Please enter your school email.'
+    : !looksLikeEmail(emailTrimmed)
       ? 'That doesn’t look like a valid email address.'
-      : null
+      : !isSchoolEmail(emailTrimmed)
+        ? 'Only @xmu.edu.my email is accepted. Please use your school email.'
+        : null
+
+  const shouldNudgeEmail = Boolean(
+    emailTrimmed &&
+    !isSchoolEmail(emailTrimmed) &&
+    ((looksLikeEmail(emailTrimmed) && !isTypingSchoolEmail) || (emailTrimmed.includes('@') && !isTypingSchoolEmail && domainPart.length > 0))
+  )
+  const showEmailError = Boolean((showErrors || shouldNudgeEmail || (emailTouched && emailTrimmed)) && emailError)
   const contactError = !contactNumber.trim() ? 'Please provide a contact number.' : null
   const formInvalid = Boolean(nameError || studentIdError || emailError || contactError)
 
@@ -894,9 +913,22 @@ export function BookClient({
                       {showErrors && studentIdError && <FieldError message={studentIdError} />}
                     </div>
                     <div>
-                      <label style={fieldLabelStyle} htmlFor="bk-email">Email</label>
-                      <input id="bk-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@xmu.edu.my" style={fieldStyle} />
-                      {showErrors && emailError && <FieldError message={emailError} />}
+                      <label style={fieldLabelStyle} htmlFor="bk-email">
+                        Email <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}>(school email)</span>
+                      </label>
+                      <input
+                        id="bk-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onBlur={() => setEmailTouched(true)}
+                        placeholder="you@xmu.edu.my"
+                        style={{
+                          ...fieldStyle,
+                          borderColor: showEmailError ? 'var(--badge-danger-border, #FECACA)' : 'var(--border-input, #E2E8F0)',
+                        }}
+                      />
+                      {showEmailError && <FieldError message={emailError!} />}
                     </div>
                   </div>
                   <div>

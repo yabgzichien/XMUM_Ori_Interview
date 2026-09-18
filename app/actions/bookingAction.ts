@@ -8,6 +8,11 @@ export async function confirmReservationAction(
   token: string,
   input: PublicBookingInput
 ): Promise<{ data: PublicBooking | null; error: string | null }> {
+  const email = input.email?.trim() || ''
+  if (!/^[^\s@]+@xmu\.edu\.my$/i.test(email)) {
+    return { data: null, error: 'Only @xmu.edu.my email addresses are accepted.' }
+  }
+
   const supabase = await createClient()
 
   const contactOrExp = input.contactNumber?.trim()
@@ -18,7 +23,7 @@ export async function confirmReservationAction(
     p_token: token,
     p_name: input.name,
     p_student_id: input.studentId || null,
-    p_email: input.email,
+    p_email: email,
     p_experiences: contactOrExp || null,
   })
 

@@ -1,6 +1,12 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { ProfileClient } from '@/app/profile/ProfileClient'
+
+export const metadata: Metadata = {
+  title: 'Profile',
+  description: 'Update your profile details and avatar.',
+}
 
 export default async function ProfilePage() {
   const profile = await getCurrentProfile()

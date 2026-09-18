@@ -131,4 +131,93 @@ describe('BookClient history and hold release', () => {
     expect(historyBackSpy).toHaveBeenCalled()
     historyBackSpy.mockRestore()
   })
+
+  it('renders "Email (school email)" label, nudges on non-@xmu.edu.my email, and accepts @xmu.edu.my', async () => {
+    const confirmReservationMock = vi.mocked(
+      (await import('@/app/actions/bookingAction')).confirmReservationAction
+    )
+    confirmReservationMock.mockResolvedValue({
+      data: {
+        id: 'booking-1',
+        slot_id: 'slot-test-1',
+        track: 'facilitator',
+        status: 'booked',
+        applicant_name: 'Yang Zi Chien',
+        applicant_email: 'you@xmu.edu.my',
+        student_id: 'AC22XXXXX',
+        experiences: '012-3456789',
+        created_at: new Date().toISOString(),
+      },
+      error: null,
+    })
+
+    render(
+      <BookClient
+        initialSlotsByTrack={sampleSlots}
+        initialOrientation="december"
+        initialTrack="facilitator"
+      />
+    )
+
+    // Step 1: Advance to Step 2
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /continue to select slot/i }))
+    })
+
+    // Step 2: Select slot & continue to Step 3
+    await act(async () => {
+      fireEvent.click(screen.getByText('10:00 AM – 10:15 AM'))
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^continue/i }))
+    })
+
+    // 1. Verify label "Email (school email)"
+    expect(screen.getByLabelText(/Email \(school email\)/i)).toBeDefined()
+
+    const nameInput = screen.getByLabelText(/Full name/i)
+    const studentIdInput = screen.getByLabelText(/^Student ID$/i)
+    const emailInput = screen.getByLabelText(/Email \(school email\)/i)
+    const contactInput = screen.getByLabelText(/Contact number/i)
+    const confirmBtn = screen.getByRole('button', { name: /confirm booking/i })
+
+    // Fill valid details except email
+    fireEvent.change(nameInput, { target: { value: 'Yang Zi Chien' } })
+    fireEvent.change(studentIdInput, { target: { value: 'DSC2405104' } })
+    fireEvent.change(contactInput, { target: { value: '012-3456789' } })
+
+    // 2. Type non-school email (e.g. @gmail.com)
+    fireEvent.change(emailInput, { target: { value: 'you@gmail.com' } })
+
+    // Verify nudge appears immediately
+    expect(
+      screen.getByText(/Only @xmu\.edu\.my email is accepted\. Please use your school email\./i)
+    ).toBeDefined()
+
+    // Try submitting with non-school email
+    await act(async () => {
+      fireEvent.click(confirmBtn)
+    })
+    expect(confirmReservationMock).not.toHaveBeenCalled()
+
+    // 3. Update to school email @xmu.edu.my
+    fireEvent.change(emailInput, { target: { value: 'you@xmu.edu.my' } })
+
+    // Verify error is gone
+    expect(
+      screen.queryByText(/Only @xmu\.edu\.my email is accepted\. Please use your school email\./i)
+    ).toBeNull()
+
+    // Submit with school email
+    await act(async () => {
+      fireEvent.click(confirmBtn)
+    })
+
+    expect(confirmReservationMock).toHaveBeenCalledWith('token-abc', {
+      name: 'Yang Zi Chien',
+      studentId: 'DSC2405104',
+      email: 'you@xmu.edu.my',
+      contactNumber: '012-3456789',
+    })
+  })
 })

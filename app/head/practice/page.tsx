@@ -1,9 +1,15 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { HeadPracticeDashboard } from '@/app/head/practice/HeadPracticeDashboard'
 import type { Orientation } from '@/lib/head'
 import { createClient } from '@/lib/supabase/server'
 import type { HeadPracticeGroup, CommitteeRosterEntry, CommitteePositionOption, MyGroup } from '@/lib/practice'
+
+export const metadata: Metadata = {
+  title: 'Performance Practice',
+  description: 'Manage orientation performance practice groups, leaders, and rosters.',
+}
 
 export default async function HeadPracticePage() {
   const profile = await getCurrentProfile()

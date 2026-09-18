@@ -1,7 +1,13 @@
+import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { RegisterForm } from './RegisterForm'
+
+export const metadata: Metadata = {
+  title: 'Activate Account',
+  description: 'Set your password to activate your committee account.',
+}
 
 export default async function RegisterPage() {
   const profile = await getCurrentProfile()

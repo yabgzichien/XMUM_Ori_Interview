@@ -40,8 +40,23 @@ const fontQuaker = localFont({
 })
 
 export const metadata: Metadata = {
-  title: 'Interview Booking - XMUM Orientation',
+  title: {
+    default: 'Interview Booking - XMUM Orientation',
+    template: '%s - XMUM Orientation',
+  },
   description: 'Book interview slots for the facilitator and game master tracks.',
+  icons: {
+    icon: [
+      { url: '/vortexalogo.png' },
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: '/vortexalogo.png',
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/vortexalogo.png' },
+    ],
+  },
 }
 
 const themeInitScript = `
@@ -72,6 +87,9 @@ export default function RootLayout({
       className={`${fontSans.variable} ${fontMono.variable} ${fontBrasika.variable} ${fontKarimun.variable} ${fontWinkyMilky.variable} ${fontQuaker.variable} h-full antialiased`}
     >
       <head>
+        <link rel="icon" href="/vortexalogo.png" type="image/png" />
+        <link rel="shortcut icon" href="/vortexalogo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/vortexalogo.png" />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen flex flex-col font-sans">

@@ -1,9 +1,15 @@
+import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { BookClient } from '@/app/book/BookClient'
 import { createClient } from '@/lib/supabase/server'
 import { DEFAULT_ORIENTATION, isOrientation, type Orientation } from '@/lib/orientation'
 import type { Track } from '@/lib/bookings'
 import type { AvailableSlot } from '@/lib/booking-helpers'
+
+export const metadata: Metadata = {
+  title: 'Book Interview',
+  description: 'Book interview slots for Facilitator and Game Master orientation positions.',
+}
 
 type SearchParams = { [key: string]: string | string[] | undefined }
 

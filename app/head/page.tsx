@@ -1,8 +1,14 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentProfile } from '@/lib/auth'
 import { HeadDashboard } from '@/app/head/HeadDashboard'
 import type { Track, Orientation } from '@/lib/head'
+
+export const metadata: Metadata = {
+  title: 'Orientation Dashboard',
+  description: 'Manage interview slots, view candidate applications, and monitor booking capacity.',
+}
 
 export const maxDuration = 60
 

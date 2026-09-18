@@ -1,9 +1,15 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { AuditLogClient } from '@/app/admin/logs/AuditLogClient'
 import { createClient } from '@/lib/supabase/server'
 import { COLUMNS, AUDIT_PAGE_SIZE, type AuditEntry } from '@/lib/auditLog'
+
+export const metadata: Metadata = {
+  title: 'Activity Log',
+  description: 'View audit logs of actions and changes within the orientation system.',
+}
 
 export default async function AdminLogsPage() {
   const profile = await getCurrentProfile()

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
@@ -5,6 +6,11 @@ import { AdminStaff } from '@/app/admin/AdminStaff'
 import { createClient } from '@/lib/supabase/server'
 import type { StaffInvite, CommitteeMember } from '@/lib/admin'
 import type { CommitteePositionOption } from '@/lib/practice'
+
+export const metadata: Metadata = {
+  title: 'Committee Management',
+  description: 'Manage committee members, positions, and invitations.',
+}
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile()

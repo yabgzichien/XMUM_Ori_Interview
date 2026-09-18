@@ -1,8 +1,14 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { PracticeClient } from '@/app/practice/PracticeClient'
 import { createClient } from '@/lib/supabase/server'
 import type { MyGroup, AvailableGroup } from '@/lib/practice'
+
+export const metadata: Metadata = {
+  title: 'Performance Practice',
+  description: 'Join a performance practice group for your orientation cycle and keep up with scheduled sessions.',
+}
 
 export default async function PracticePage() {
   const profile = await getCurrentProfile()
