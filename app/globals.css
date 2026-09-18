@@ -89,10 +89,10 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* Semantic Theme Variables */
-  --font-title: var(--font-brasika), Georgia, serif;
-  --font-subtitle: var(--font-karimun), Georgia, serif;
-  --font-winky: var(--font-winky-milky), Georgia, serif;
-  --font-quaker: var(--font-quaker), Georgia, serif;
+  --font-title: var(--font-brasika), Georgia, var(--font-sans);
+  --font-subtitle: var(--font-karimun), Georgia, var(--font-sans);
+  --font-winky: var(--font-winky-milky), Georgia, var(--font-sans);
+  --font-quaker: var(--font-quaker), Georgia, var(--font-sans);
   --bg-page: #F6F8FC;
   --bg-card: #ffffff;
   --bg-card-subtle: #F8FAFC;
@@ -275,19 +275,19 @@
 }
 
 .font-brasika {
-  font-family: var(--font-brasika), Georgia, serif;
+  font-family: var(--font-brasika), Georgia, var(--font-sans);
 }
 
 .font-karimun {
-  font-family: var(--font-karimun), Georgia, serif;
+  font-family: var(--font-karimun), Georgia, var(--font-sans);
 }
 
 .font-winky {
-  font-family: var(--font-winky-milky), Georgia, serif;
+  font-family: var(--font-winky-milky), Georgia, var(--font-sans);
 }
 
 .font-quaker {
-  font-family: var(--font-quaker), Georgia, serif;
+  font-family: var(--font-quaker), Georgia, var(--font-sans);
 }
 
 ::selection {
