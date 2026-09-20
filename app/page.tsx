@@ -924,11 +924,10 @@ export default async function Home() {
 
           background:
             linear-gradient(
-              20deg,
-              #0DFCFD,
-              #E0B4FC,
-              #FE06AB,
-              #FFB1C1
+              100deg,
+              rgba(0, 255, 255, 0.74),
+              #a855f7,
+              #FE06AB
             );
 
           color:

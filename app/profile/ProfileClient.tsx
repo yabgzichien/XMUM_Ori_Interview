@@ -121,7 +121,7 @@ export function ProfileClient({ profile }: { profile: Profile }) {
           type="button"
           onClick={handlePickFile}
           disabled={busy !== null}
-          style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1 }}
+          style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1 }}
         >
           {busy === 'upload' ? 'Uploading...' : avatarUrl ? 'Change picture' : 'Upload picture'}
         </button>

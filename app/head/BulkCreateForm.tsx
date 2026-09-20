@@ -451,7 +451,7 @@ export function BulkCreateForm({
               style={{
                 padding: '10.5px 24px',
                 borderRadius: '99px',
-                background: toCreate.length === 0 ? 'var(--border-input, #CBD5E1)' : '#2563EB',
+                background: toCreate.length === 0 ? 'var(--border-input, #CBD5E1)' : 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)',
                 border: 'none',
                 color: '#fff',
                 fontWeight: 700,
@@ -528,7 +528,7 @@ export function BulkCreateForm({
               type="button"
               onClick={handleConfirmCreate}
               disabled={submitting}
-              style={{ padding: '10.5px 24px', borderRadius: '9px', background: '#2563EB', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1 }}
+              style={{ padding: '10.5px 24px', borderRadius: '9px', background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1 }}
             >
               {submitting ? 'Creating…' : `Create ${toCreate.length} slots`}
             </button>

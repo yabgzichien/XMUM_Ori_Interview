@@ -416,7 +416,7 @@ function BulkEditModal({
             onClick={handleApply}
             disabled={busy || nothingToApply}
             style={{
-              ...actionBtnBase, padding: '10px 16px', background: nothingToApply ? 'var(--btn-neutral-bg, #CBD5E1)' : 'var(--accent-primary, #2563EB)', color: '#fff',
+              ...actionBtnBase, padding: '10px 16px', background: nothingToApply ? 'var(--btn-neutral-bg, #CBD5E1)' : 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: '#fff',
               cursor: busy || nothingToApply ? 'not-allowed' : 'pointer',
             }}
           >
@@ -568,7 +568,7 @@ export function SlotsTable({ slots, loading, error, onChanged }: Props) {
             type="button"
             onClick={() => setShowBulkEdit(true)}
             disabled={editableSelected.length === 0}
-            style={{ ...actionBtnBase, padding: '7px 14px', background: editableSelected.length === 0 ? 'var(--border-input, #E2E8F0)' : '#2563EB', color: editableSelected.length === 0 ? 'var(--text-muted, #94A3B8)' : '#fff', cursor: editableSelected.length === 0 ? 'not-allowed' : 'pointer' }}
+            style={{ ...actionBtnBase, padding: '7px 14px', background: editableSelected.length === 0 ? 'var(--border-input, #E2E8F0)' : 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: editableSelected.length === 0 ? 'var(--text-muted, #94A3B8)' : '#fff', cursor: editableSelected.length === 0 ? 'not-allowed' : 'pointer' }}
           >
             Edit selected
           </button>

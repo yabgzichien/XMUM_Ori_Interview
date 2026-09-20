@@ -193,7 +193,7 @@ export function PracticeClient({
                     type="button"
                     disabled={!joinable || joiningId === g.id}
                     onClick={() => handleJoin(g.id)}
-                    style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: joinable ? '#2563EB' : '#CBD5E1', color: '#fff', fontWeight: 700, fontSize: '13.5px', cursor: joinable ? 'pointer' : 'not-allowed' }}
+                    style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: joinable ? 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)' : '#CBD5E1', color: '#fff', fontWeight: 700, fontSize: '13.5px', cursor: joinable ? 'pointer' : 'not-allowed' }}
                   >
                     {joiningId === g.id ? 'Joining...' : g.status !== 'open' ? 'Closed' : g.seats_left > 0 ? 'Join group' : 'Full'}
                   </button>

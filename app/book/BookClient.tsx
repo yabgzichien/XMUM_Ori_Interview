@@ -704,7 +704,7 @@ export function BookClient({
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: '15px',
-                background: '#2563EB',
+                background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)',
                 cursor: 'pointer',
                 boxShadow: '0 8px 20px -6px rgba(37,99,235,.5)',
               }}
@@ -851,7 +851,7 @@ export function BookClient({
                 type="button"
                 disabled={!selectedSlot || reserving}
                 onClick={reserveAndContinue}
-                style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot && !reserving ? 'var(--accent-primary, #2563EB)' : 'var(--btn-neutral-bg, #CBD5E1)', cursor: selectedSlot && !reserving ? 'pointer' : 'not-allowed', boxShadow: selectedSlot && !reserving ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
+                style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot && !reserving ? 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)' : 'var(--btn-neutral-bg, #CBD5E1)', cursor: selectedSlot && !reserving ? 'pointer' : 'not-allowed', boxShadow: selectedSlot && !reserving ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
               >
                 {reserving ? 'Holding your seat…' : 'Continue →'}
               </button>
@@ -959,7 +959,7 @@ export function BookClient({
                     type="button"
                     onClick={confirmBooking}
                     disabled={submitting}
-                    style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? 'var(--btn-neutral-bg, #CBD5E1)' : 'var(--accent-primary, #2563EB)', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(37,99,235,.45)' }}
+                    style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? 'var(--btn-neutral-bg, #CBD5E1)' : 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(37,99,235,.45)' }}
                   >
                     {submitting ? 'Booking…' : 'Confirm booking'}
                   </button>
@@ -1025,7 +1025,7 @@ export function BookClient({
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <a href="/my-booking" style={{ padding: '12px 18px', borderRadius: '11px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }}>
+              <a href="/my-booking" style={{ padding: '12px 18px', borderRadius: '11px', border: 'none', background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: '#fff', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }}>
                 View my booking
               </a>
             </div>

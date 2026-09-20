@@ -94,7 +94,7 @@ const DURATION_PRESETS = [30, 60, 90, 120]
 // --- Styles ---
 
 const inputStyle: React.CSSProperties = { padding: '9px 11px', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '9px', fontSize: '13.5px', fontFamily: 'inherit', color: 'var(--text-primary, #0F172A)', outline: 'none', background: 'var(--bg-input, #fff)', boxSizing: 'border-box', transition: 'border-color 0.2s' }
-const primaryBtnStyle: React.CSSProperties = { padding: '9px 15px', borderRadius: '9px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s, opacity 0.2s' }
+const primaryBtnStyle: React.CSSProperties = { padding: '9px 15px', borderRadius: '9px', border: 'none', background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s, opacity 0.2s' }
 const secondaryBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '9px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s' }
 const dangerBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '9px', border: 'none', background: '#FEE2E2', color: '#B91C1C', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s' }
 const fieldLabelStyle: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px' }
@@ -897,7 +897,7 @@ function AddMemberForm({
   if (!open) {
     return (
       <div style={{ padding: '16px 24px', background: 'var(--bg-card-subtle, #FAFBFD)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-        <button type="button" onClick={handleOpen} disabled={seatsLeft === 0} style={{ ...primaryBtnStyle, background: seatsLeft === 0 ? 'var(--border-input, #CBD5E1)' : '#2563EB', cursor: seatsLeft === 0 ? 'not-allowed' : 'pointer' }}>
+        <button type="button" onClick={handleOpen} disabled={seatsLeft === 0} style={{ ...primaryBtnStyle, background: seatsLeft === 0 ? 'var(--border-input, #CBD5E1)' : 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', cursor: seatsLeft === 0 ? 'not-allowed' : 'pointer' }}>
           + Add member
         </button>
         <span style={{ fontSize: '12.5px', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>

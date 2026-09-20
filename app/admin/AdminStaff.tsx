@@ -302,7 +302,7 @@ export function AdminStaff({
           </p>
 
           <div>
-            <button type="submit" disabled={submitting} style={{ padding: '10.5px 22px', borderRadius: '9px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 12px -4px rgba(37,99,235,.4)', transition: 'all 0.15s', opacity: submitting ? 0.7 : 1 }}>
+            <button type="submit" disabled={submitting} style={{ padding: '10.5px 22px', borderRadius: '9px', border: 'none', background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 12px -4px rgba(37,99,235,.4)', transition: 'all 0.15s', opacity: submitting ? 0.7 : 1 }}>
               {submitting ? 'Adding...' : 'Add invite'}
             </button>
           </div>
@@ -612,7 +612,7 @@ function CommitteeMembersPanel({
                     disabled={busyId === m.id}
                     style={{ padding: '6px 8px', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '7px', fontSize: '13.5px', fontFamily: 'inherit', width: '160px', background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)' }}
                   />
-                  <button type="button" disabled={busyId === m.id} onClick={() => saveRename(m.id)} style={{ padding: '6px 10px', borderRadius: '7px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>Save</button>
+                  <button type="button" disabled={busyId === m.id} onClick={() => saveRename(m.id)} style={{ padding: '6px 10px', borderRadius: '7px', border: 'none', background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: '#fff', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>Save</button>
                   <button type="button" disabled={busyId === m.id} onClick={() => setRenamingId(null)} style={{ padding: '6px 10px', borderRadius: '7px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
                 </div>
               ) : (

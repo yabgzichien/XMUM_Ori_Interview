@@ -44,7 +44,7 @@ function trackLabel(track: Track | null): string | null {
 
 const labelStyle: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }
 const inputStyle: React.CSSProperties = { padding: '8px 10px', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '8px', fontSize: '13.5px', fontFamily: 'inherit', color: 'var(--text-primary, #0F172A)', background: 'var(--bg-input, #fff)', outline: 'none' }
-const primaryBtnStyle: React.CSSProperties = { padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }
+const primaryBtnStyle: React.CSSProperties = { padding: '9px 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }
 const secondaryBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '8px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }
 const dangerBtnStyle: React.CSSProperties = { padding: '9px 14px', borderRadius: '8px', border: '1px solid var(--btn-danger-border, #FECACA)', background: 'var(--btn-danger-bg, #FEE2E2)', color: 'var(--btn-danger-text, #B91C1C)', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }
 

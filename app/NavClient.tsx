@@ -45,12 +45,12 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
     ).toUpperCase()
     const isStaff = profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin'
     return (
-      <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'relative', zIndex: 100 }}>
+      <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="nav-container">
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <Link href="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '56px', height: '56px', objectFit: 'contain', flexShrink: 0 }} />
+              <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '72px', height: '72px', objectFit: 'contain', flexShrink: 0 }} />
               <div style={{ fontWeight: 800, fontSize: '15px', whiteSpace: 'nowrap' }}>XMUM <span style={{ color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Committee</span></div>
             </Link>
             <nav className="nav-links flex gap-[4px]">
@@ -165,11 +165,11 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
   }
 
   return (
-    <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'relative', zIndex: 100 }}>
+    <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'sticky', top: 0, zIndex: 100 }}>
       <div className="nav-container">
         <Link href="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '56px', height: '56px', objectFit: 'contain', flexShrink: 0 }} />
+          <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '72px', height: '72px', objectFit: 'contain', flexShrink: 0 }} />
           <div style={{ lineHeight: 1.15, whiteSpace: 'nowrap' }}>
             <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'rgba(255,255,255,0.92)' }}>26/12 XMUM Foundation Orientation</div>
           </div>

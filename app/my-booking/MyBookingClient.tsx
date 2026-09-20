@@ -336,7 +336,7 @@ export function MyBookingClient() {
                 padding: '13px',
                 borderRadius: '12px',
                 border: 'none',
-                background: '#2563EB',
+                background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)',
                 color: '#fff',
                 fontSize: '15px',
                 fontWeight: 700,
