@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
-import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
 import { Nav } from '@/app/Nav'
 
-const fontSans = Plus_Jakarta_Sans({
+const fontSans = Inter({
   variable: '--font-sans',
   subsets: ['latin'],
 })

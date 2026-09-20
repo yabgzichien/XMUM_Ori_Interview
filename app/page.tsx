@@ -26,45 +26,6 @@ export default async function Home() {
     <main className="home-page">
 
       {/* =====================================================
-          FIXED NAVBAR
-          ===================================================== */}
-
-      <header className="home-navbar">
-        <div className="navbar-container">
-
-          <Link
-            href="/"
-            className="navbar-brand"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/vortexalogo.png"
-              alt="Vortexa"
-              className="navbar-logo"
-            />
-
-            <div className="navbar-brand-text">
-              <div className="navbar-title">
-                26/12 XMUM Foundation Orientation
-              </div>
-            </div>
-          </Link>
-
-          <div className="navbar-right">
-
-            <Link
-              href="/login"
-              className="committee-button"
-            >
-              Committee
-            </Link>
-
-          </div>
-        </div>
-      </header>
-
-
-      {/* =====================================================
           HERO
           ===================================================== */}
 
@@ -214,198 +175,6 @@ export default async function Home() {
 
 
         /* =====================================================
-           FIXED NAVBAR
-           ===================================================== */
-
-        .home-navbar {
-
-          position: fixed;
-
-          top: 0;
-          left: 0;
-          right: 0;
-
-          z-index: 1000;
-
-          background:
-            #063A65;
-
-          backdrop-filter:
-            blur(18px);
-
-          -webkit-backdrop-filter:
-            blur(18px);
-
-          border-bottom:
-            none;
-
-          box-shadow:
-            none;
-        }
-
-
-        .navbar-container {
-
-          max-width: 1440px;
-
-          width: 100%;
-
-          margin: 0 auto;
-
-          padding: 14px 24px;
-
-          box-sizing: border-box;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: space-between;
-
-          gap: 16px;
-        }
-
-
-        /* =====================================================
-           NAVBAR BRAND
-           ===================================================== */
-
-        .navbar-brand {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 10px;
-
-          color: white;
-
-          text-decoration: none;
-        }
-
-
-        .navbar-logo {
-
-          width: 72px;
-
-          height: 72px;
-
-          object-fit: contain;
-
-          filter:
-            drop-shadow(
-              0 0 10px rgba(0,198,255,0.18)
-            );
-
-          transition:
-            transform 0.3s ease,
-            filter 0.3s ease;
-        }
-
-
-        .navbar-brand:hover .navbar-logo {
-
-          transform:
-            rotate(-3deg)
-            scale(1.06);
-
-          filter:
-            drop-shadow(
-              0 0 14px rgba(0,198,255,0.35)
-            );
-        }
-
-
-        .navbar-brand-text {
-
-          display: flex;
-
-          flex-direction: column;
-
-          justify-content: center;
-        }
-
-
-        .navbar-title {
-
-          color:
-            rgba(255,255,255,0.92);
-
-          font-size: 15px;
-
-          font-weight: 790;
-
-          letter-spacing: -.01em;
-
-          line-height: 1.15;
-
-          white-space: nowrap;
-        }
-
-
-        /* =====================================================
-           NAVBAR RIGHT
-           ===================================================== */
-
-        .navbar-right {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 8px;
-        }
-
-
-        .committee-button {
-
-          display: inline-flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          padding: 9px 14px;
-
-          border-radius: 10px;
-
-          border:
-            1px solid rgba(255,255,255,0.08);
-
-          background:
-            rgba(255,255,255,0.025);
-
-          color:
-            rgba(255,255,255,0.9);
-
-          font-size: 14px;
-
-          font-weight: 600;
-
-          text-decoration: none;
-
-          transition:
-            background 0.2s ease,
-            border-color 0.2s ease,
-            box-shadow 0.2s ease,
-            transform 0.2s ease;
-        }
-
-
-        .committee-button:hover {
-
-          background:
-            rgba(255,255,255,0.08);
-
-          border-color:
-            rgba(0,198,255,0.25);
-
-          transform:
-            translateY(-1px);
-        }
-
-
-        /* =====================================================
            HERO
            ===================================================== */
 
@@ -428,7 +197,7 @@ export default async function Home() {
           box-sizing: border-box;
 
           padding:
-            110px 24px 80px;
+            40px 24px 80px;
 
           overflow: hidden;
         }
@@ -1276,7 +1045,7 @@ export default async function Home() {
           .hero {
 
             padding:
-              105px 20px 70px;
+              36px 20px 70px;
           }
 
 
@@ -1312,7 +1081,7 @@ export default async function Home() {
               100svh;
 
             padding:
-              116px 18px 65px;
+              32px 18px 65px;
           }
 
 
