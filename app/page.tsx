@@ -225,8 +225,6 @@ export default async function Home() {
           left: 0;
           right: 0;
 
-          height: 80px;
-
           z-index: 1000;
 
           background:
@@ -248,21 +246,23 @@ export default async function Home() {
 
         .navbar-container {
 
-          width:
-            min(
-              calc(100% - 40px),
-              1120px
-            );
+          max-width: 1440px;
 
-          height: 100%;
+          width: 100%;
 
           margin: 0 auto;
+
+          padding: 14px 24px;
+
+          box-sizing: border-box;
 
           display: flex;
 
           align-items: center;
 
           justify-content: space-between;
+
+          gap: 16px;
         }
 
 
@@ -276,7 +276,7 @@ export default async function Home() {
 
           align-items: center;
 
-          gap: 9px;
+          gap: 10px;
 
           color: white;
 
@@ -286,9 +286,9 @@ export default async function Home() {
 
         .navbar-logo {
 
-          width: 72px;
+          width: 56px;
 
-          height: 72px;
+          height: 56px;
 
           object-fit: contain;
 
@@ -331,9 +331,11 @@ export default async function Home() {
           color:
             rgba(255,255,255,0.92);
 
-          font-size: 17px;
+          font-size: 15px;
 
-          font-weight: 700;
+          font-weight: 800;
+
+          letter-spacing: -.01em;
 
           line-height: 1.15;
 
@@ -363,12 +365,9 @@ export default async function Home() {
 
           justify-content: center;
 
-          height: 38px;
+          padding: 9px 14px;
 
-          padding:
-            0 16px;
-
-          border-radius: 11px;
+          border-radius: 10px;
 
           border:
             1px solid rgba(255,255,255,0.08);
@@ -379,7 +378,7 @@ export default async function Home() {
           color:
             rgba(255,255,255,0.9);
 
-          font-size: 13px;
+          font-size: 14px;
 
           font-weight: 600;
 

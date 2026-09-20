@@ -693,7 +693,24 @@ export function BookClient({
             })}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+            <a
+              href="/"
+              style={{
+                padding: '14px 22px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-input, #E2E8F0)',
+                background: 'var(--bg-card, #fff)',
+                color: 'var(--text-secondary, #475569)',
+                fontWeight: 600,
+                fontSize: '15px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              ← Back
+            </a>
             <button
               type="button"
               onClick={proceedToStep2}
