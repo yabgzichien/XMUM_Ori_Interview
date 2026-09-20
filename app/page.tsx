@@ -717,10 +717,10 @@ export default async function Home() {
           background:
             linear-gradient(
               20deg,
-              #0dfcfd,
-              #F2FF0B,
-              #d946ef,
-              #ff3cac
+              #0DFCFD,
+              #E0B4FC,
+              #FE06AB,
+              #FFB1C1
             );
 
           -webkit-background-clip:
@@ -924,10 +924,11 @@ export default async function Home() {
 
           background:
             linear-gradient(
-              100deg,
-              #ff3cac,
-              #a855f7,
-              #00bfff
+              20deg,
+              #0DFCFD,
+              #E0B4FC,
+              #FE06AB,
+              #FFB1C1
             );
 
           color:

@@ -174,30 +174,12 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
             <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'rgba(255,255,255,0.92)' }}>26/12 XMUM Foundation Orientation</div>
           </div>
         </Link>
-        {/* Desktop links */}
-        <div className="nav-links flex items-center gap-[8px]">
+        {/* Committee link — always visible, matching the homepage navbar's single button */}
+        <div className="flex items-center gap-[8px]">
           <Link href="/login" style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)', color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
             Committee
           </Link>
         </div>
-        {/* Mobile Hamburger Toggle */}
-        <button
-          type="button"
-          className="nav-mobile-toggle"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center' }}
-          aria-label="Open menu"
-        >
-          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
-          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.2s' }} />
-          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
-        </button>
-      </div>
-      {/* Mobile dropdown */}
-      <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
-        <Link href="/login" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/login' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/login' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
-          🔐 Committee Login
-        </Link>
       </div>
     </header>
   )
