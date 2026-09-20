@@ -625,7 +625,7 @@ export function BookClient({
       {/* Stepper */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
         {[1, 2, 3, 4].map((n) => {
-          const labels: Record<number, string> = { 1: 'Choose position', 2: 'Choose slot', 3: 'Your details', 4: 'Confirmed' }
+          const labels: Record<number, string> = { 1: 'Choose position', 2: 'Choose Slot', 3: 'Your Details', 4: 'Confirmed' }
           const done = step > n
           const active = step === n
           return (
@@ -645,7 +645,7 @@ export function BookClient({
         <div className="scr">
           <div style={{ marginBottom: '22px' }}>
             <h2 className="font-title" style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '-.015em', color: 'var(--text-primary, #0F172A)' }}>
-              Select your desired position
+              Select Your Desired Position
             </h2>
             <p className="font-subtitle" style={{ fontSize: '16px', color: 'var(--text-secondary, #475569)', margin: 0 }}>
               Choose whether you are applying as an Orientation Facilitator or a Game Master.
@@ -737,7 +737,7 @@ export function BookClient({
         <div className="scr">
           <div style={{ marginBottom: '18px' }}>
             <h2 className="font-title" style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '-.015em', color: 'var(--text-primary, #0F172A)' }}>
-              Select an interview slot
+              Select An Interview Slot
             </h2>
             <p className="font-subtitle" style={{ fontSize: '16px', color: 'var(--text-secondary, #475569)', margin: 0 }}>
               Slots are available on a first-come, first-served basis.
@@ -888,7 +888,7 @@ export function BookClient({
         <div className="scr book-2" style={{ display: 'grid', gridTemplateColumns: '1.5fr .7fr', gap: '16px', alignItems: 'start' }}>
           <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '20px', boxShadow: '0 1px 2px rgba(16,24,40,.04)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 14px' }}>
-              <h2 className="font-title" style={{ fontSize: '20px', fontWeight: 700, margin: 0, letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>Your details</h2>
+              <h2 className="font-title" style={{ fontSize: '20px', fontWeight: 700, margin: 0, letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>Your Details</h2>
               {!holdLocked && remainingMs !== null && (
                 <span style={{
                   fontSize: '13px',
@@ -918,7 +918,7 @@ export function BookClient({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
                     <label style={fieldLabelStyle} htmlFor="bk-name">
-                      Full name <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}>(according to your student ID)</span>
+                      Full Name <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}>(according to your student ID)</span>
                     </label>
                     <input id="bk-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Yang Zi Chien" style={fieldStyle} />
                     {showErrors && nameError && <FieldError message={nameError} />}
@@ -949,7 +949,7 @@ export function BookClient({
                     </div>
                   </div>
                   <div>
-                    <label style={fieldLabelStyle} htmlFor="bk-contact">Contact number</label>
+                    <label style={fieldLabelStyle} htmlFor="bk-contact">Contact Number</label>
                     <input
                       id="bk-contact"
                       type="tel"
@@ -970,7 +970,7 @@ export function BookClient({
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
                   <button type="button" onClick={goBackToStep2} style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-                    ← Back to slots
+                    ← Back to Slots
                   </button>
                   <button
                     type="button"
@@ -978,7 +978,7 @@ export function BookClient({
                     disabled={submitting}
                     style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: submitting ? 'var(--btn-neutral-bg, #CBD5E1)' : 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 8px 18px -7px rgba(37,99,235,.45)' }}
                   >
-                    {submitting ? 'Booking…' : 'Confirm booking'}
+                    {submitting ? 'Booking…' : 'Confirm Booking'}
                   </button>
                 </div>
               </>

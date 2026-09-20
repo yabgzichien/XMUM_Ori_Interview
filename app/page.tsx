@@ -286,9 +286,9 @@ export default async function Home() {
 
         .navbar-logo {
 
-          width: 56px;
+          width: 72px;
 
-          height: 56px;
+          height: 72px;
 
           object-fit: contain;
 
@@ -333,7 +333,7 @@ export default async function Home() {
 
           font-size: 15px;
 
-          font-weight: 800;
+          font-weight: 790;
 
           letter-spacing: -.01em;
 
