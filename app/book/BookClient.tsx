@@ -319,18 +319,18 @@ export function BookClient({
   const selectedSlot = slots.find((s) => s.id === selectedId) ?? null
 
   const nameError = !name.trim() ? 'Tell us your full name.' : null
-  const studentIdError = !studentId.trim() ? 'Your student ID is how you look this booking up later.' : null
+  const studentIdError = !studentId.trim() ? 'You may check your booking slips with your student ID later.' : null
   const emailTrimmed = email.trim()
   const emailParts = emailTrimmed.split('@')
   const domainPart = emailParts.length === 2 ? emailParts[1].toLowerCase() : ''
   const isTypingSchoolEmail = domainPart.length > 0 && 'xmu.edu.my'.startsWith(domainPart)
 
   const emailError = !emailTrimmed
-    ? 'Please enter your school email.'
+    ? 'Please enter your campus email.'
     : !looksLikeEmail(emailTrimmed)
       ? 'That doesn’t look like a valid email address.'
       : !isSchoolEmail(emailTrimmed)
-        ? 'Only @xmu.edu.my email is accepted. Please use your school email.'
+        ? 'Only @xmu.edu.my email is accepted. Please use your campus email.'
         : null
 
   const shouldNudgeEmail = Boolean(
@@ -931,7 +931,7 @@ export function BookClient({
                     </div>
                     <div>
                       <label style={fieldLabelStyle} htmlFor="bk-email">
-                        Email <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}>(school email)</span>
+                        Email <span style={{ color: 'var(--text-muted, #94A3B8)', fontWeight: 500 }}>(Campus Email)</span>
                       </label>
                       <input
                         id="bk-email"
@@ -993,7 +993,7 @@ export function BookClient({
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary, #0F172A)' }}>{track === 'facilitator' ? 'Facilitator' : 'Game Master'}</div>
-                <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>Interview track</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>Interview Slip</div>
               </div>
             </div>
             <div style={{ borderTop: '1px dashed var(--border-input, #E2E8F0)', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1043,7 +1043,7 @@ export function BookClient({
 
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <a href="/my-booking" style={{ padding: '12px 18px', borderRadius: '11px', border: 'none', background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)', color: '#fff', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }}>
-                View my booking
+                View My Booking
               </a>
             </div>
           </div>
