@@ -3,7 +3,6 @@ import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
 import { Nav } from '@/app/Nav'
-import { ThemeProvider } from '@/components/ThemeProvider'
 
 const fontSans = Plus_Jakarta_Sans({
   variable: '--font-sans',
@@ -59,22 +58,6 @@ export const metadata: Metadata = {
   },
 }
 
-const themeInitScript = `
-(function() {
-  try {
-    var stored = localStorage.getItem('theme');
-    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (stored === 'dark' || (!stored && prefersDark)) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.style.colorScheme = 'dark';
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.style.colorScheme = 'light';
-    }
-  } catch (e) {}
-})();
-`
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -83,20 +66,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
-      className={`${fontSans.variable} ${fontMono.variable} ${fontBrasika.variable} ${fontKarimun.variable} ${fontWinkyMilky.variable} ${fontQuaker.variable} h-full antialiased`}
+      className={`dark ${fontSans.variable} ${fontMono.variable} ${fontBrasika.variable} ${fontKarimun.variable} ${fontWinkyMilky.variable} ${fontQuaker.variable} h-full antialiased`}
+      style={{ colorScheme: 'dark' }}
     >
       <head>
         <link rel="icon" href="/vortexalogo.png" type="image/png" />
         <link rel="shortcut icon" href="/vortexalogo.png" type="image/png" />
         <link rel="apple-touch-icon" href="/vortexalogo.png" />
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen flex flex-col font-sans">
-        <ThemeProvider>
-          <Nav />
-          {children}
-        </ThemeProvider>
+        <Nav />
+        {children}
       </body>
     </html>
   )

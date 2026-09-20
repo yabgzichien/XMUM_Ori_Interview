@@ -45,7 +45,7 @@ export default async function Home() {
 
             <div className="navbar-brand-text">
               <div className="navbar-title">
-                26/12 XMUM Foundation Orientation
+                26/12 Orientation
               </div>
             </div>
           </Link>
@@ -58,14 +58,6 @@ export default async function Home() {
             >
               Committee
             </Link>
-
-            <button
-              type="button"
-              className="theme-button"
-              aria-label="Toggle theme"
-            >
-              ☼
-            </button>
 
           </div>
         </div>
@@ -284,7 +276,7 @@ export default async function Home() {
 
           align-items: center;
 
-          gap: 10px;
+          gap: 14px;
 
           color: white;
 
@@ -294,9 +286,9 @@ export default async function Home() {
 
         .navbar-logo {
 
-          width: 31px;
+          width: 42px;
 
-          height: 31px;
+          height: 42px;
 
           object-fit: contain;
 
@@ -422,48 +414,6 @@ export default async function Home() {
 
           transform:
             translateY(-1px);
-        }
-
-
-        .theme-button {
-
-          width: 38px;
-
-          height: 38px;
-
-          border-radius: 11px;
-
-          border:
-            1px solid rgba(255,255,255,0.08);
-
-          background:
-            rgba(255,255,255,0.035);
-
-          color:
-            #fbbf24;
-
-          font-size: 18px;
-
-          cursor: pointer;
-
-          transition:
-            transform 0.3s ease,
-            background 0.2s ease,
-            box-shadow 0.2s ease;
-        }
-
-
-        .theme-button:hover {
-
-          transform:
-            rotate(20deg)
-            scale(1.05);
-
-          background:
-            rgba(255,255,255,0.08);
-
-          box-shadow:
-            0 0 18px rgba(251,191,36,0.10);
         }
 
 
@@ -1385,17 +1335,17 @@ export default async function Home() {
           .navbar-logo {
 
             width:
-              27px;
+              34px;
 
             height:
-              27px;
+              34px;
           }
 
 
           .navbar-title {
 
             font-size:
-              10px;
+              12px;
           }
 
 
@@ -1416,19 +1366,6 @@ export default async function Home() {
 
             font-size:
               10px;
-          }
-
-
-          .theme-button {
-
-            width:
-              34px;
-
-            height:
-              34px;
-
-            font-size:
-              15px;
           }
 
 

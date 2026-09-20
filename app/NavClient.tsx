@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { positionLabel } from '@/lib/practice'
-import { ThemeToggle } from '@/components/ThemeToggle'
 
 const roleLabels: Record<string, string> = {
   applicant: 'Applicant',
@@ -97,7 +96,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
                 </div>
               )}
             </Link>
-            <ThemeToggle className="nav-links" />
             <form action="/auth/signout" method="post" className="nav-links">
               <button
                 type="submit"
@@ -122,7 +120,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
         </div>
         {/* Mobile dropdown */}
         <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
-          <ThemeToggle mobile />
           {isStaff && (
             <Link href="/head" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/head' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/head' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
               📊 Interview
@@ -183,7 +180,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
           <Link href="/login" style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
             Committee
           </Link>
-          <ThemeToggle />
         </div>
         {/* Mobile Hamburger Toggle */}
         <button
@@ -200,7 +196,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
       </div>
       {/* Mobile dropdown */}
       <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
-        <ThemeToggle mobile />
         <Link href="/login" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/login' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/login' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
           🔐 Committee Login
         </Link>
