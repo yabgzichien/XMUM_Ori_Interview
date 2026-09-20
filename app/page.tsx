@@ -42,12 +42,6 @@ export default async function Home() {
               alt="Vortexa"
               className="navbar-logo"
             />
-
-            <div className="navbar-brand-text">
-              <div className="navbar-title">
-                26/12 Orientation
-              </div>
-            </div>
           </Link>
 
           <div className="navbar-right">
@@ -286,9 +280,9 @@ export default async function Home() {
 
         .navbar-logo {
 
-          width: 42px;
+          width: 48px;
 
-          height: 42px;
+          height: 48px;
 
           object-fit: contain;
 
@@ -313,42 +307,6 @@ export default async function Home() {
             drop-shadow(
               0 0 14px rgba(0,198,255,0.35)
             );
-        }
-
-
-        .navbar-brand-text {
-
-          display: flex;
-
-          flex-direction: column;
-
-          justify-content: center;
-        }
-
-
-        .navbar-title {
-
-          color:
-            rgba(255,255,255,0.92);
-
-          font-size: 14px;
-
-          font-weight: 700;
-
-          line-height: 1.15;
-        }
-
-
-        .navbar-subtitle {
-
-          margin-top: 3px;
-
-          color:
-            rgba(255,255,255,0.45);
-
-          font-size: 10px;
-
-          line-height: 1;
         }
 
 
@@ -1335,24 +1293,10 @@ export default async function Home() {
           .navbar-logo {
 
             width:
-              34px;
+              38px;
 
             height:
-              34px;
-          }
-
-
-          .navbar-title {
-
-            font-size:
-              12px;
-          }
-
-
-          .navbar-subtitle {
-
-            font-size:
-              8px;
+              38px;
           }
 
 
@@ -1526,13 +1470,6 @@ export default async function Home() {
            ===================================================== */
 
         @media (max-width: 380px) {
-
-          .navbar-subtitle {
-
-            display:
-              none;
-          }
-
 
           .committee-button {
 
