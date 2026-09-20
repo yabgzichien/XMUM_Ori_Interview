@@ -1047,14 +1047,12 @@ export default async function Home() {
 
         .book-button:hover {
 
-          animation: none;
-
           transform:
             translateY(-3px);
 
           box-shadow:
             0 16px 40px
-            rgba(168,85,247,0.38);
+            rgba(168,85,247,0.38) !important;
         }
 
 
@@ -1173,13 +1171,11 @@ export default async function Home() {
 
         .booking-search:hover {
 
-          animation: none;
-
           background:
             rgba(5,8,20,0.48);
 
           border-color:
-            rgba(255,255,255,0.9);
+            rgba(255,255,255,0.9) !important;
 
           transform:
             translateY(-2px);

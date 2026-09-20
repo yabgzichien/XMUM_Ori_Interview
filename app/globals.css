@@ -89,8 +89,8 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* Semantic Theme Variables */
-  --font-title: var(--font-brasika), Georgia, var(--font-sans);
-  --font-subtitle: var(--font-karimun), Georgia, var(--font-sans);
+  --font-title: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-subtitle: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-winky: var(--font-winky-milky), Georgia, var(--font-sans);
   --font-quaker: var(--font-quaker), Georgia, var(--font-sans);
   --bg-page: #F6F8FC;
