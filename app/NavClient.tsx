@@ -45,13 +45,13 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
     ).toUpperCase()
     const isStaff = profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin'
     return (
-      <header style={{ background: 'var(--bg-card, #fff)', borderBottom: '1px solid var(--border-card, #EAEEF4)', position: 'relative', zIndex: 100 }}>
+      <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'relative', zIndex: 100 }}>
         <div className="nav-container">
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            <Link href="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
-              <div style={{ fontWeight: 800, fontSize: '15px', whiteSpace: 'nowrap' }}>XMUM <span style={{ color: '#94A3B8', fontWeight: 600 }}>Committee</span></div>
+              <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '56px', height: '56px', objectFit: 'contain', flexShrink: 0 }} />
+              <div style={{ fontWeight: 800, fontSize: '15px', whiteSpace: 'nowrap' }}>XMUM <span style={{ color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Committee</span></div>
             </Link>
             <nav className="nav-links flex gap-[4px]">
               {isStaff && (
@@ -75,11 +75,11 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {/* Name + role pill — hidden on very small screens */}
             {profile.name && (
-              <span className="nav-links" style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>
+              <span className="nav-links" style={{ fontSize: '13.5px', fontWeight: 700, color: 'white' }}>
                 {profile.name}
               </span>
             )}
-            <span className="nav-links" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 11px', borderRadius: '99px', background: 'var(--accent-subtle, #EFF4FF)', color: 'var(--accent-text, #2563EB)', fontSize: '12px', fontWeight: 700, border: '1px solid var(--accent-border, #DBE6FF)' }}>
+            <span className="nav-links" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 11px', borderRadius: '99px', background: 'rgba(255,255,255,0.08)', color: 'white', fontSize: '12px', fontWeight: 700, border: '1px solid rgba(255,255,255,0.16)' }}>
               {displayRoleLabel(profile)}
             </span>
             <Link href="/profile" aria-label="Your profile" style={{ display: 'block', flexShrink: 0 }}>
@@ -88,10 +88,10 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
                 <img
                   src={profile.avatar_url}
                   alt=""
-                  style={{ width: '34px', height: '34px', borderRadius: '99px', objectFit: 'cover', border: '1px solid var(--border-card, #EAEEF4)' }}
+                  style={{ width: '34px', height: '34px', borderRadius: '99px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)' }}
                 />
               ) : (
-                <div style={{ width: '34px', height: '34px', borderRadius: '99px', background: 'var(--bg-card-hover, #EEF2F7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary, #475569)' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '99px', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: 'white' }}>
                   {initials}
                 </div>
               )}
@@ -99,7 +99,7 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
             <form action="/auth/signout" method="post" className="nav-links">
               <button
                 type="submit"
-                style={{ padding: '8px 13px', borderRadius: '9px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-secondary, #64748B)', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                style={{ padding: '8px 13px', borderRadius: '9px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)', color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
               >
                 Sign out
               </button>
@@ -109,12 +109,12 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
               type="button"
               className="nav-mobile-toggle"
               onClick={() => setMobileOpen(!mobileOpen)}
-              style={{ background: 'none', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center' }}
               aria-label="Open menu"
             >
-              <span style={{ width: '18px', height: '2px', background: 'var(--text-secondary, #475569)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
-              <span style={{ width: '18px', height: '2px', background: 'var(--text-secondary, #475569)', borderRadius: '1px', display: 'block', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.2s' }} />
-              <span style={{ width: '18px', height: '2px', background: 'var(--text-secondary, #475569)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
+              <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
+              <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.2s' }} />
+              <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
             </button>
           </div>
         </div>
@@ -165,19 +165,18 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
   }
 
   return (
-    <header style={{ background: 'var(--bg-card, #fff)', borderBottom: '1px solid var(--border-card, #EAEEF4)', position: 'relative', zIndex: 100 }}>
+    <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'relative', zIndex: 100 }}>
       <div className="nav-container">
-        <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '38px', height: '38px', objectFit: 'contain', flexShrink: 0 }} />
+          <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '56px', height: '56px', objectFit: 'contain', flexShrink: 0 }} />
           <div style={{ lineHeight: 1.15, whiteSpace: 'nowrap' }}>
-            <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'var(--text-primary, #0F172A)' }}>2026 XMUM December Orientation</div>
-            <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Interview Booking</div>
+            <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'rgba(255,255,255,0.92)' }}>26/12 XMUM Foundation Orientation</div>
           </div>
         </Link>
         {/* Desktop links */}
         <div className="nav-links flex items-center gap-[8px]">
-          <Link href="/login" style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <Link href="/login" style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)', color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
             Committee
           </Link>
         </div>
@@ -186,12 +185,12 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
           type="button"
           className="nav-mobile-toggle"
           onClick={() => setMobileOpen(!mobileOpen)}
-          style={{ background: 'none', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center' }}
+          style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center' }}
           aria-label="Open menu"
         >
-          <span style={{ width: '18px', height: '2px', background: 'var(--text-secondary, #475569)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
-          <span style={{ width: '18px', height: '2px', background: 'var(--text-secondary, #475569)', borderRadius: '1px', display: 'block', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.2s' }} />
-          <span style={{ width: '18px', height: '2px', background: 'var(--text-secondary, #475569)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
+          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
+          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.2s' }} />
+          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
         </button>
       </div>
       {/* Mobile dropdown */}

@@ -42,6 +42,12 @@ export default async function Home() {
               alt="Vortexa"
               className="navbar-logo"
             />
+
+            <div className="navbar-brand-text">
+              <div className="navbar-title">
+                26/12 XMUM Foundation Orientation
+              </div>
+            </div>
           </Link>
 
           <div className="navbar-right">
@@ -219,7 +225,7 @@ export default async function Home() {
           left: 0;
           right: 0;
 
-          height: 64px;
+          height: 80px;
 
           z-index: 1000;
 
@@ -270,7 +276,7 @@ export default async function Home() {
 
           align-items: center;
 
-          gap: 14px;
+          gap: 9px;
 
           color: white;
 
@@ -280,9 +286,9 @@ export default async function Home() {
 
         .navbar-logo {
 
-          width: 48px;
+          width: 72px;
 
-          height: 48px;
+          height: 72px;
 
           object-fit: contain;
 
@@ -307,6 +313,31 @@ export default async function Home() {
             drop-shadow(
               0 0 14px rgba(0,198,255,0.35)
             );
+        }
+
+
+        .navbar-brand-text {
+
+          display: flex;
+
+          flex-direction: column;
+
+          justify-content: center;
+        }
+
+
+        .navbar-title {
+
+          color:
+            rgba(255,255,255,0.92);
+
+          font-size: 17px;
+
+          font-weight: 700;
+
+          line-height: 1.15;
+
+          white-space: nowrap;
         }
 
 
@@ -687,7 +718,7 @@ export default async function Home() {
             linear-gradient(
               20deg,
               #0dfcfd,
-              #6d7cff,
+              #F2FF0B,
               #d946ef,
               #ff3cac
             );
@@ -1276,50 +1307,13 @@ export default async function Home() {
 
         @media (max-width: 640px) {
 
-          .home-navbar {
-
-            height:
-              58px;
-          }
-
-
-          .navbar-container {
-
-            width:
-              calc(100% - 24px);
-          }
-
-
-          .navbar-logo {
-
-            width:
-              38px;
-
-            height:
-              38px;
-          }
-
-
-          .committee-button {
-
-            height:
-              34px;
-
-            padding:
-              0 11px;
-
-            font-size:
-              10px;
-          }
-
-
           .hero {
 
             min-height:
               100svh;
 
             padding:
-              95px 18px 65px;
+              116px 18px 65px;
           }
 
 
@@ -1470,13 +1464,6 @@ export default async function Home() {
            ===================================================== */
 
         @media (max-width: 380px) {
-
-          .committee-button {
-
-            display:
-              none;
-          }
-
 
           .hero-title {
 
