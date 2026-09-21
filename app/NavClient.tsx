@@ -170,7 +170,7 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
         <Link href="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '72px', height: '72px', objectFit: 'contain', flexShrink: 0 }} />
-          <div style={{ lineHeight: 1.15, whiteSpace: 'nowrap' }}>
+          <div className="nav-brand-title" style={{ lineHeight: 1.15, whiteSpace: 'nowrap' }}>
             <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'rgba(255,255,255,0.92)' }}>26/12 XMUM Foundation Orientation</div>
           </div>
         </Link>

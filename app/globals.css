@@ -584,6 +584,11 @@ input:focus, textarea:focus, select:focus {
   }
 }
 
+/* ─── Nav: hide the long brand title before it squeezes the Committee button off-screen ─── */
+@media (max-width: 510px) {
+  .nav-brand-title { display: none !important; }
+}
+
 /* ─── Small Mobile: <= 480px ─── */
 @media (max-width: 480px) {
   /* Stats keep 1-line compact form */
