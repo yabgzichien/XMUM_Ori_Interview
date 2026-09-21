@@ -172,12 +172,12 @@ describe('BookClient history and hold release', () => {
       fireEvent.click(screen.getByRole('button', { name: /^continue/i }))
     })
 
-    // 1. Verify label "Email (school email)"
-    expect(screen.getByLabelText(/Email \(school email\)/i)).toBeDefined()
+    // 1. Verify label "Email (Campus Email)" or "Email (school email)"
+    expect(screen.getByLabelText(/Email \((?:campus|school) email\)/i)).toBeDefined()
 
     const nameInput = screen.getByLabelText(/Full name/i)
     const studentIdInput = screen.getByLabelText(/^Student ID$/i)
-    const emailInput = screen.getByLabelText(/Email \(school email\)/i)
+    const emailInput = screen.getByLabelText(/Email \((?:campus|school) email\)/i)
     const contactInput = screen.getByLabelText(/Contact number/i)
     const confirmBtn = screen.getByRole('button', { name: /confirm booking/i })
 
@@ -191,7 +191,7 @@ describe('BookClient history and hold release', () => {
 
     // Verify nudge appears immediately
     expect(
-      screen.getByText(/Only @xmu\.edu\.my email is accepted\. Please use your school email\./i)
+      screen.getByText(/Only @xmu\.edu\.my email is accepted\. Please use your (?:campus|school) email\./i)
     ).toBeDefined()
 
     // Try submitting with non-school email
@@ -205,7 +205,7 @@ describe('BookClient history and hold release', () => {
 
     // Verify error is gone
     expect(
-      screen.queryByText(/Only @xmu\.edu\.my email is accepted\. Please use your school email\./i)
+      screen.queryByText(/Only @xmu\.edu\.my email is accepted\. Please use your (?:campus|school) email\./i)
     ).toBeNull()
 
     // Submit with school email
@@ -219,5 +219,97 @@ describe('BookClient history and hold release', () => {
       email: 'you@xmu.edu.my',
       contactNumber: '012-3456789',
     })
+  })
+
+  it('allows bidirectional stepper navigation and preserves slot selection', async () => {
+    render(
+      <BookClient
+        initialSlotsByTrack={sampleSlots}
+        initialOrientation="december"
+        initialTrack="facilitator"
+      />
+    )
+
+    // Step 1: click Next to go to Step 2
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /continue to select slot/i }))
+    })
+    expect(screen.getByRole('heading', { name: /select an interview slot/i })).toBeDefined()
+
+    // Step 2: select slot
+    await act(async () => {
+      fireEvent.click(screen.getByText('10:00 AM – 10:15 AM'))
+    })
+    expect(screen.getByText('✓ Selected')).toBeDefined()
+
+    // Navigate back to Step 1 via in-page Back button
+    const backBtn = screen.getByRole('button', { name: /^← back$/i })
+    await act(async () => {
+      fireEvent.click(backBtn)
+    })
+    expect(screen.getByRole('heading', { name: /select your desired position/i })).toBeDefined()
+
+    // Advance to Step 2 again: slot should still be selected!
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /continue to select slot/i }))
+    })
+    expect(screen.getByText('✓ Selected')).toBeDefined()
+
+    // Advance to Step 3
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^continue/i }))
+    })
+    expect(screen.getByRole('heading', { name: /your details/i })).toBeDefined()
+
+    // Fill in partial details
+    fireEvent.change(screen.getByLabelText(/Full name/i), { target: { value: 'Zi Chien' } })
+
+    // Use Stepper to jump directly to Step 1
+    const step1Btn = screen.getByRole('button', { name: /step 1: choose position/i })
+    await act(async () => {
+      fireEvent.click(step1Btn)
+    })
+    // Hold should be released
+    expect(bookingsModule.releaseHold).toHaveBeenCalledWith('token-abc')
+    expect(screen.getByRole('heading', { name: /select your desired position/i })).toBeDefined()
+
+    // Use Stepper to jump to Step 2
+    const step2Btn = screen.getByRole('button', { name: /step 2: choose slot/i })
+    await act(async () => {
+      fireEvent.click(step2Btn)
+    })
+    expect(screen.getByRole('heading', { name: /select an interview slot/i })).toBeDefined()
+    expect(screen.getByText('✓ Selected')).toBeDefined()
+
+    // Advance to Step 3 again: verify input details were preserved
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^continue/i }))
+    })
+    expect(screen.getByRole('heading', { name: /your details/i })).toBeDefined()
+    expect((screen.getByLabelText(/Full name/i) as HTMLInputElement).value).toBe('Zi Chien')
+  })
+
+  it('handles browser forward popstate correctly from step 1 to step 2', async () => {
+    render(
+      <BookClient
+        initialSlotsByTrack={sampleSlots}
+        initialOrientation="december"
+        initialTrack="facilitator"
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /select your desired position/i })).toBeDefined()
+
+    // Forward popstate to step 2
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { bookStep: 2 } }))
+    })
+    expect(screen.getByRole('heading', { name: /select an interview slot/i })).toBeDefined()
+
+    // Backward popstate to step 1
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { bookStep: 1 } }))
+    })
+    expect(screen.getByRole('heading', { name: /select your desired position/i })).toBeDefined()
   })
 })

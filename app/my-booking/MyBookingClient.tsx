@@ -50,36 +50,10 @@ function BookingCard({
 }: {
   b: BookingInfo
   studentId: string
-  onCancelled: (id: string) => void
+  onCancelled?: (id: string) => void
 }) {
-  const [cancelling, setCancelling] = useState(false)
-  const [cancelError, setCancelError] = useState<string | null>(null)
-  const [localStatus, setLocalStatus] = useState(b.status)
   const isPast = new Date(b.ends_at) < new Date()
-  const isActive = localStatus === 'booked'
-
-  async function handleCancel() {
-    const confirmed = window.confirm(
-      'Are you sure you want to cancel this interview booking? This action cannot be undone.'
-    )
-    if (!confirmed) return
-    setCancelling(true)
-    setCancelError(null)
-    try {
-      const supabase = createClient()
-      const { error } = await supabase.rpc('cancel_booking_public', {
-        p_student_id: studentId,
-        p_booking_id: b.booking_id,
-      })
-      if (error) throw new Error(error.message)
-      setLocalStatus('cancelled')
-      onCancelled(b.booking_id)
-    } catch (err: unknown) {
-      setCancelError(errorMessage(err))
-    } finally {
-      setCancelling(false)
-    }
-  }
+  const isActive = b.status === 'booked'
 
   const trackColor = b.track === 'facilitator'
     ? { grad: 'linear-gradient(135deg, #3B82F6, #2563EB)', light: '#EFF4FF', text: '#2563EB' }
@@ -151,34 +125,24 @@ function BookingCard({
           </div>
         </div>
 
-        {cancelError && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 13px', fontSize: '13px', color: '#B91C1C', fontWeight: 600 }}>
-            Couldn&apos;t cancel: {cancelError}
-          </div>
-        )}
-
-        {/* Cancel button */}
+        {/* Notice to notify admin to cancel */}
         {isActive && !isPast && (
-          <button
-            id={`cancel-booking-${b.booking_id}`}
-            type="button"
-            onClick={handleCancel}
-            disabled={cancelling}
+          <div
             style={{
-              width: '100%',
-              padding: '12px',
+              background: 'var(--bg-card-subtle, rgba(255, 255, 255, 0.04))',
+              border: '1px solid var(--border-card, #1E293B)',
               borderRadius: '12px',
-              border: 'none',
-              background: cancelling ? '#FCA5A5' : '#FEE2E2',
-              color: '#B91C1C',
-              fontSize: '14px',
-              fontWeight: 800,
-              cursor: cancelling ? 'not-allowed' : 'pointer',
-              transition: 'background 0.15s',
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
             }}
           >
-            {cancelling ? 'Cancelling...' : 'Cancel This Booking'}
-          </button>
+            <span style={{ fontSize: '15px', lineHeight: 1 }}>ℹ️</span>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary, #CBD5E1)', lineHeight: 1.45 }}>
+              To cancel this booking, please notify the admin.
+            </p>
+          </div>
         )}
 
         {isActive && isPast && (

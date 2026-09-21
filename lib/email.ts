@@ -418,3 +418,101 @@ export async function sendInvitationEmail(
     return { success: false, error: errorMessage(err) }
   }
 }
+
+export async function sendCancellationRequestToAdmin(details: {
+  applicant_name: string
+  student_id: string
+  applicant_email: string
+  track: string
+  starts_at: string
+  ends_at: string
+  venue?: string
+  reason?: string
+}): Promise<{ success: boolean; error?: string }> {
+  const { transporter, from, error } = await getTransporter()
+  if (!transporter) {
+    return { success: false, error: error || 'Email service unavailable.' }
+  }
+
+  const to = process.env.SMTP_USER || 'xmumorientation@gmail.com'
+  const dateStr = formatDateHeading(toLocalDateIso(details.starts_at))
+  const timeStr = formatTimeRange(details.starts_at, details.ends_at)
+  const trackStr = formatTrack(details.track)
+  const reasonText = details.reason?.trim() || 'No reason provided.'
+
+  try {
+    await transporter.sendMail({
+      from,
+      to,
+      replyTo: details.applicant_email,
+      subject: `[Cancellation Request] ${details.applicant_name} (${details.student_id}) - ${trackStr}`,
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Interview Cancellation Request</title>
+</head>
+<body style="margin: 0; padding: 20px; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1E293B;">
+  <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden;">
+    <div style="background: linear-gradient(135deg, #EF4444, #DC2626); padding: 24px; color: #ffffff;">
+      <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 99px;">Action Required</span>
+      <h2 style="margin: 8px 0 0; font-size: 20px; font-weight: 800;">Interview Cancellation Request</h2>
+    </div>
+    <div style="padding: 24px;">
+      <p style="margin: 0 0 16px; font-size: 14.5px; line-height: 1.5;">An applicant has requested to cancel their scheduled interview session.</p>
+      
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+          <tr>
+            <td style="padding: 6px 0; color: #64748B; font-weight: 600; width: 120px;">Applicant:</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #0F172A;">${details.applicant_name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748B; font-weight: 600;">Student ID:</td>
+            <td style="padding: 6px 0; font-weight: 700; font-family: monospace; color: #0F172A;">${details.student_id}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748B; font-weight: 600;">Email:</td>
+            <td style="padding: 6px 0; font-weight: 600; color: #2563EB;">${details.applicant_email}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748B; font-weight: 600;">Position:</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #0F172A;">${trackStr}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748B; font-weight: 600;">Date:</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #0F172A;">${dateStr}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748B; font-weight: 600;">Time:</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #0F172A;">${timeStr}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748B; font-weight: 600;">Venue:</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #0F172A;">${details.venue || 'TBA'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #64748B; margin-bottom: 6px;">Reason Provided:</div>
+        <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: #92400E; line-height: 1.5; white-space: pre-wrap;">${reasonText}</div>
+      </div>
+
+      <p style="margin: 0; font-size: 13px; color: #64748B; line-height: 1.5;">
+        You can review and manage this booking directly in the <a href="https://xmum-ori-interview.vercel.app/head" style="color: #2563EB; font-weight: 600;">Head Dashboard</a>.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+      `,
+    })
+    return { success: true }
+  } catch (err: unknown) {
+    console.error('Failed to send cancellation request email to admin:', err)
+    return { success: false, error: errorMessage(err) }
+  }
+}
+

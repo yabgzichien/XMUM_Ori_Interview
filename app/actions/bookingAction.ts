@@ -126,3 +126,28 @@ export async function sendBulkWelcomeEmailsAction(
 
   return { successCount, failCount }
 }
+
+export async function requestBookingCancellationAction(input: {
+  bookingId: string
+  applicantName: string
+  studentId: string
+  applicantEmail: string
+  track: string
+  startsAt: string
+  endsAt: string
+  venue?: string
+  reason?: string
+}): Promise<{ success: boolean; error?: string }> {
+  const { sendCancellationRequestToAdmin } = await import('@/lib/email')
+  return await sendCancellationRequestToAdmin({
+    applicant_name: input.applicantName,
+    student_id: input.studentId,
+    applicant_email: input.applicantEmail,
+    track: input.track,
+    starts_at: input.startsAt,
+    ends_at: input.endsAt,
+    venue: input.venue,
+    reason: input.reason,
+  })
+}
+

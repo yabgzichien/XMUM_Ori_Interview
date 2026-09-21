@@ -201,27 +201,56 @@ export function BookClient({
   }, [])
 
   useEffect(() => {
-    const handlePopState = async () => {
-      // If the user was on Step 3 (Your details) and navigated back:
-      if (stepRef.current === 3) {
+    const handlePopState = async (event: PopStateEvent) => {
+      const targetStep = (event.state as { bookStep?: number } | null)?.bookStep
+
+      // If leaving Step 3 (navigating back), release any active hold
+      if (stepRef.current === 3 && targetStep !== 3) {
         const token = holdTokenRef.current
         if (token) {
           await releaseHold(token)
         }
         clearHold()
-        setStep(2)
         setSubmitError(null)
         loadSlots()
-      } else if (stepRef.current === 2) {
-        // If the user was on Step 2 (Choose slot) and navigated back:
+      }
+
+      if (targetStep === 1) {
         setStep(1)
-        setSelectedId(null)
+      } else if (targetStep === 2) {
+        setStep(2)
+      } else if (targetStep === 3) {
+        if (holdTokenRef.current) {
+          setStep(3)
+        } else {
+          setStep(2)
+        }
+      } else if (targetStep === 4) {
+        if (confirmation) {
+          setStep(4)
+        } else {
+          setStep(1)
+        }
+      } else {
+        // Popstate without explicit targetStep (e.g. back to initial entry)
+        if (stepRef.current === 3) {
+          const token = holdTokenRef.current
+          if (token) {
+            await releaseHold(token)
+          }
+          clearHold()
+          setStep(2)
+          setSubmitError(null)
+          loadSlots()
+        } else if (stepRef.current === 2) {
+          setStep(1)
+        }
       }
     }
 
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
-  }, [loadSlots])
+  }, [loadSlots, confirmation])
 
   useEffect(() => {
     if (step !== 3 || !holdExpiresAt) {
@@ -284,9 +313,11 @@ export function BookClient({
       if (!active) return
       setSlotsByTrack({ facilitator: fac.data ?? [], game_master: gm.data ?? [] })
       setLoadError(fac.error?.message ?? gm.error?.message ?? null)
-      if (stepRef.current === 1) {
-        setSelectedId(null)
-      }
+      setSelectedId((prev) => {
+        if (!prev) return null
+        const allSlots = [...(fac.data ?? []), ...(gm.data ?? [])]
+        return allSlots.some((s) => s.id === prev) ? prev : null
+      })
       setLoading(false)
     }
 
@@ -415,19 +446,15 @@ export function BookClient({
   }
 
   function goBackToStep1() {
+    setStep(1)
     if (typeof window !== 'undefined' && window.history.state?.bookStep === 2) {
       window.history.back()
-      return
+    } else if (typeof window !== 'undefined') {
+      window.history.pushState({ bookStep: 1 }, '')
     }
-    setStep(1)
-    setSelectedId(null)
   }
 
   async function goBackToStep2() {
-    if (typeof window !== 'undefined' && window.history.state?.bookStep === 3) {
-      window.history.back()
-      return
-    }
     const token = holdTokenRef.current || holdToken
     if (token) {
       await releaseHold(token)
@@ -436,6 +463,56 @@ export function BookClient({
     setStep(2)
     setSubmitError(null)
     loadSlots()
+    if (typeof window !== 'undefined' && window.history.state?.bookStep === 3) {
+      window.history.back()
+    } else if (typeof window !== 'undefined') {
+      window.history.pushState({ bookStep: 2 }, '')
+    }
+  }
+
+  async function handleStepClick(targetStep: number) {
+    if (targetStep === step) return
+    if (step === 4) return
+
+    if (targetStep === 1) {
+      if (step === 3) {
+        const token = holdTokenRef.current || holdToken
+        if (token) {
+          await releaseHold(token)
+        }
+        clearHold()
+        setSubmitError(null)
+        loadSlots()
+      }
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ bookStep: 1 }, '')
+      }
+      setStep(1)
+    } else if (targetStep === 2) {
+      if (step === 3) {
+        const token = holdTokenRef.current || holdToken
+        if (token) {
+          await releaseHold(token)
+        }
+        clearHold()
+        setSubmitError(null)
+        loadSlots()
+      }
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ bookStep: 2 }, '')
+      }
+      setStep(2)
+    } else if (targetStep === 3) {
+      if (!selectedSlot) return
+      if (holdToken && !holdLocked) {
+        if (typeof window !== 'undefined') {
+          window.history.pushState({ bookStep: 3 }, '')
+        }
+        setStep(3)
+      } else {
+        await reserveAndContinue()
+      }
+    }
   }
 
   async function reserveAndContinue() {
@@ -600,6 +677,30 @@ export function BookClient({
             white-space: nowrap !important;
           }
         }
+        .stepper-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: none;
+          border: none;
+          padding: 5px 8px;
+          border-radius: 10px;
+          font-family: inherit;
+          text-align: left;
+          transition: background-color .15s ease, opacity .15s ease, transform .1s ease;
+        }
+        .stepper-btn-clickable {
+          cursor: pointer !important;
+        }
+        .stepper-btn-clickable:hover {
+          background-color: var(--bg-card-subtle, rgba(0, 0, 0, 0.05));
+        }
+        .stepper-btn-clickable:hover .stepper-label {
+          color: var(--accent-text, #2563EB) !important;
+        }
+        .stepper-btn-disabled {
+          cursor: default !important;
+        }
         @media (max-width: 380px) {
           .book-orientation-btn {
             padding: 8px 2px !important;
@@ -623,22 +724,69 @@ export function BookClient({
       </div>
 
       {/* Stepper */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
+      <nav aria-label="Booking steps" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
         {[1, 2, 3, 4].map((n) => {
           const labels: Record<number, string> = { 1: 'Choose position', 2: 'Choose Slot', 3: 'Your Details', 4: 'Confirmed' }
           const done = step > n
           const active = step === n
+          const canClick =
+            !active &&
+            step !== 4 &&
+            (n === 1 || n === 2 || (n === 3 && Boolean(selectedSlot)))
+
           return (
             <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '26px', height: '26px', borderRadius: '99px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12.5px', fontWeight: 700, background: done ? '#16A34A' : active ? '#2563EB' : 'var(--bg-card-subtle, #EEF2F7)', color: done || active ? '#fff' : 'var(--text-muted, #94A3B8)', flexShrink: 0 }}>
-                {done ? '✓' : n}
-              </div>
-              <span style={{ fontSize: '13.5px', fontWeight: 600, color: active || done ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #94A3B8)', whiteSpace: 'nowrap' }}>{labels[n]}</span>
+              <button
+                type="button"
+                onClick={() => canClick && handleStepClick(n)}
+                disabled={!canClick}
+                className={`stepper-btn ${canClick ? 'stepper-btn-clickable' : 'stepper-btn-disabled'}`}
+                aria-current={active ? 'step' : undefined}
+                aria-label={`Step ${n}: ${labels[n]}${canClick ? ' (Click to navigate)' : ''}`}
+                style={{
+                  opacity: canClick || active || done ? 1 : 0.55,
+                }}
+              >
+                <div
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '99px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    background: done ? '#16A34A' : active ? '#2563EB' : 'var(--bg-card-subtle, #EEF2F7)',
+                    color: done || active ? '#fff' : 'var(--text-muted, #94A3B8)',
+                    flexShrink: 0,
+                    boxShadow: active ? '0 0 0 3px rgba(37, 99, 235, 0.2)' : 'none',
+                    transition: 'box-shadow .15s ease',
+                  }}
+                >
+                  {done ? '✓' : n}
+                </div>
+                <span
+                  className="stepper-label"
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: active ? 700 : 600,
+                    color: active || done ? 'var(--text-primary, #0F172A)' : 'var(--text-muted, #94A3B8)',
+                    whiteSpace: 'nowrap',
+                    textDecorationLine: canClick ? 'underline' : 'none',
+                    textDecorationColor: 'rgba(100, 116, 139, 0.3)',
+                    textUnderlineOffset: '3px',
+                    transition: 'color .15s ease',
+                  }}
+                >
+                  {labels[n]}
+                </span>
+              </button>
               {n < 4 && <span className="stepper-divider" style={{ width: '26px', height: '2px', background: 'var(--border-input, #E2E8F0)', borderRadius: '2px' }} />}
             </div>
           )
         })}
-      </div>
+      </nav>
 
       {/* ── Step 1: choose position ───────────────────────────────────── */}
       {step === 1 && (
@@ -660,9 +808,11 @@ export function BookClient({
                   key={t.key}
                   type="button"
                   onClick={() => {
-                    setTrack(t.key)
-                    setSelectedId(null)
-                    setFilterDate('')
+                    if (track !== t.key) {
+                      setTrack(t.key)
+                      setSelectedId(null)
+                      setFilterDate('')
+                    }
                   }}
                   className="book-track-btn"
                   style={{

@@ -69,4 +69,41 @@ describe('Email configuration error handling', () => {
       if (originalPass) process.env.SMTP_PASSWORD = originalPass
     }
   })
+
+  it('fails with explicit error in production when SMTP env vars are unset for cancellation request', async () => {
+    const { sendCancellationRequestToAdmin } = await import('@/lib/email')
+    const originalEnv = process.env.NODE_ENV
+    const originalHost = process.env.SMTP_HOST
+    const originalUser = process.env.SMTP_USER
+    const originalPass = process.env.SMTP_PASSWORD
+
+    try {
+      // @ts-expect-error override readonly in test
+      process.env.NODE_ENV = 'production'
+      delete process.env.SMTP_HOST
+      delete process.env.SMTP_USER
+      delete process.env.SMTP_PASSWORD
+
+      const res = await sendCancellationRequestToAdmin({
+        applicant_name: 'Test Candidate',
+        student_id: 'DSC123456',
+        applicant_email: 'test@candidate.local',
+        track: 'facilitator',
+        starts_at: new Date().toISOString(),
+        ends_at: new Date().toISOString(),
+        venue: 'A1G03',
+        reason: 'Schedule clash',
+      })
+
+      expect(res.success).toBe(false)
+      expect(res.error).toContain('SMTP configuration is missing in production environment')
+    } finally {
+      // @ts-expect-error restore in test
+      process.env.NODE_ENV = originalEnv
+      if (originalHost) process.env.SMTP_HOST = originalHost
+      if (originalUser) process.env.SMTP_USER = originalUser
+      if (originalPass) process.env.SMTP_PASSWORD = originalPass
+    }
+  })
 })
+
