@@ -127,7 +127,7 @@ export default async function Home() {
         <div className="scroll-indicator">
 
           <span>
-            SCROLL TO EXPLORE
+            XIAMEN UNIVERSITY MALAYSIA
           </span>
 
           <div className="scroll-line" />
@@ -152,10 +152,6 @@ export default async function Home() {
           position: relative;
 
           width: 100%;
-
-          min-height: 100vh;
-
-          min-height: 100svh;
 
           background: #050816;
 
@@ -184,9 +180,9 @@ export default async function Home() {
 
           width: 100%;
 
-          min-height: 100vh;
+          min-height: calc(100vh - 100px);
 
-          min-height: 100svh;
+          min-height: calc(100svh - 100px);
 
           display: flex;
 
@@ -1078,7 +1074,7 @@ export default async function Home() {
           .hero {
 
             min-height:
-              100svh;
+              calc(100svh - 96px);
 
             padding:
               32px 18px 65px;
