@@ -384,12 +384,12 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                 style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px', cursor: 'pointer' }}
                 onClick={() => { setSelectedBooking(b); setNotesValue(b.interview_notes ?? ''); setNotesSaved(false) }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>{b.applicant_name}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>{b.applicant_email}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                  <div style={{ minWidth: 0, maxWidth: '100%' }}>
+                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px', wordBreak: 'break-word' }}>{b.applicant_name}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500, wordBreak: 'break-word' }}>{b.applicant_email}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', background: 'var(--bg-card-subtle, #F8FAFC)', padding: '4px 8px', borderRadius: '6px' }}>{b.student_id ?? '-'}</span>
                     <span style={{
                       display: 'inline-flex',
@@ -409,7 +409,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                   <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}><span style={{ fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>Venue:</span> {b.venue || '—'}</div>
                 </div>
                 {b.experiences && (
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary, #475569)', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary, #475569)', lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                     <strong style={{ color: 'var(--text-primary, #334155)', display: 'block', marginBottom: '2px' }}>Contact Number:</strong>
                     {b.experiences}
                   </div>

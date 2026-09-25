@@ -60,14 +60,15 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
                 </Link>
               )}
               {profile.role === 'admin' && (
-                <Link href="/admin" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname === '/admin' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/admin' ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
-                  Committee
-                </Link>
-              )}
-              {profile.role === 'admin' && (
                 <Link href="/admin/logs" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/admin/logs') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/admin/logs') ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
                   Activity Log
                 </Link>
+              )}
+              {profile.role === 'admin' && (
+                /* Committee tab temporarily disabled — not clickable */
+                <span aria-disabled="true" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', color: 'var(--text-muted, #94A3B8)', opacity: 0.5, cursor: 'not-allowed' }}>
+                  Committee
+                </span>
               )}
             </nav>
           </div>
@@ -126,14 +127,15 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
             </Link>
           )}
           {profile.role === 'admin' && (
-            <Link href="/admin" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/admin' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/admin' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
-              👥 Committee
-            </Link>
-          )}
-          {profile.role === 'admin' && (
             <Link href="/admin/logs" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/admin/logs') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/admin/logs') ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
               🧾 Activity Log
             </Link>
+          )}
+          {profile.role === 'admin' && (
+            /* Committee tab temporarily disabled — not clickable */
+            <span aria-disabled="true" style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', color: 'var(--text-muted, #94A3B8)', opacity: 0.5, cursor: 'not-allowed', display: 'block' }}>
+              👥 Committee
+            </span>
           )}
           <Link href="/profile" onClick={() => setMobileOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1px solid var(--border-card, #EAEEF4)', marginTop: '4px', paddingTop: '10px', padding: '10px 12px 4px', color: 'inherit', textDecoration: 'none' }}>
             {profile.avatar_url ? (
