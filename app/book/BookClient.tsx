@@ -219,6 +219,7 @@ export function BookClient({
         setStep(1)
       } else if (targetStep === 2) {
         setStep(2)
+        loadSlots()
       } else if (targetStep === 3) {
         if (holdTokenRef.current) {
           setStep(3)
@@ -443,6 +444,7 @@ export function BookClient({
       window.history.pushState({ bookStep: 2 }, '')
     }
     setStep(2)
+    loadSlots()
   }
 
   function goBackToStep1() {
@@ -496,12 +498,12 @@ export function BookClient({
         }
         clearHold()
         setSubmitError(null)
-        loadSlots()
       }
       if (typeof window !== 'undefined') {
         window.history.pushState({ bookStep: 2 }, '')
       }
       setStep(2)
+      loadSlots()
     } else if (targetStep === 3) {
       if (!selectedSlot) return
       if (holdToken && !holdLocked) {
