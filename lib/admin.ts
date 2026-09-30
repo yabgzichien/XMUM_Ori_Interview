@@ -97,9 +97,9 @@ export async function renameCommitteeMember(id: string, name: string) {
 
 // Revokes committee access without deleting the account: role drops to
 // 'applicant' (no dashboard access) and the title is cleared, but the
-// profile — and anything tied to it elsewhere (past interview notes,
-// bookings) — is left intact. Blocked if they're currently leading a
-// practice group, since that group would be left with an applicant as lead.
+// profile — and anything tied to it elsewhere (past interview notes and
+// bookings) — is left intact. Practice eligibility is managed separately
+// through the account-free committee roster.
 export async function revokeCommitteeMember(id: string) {
   const supabase = createClient()
 
@@ -117,15 +117,6 @@ export async function revokeCommitteeMember(id: string) {
     return { error: { message: 'This is a permanent account and can\'t be revoked from here.' } }
   }
 
-  const { data: leading, error: leadErr } = await supabase
-    .from('practice_groups')
-    .select('id')
-    .eq('lead_id', id)
-    .limit(1)
-  if (leadErr) return { error: leadErr }
-  if (leading && leading.length > 0) {
-    return { error: { message: 'This person is leading a practice group — reassign the group lead first.' } }
-  }
   const { error } = await supabase.from('profiles').update({ role: 'applicant', position: null }).eq('id', id)
   return { error }
 }
