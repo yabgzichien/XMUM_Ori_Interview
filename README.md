@@ -13,6 +13,9 @@ Next.js 16 (App Router, TypeScript) · Tailwind v4 + shadcn/ui · Supabase (Post
 Vitest. Booking concurrency is enforced in Postgres via a locking RPC (`book_slot`), so a
 slot can never be overbooked.
 
+Set `PRACTICE_RATE_LIMIT_SECRET` to a long random server-only value for the public
+performance-practice verification rate limit. Never give it a `NEXT_PUBLIC_` prefix.
+
 ## Role-Based Access Control
 
 ### Interview booking
