@@ -1,220 +1,188 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  getMyPracticeGroup,
-  getAvailablePracticeGroups,
-  joinPracticeGroup,
-  leavePracticeGroup,
-  type MyGroup,
-  type AvailableGroup,
-} from '@/lib/practice'
-import { MyGroupPanel } from '@/app/practice/MyGroupPanel'
+import { useRef, useState } from 'react'
+import { bookPracticeGroup, verifyPracticeMember } from '@/lib/practice-public'
+import type { PracticeIdentityInput, PublicPracticeBooking, PublicPracticeGroup } from '@/lib/practice-types'
 
-type PracticeClientProps = {
-  currentUserId: string
-  initialMyGroup?: MyGroup | null
-  initialAvailableGroups?: AvailableGroup[]
+type Screen =
+  | { kind: 'verify' }
+  | { kind: 'available'; identity: PracticeIdentityInput; groups: PublicPracticeGroup[] }
+  | { kind: 'confirm'; identity: PracticeIdentityInput; group: PublicPracticeGroup; groups: PublicPracticeGroup[] }
+  | { kind: 'booked'; booking: PublicPracticeBooking; newlyCreated: boolean }
+
+const cardStyle: React.CSSProperties = {
+  background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)',
+  borderRadius: '18px', padding: '24px', boxShadow: '0 1px 2px rgba(16,24,40,.04)',
+}
+const inputStyle: React.CSSProperties = {
+  width: '100%', boxSizing: 'border-box', padding: '11px 12px',
+  border: '1px solid var(--border-input, #CBD5E1)', borderRadius: '10px',
+  background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)', fontSize: '14px',
+}
+const primaryButton: React.CSSProperties = {
+  border: 0, borderRadius: '10px', padding: '11px 18px',
+  background: 'linear-gradient(100deg, rgba(0, 210, 220, .9), #7C3AED, #EC4899)',
+  color: '#fff', fontWeight: 750, cursor: 'pointer',
 }
 
-export function PracticeClient({
-  currentUserId,
-  initialMyGroup = null,
-  initialAvailableGroups = [],
-}: PracticeClientProps) {
-  const [loading, setLoading] = useState(false)
+function formatSessionTime(value: string) {
+  return new Intl.DateTimeFormat('en-MY', {
+    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kuala_Lumpur',
+  }).format(new Date(value))
+}
+
+export function PracticeClient() {
+  const [studentId, setStudentId] = useState('')
+  const [email, setEmail] = useState('')
+  const [screen, setScreen] = useState<Screen>({ kind: 'verify' })
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [myGroup, setMyGroup] = useState<MyGroup | null>(initialMyGroup)
-  const [availableGroups, setAvailableGroups] = useState<AvailableGroup[]>(initialAvailableGroups)
-  const [joiningId, setJoiningId] = useState<string | null>(null)
-  const [leaving, setLeaving] = useState(false)
-  const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null)
+  const submittingRef = useRef(false)
 
-  // Bumping the token re-runs the fetch effect. The effect owns cancellation,
-  // so a response that arrives after the component moved on is discarded
-  // instead of clobbering fresher state.
-  const [reloadToken, setReloadToken] = useState(0)
-  const load = useCallback(() => setReloadToken((n) => n + 1), [])
-
-  const isInitialMount = useRef(true)
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      if (initialMyGroup !== null || initialAvailableGroups.length > 0) return
+  async function handleVerify(event: React.FormEvent) {
+    event.preventDefault()
+    if (submittingRef.current) return
+    submittingRef.current = true
+    setBusy(true)
+    setError(null)
+    const identity = { studentId: studentId.trim(), email: email.trim() }
+    const result = await verifyPracticeMember(identity)
+    setBusy(false)
+    submittingRef.current = false
+    if (result.error || !result.data) {
+      setError(result.error ?? 'Practice verification is temporarily unavailable.')
+      return
     }
+    if (result.data.state === 'booked') {
+      setStudentId('')
+      setEmail('')
+      setScreen({ kind: 'booked', booking: result.data.booking, newlyCreated: false })
+      return
+    }
+    setScreen({ kind: 'available', identity, groups: result.data.groups })
+  }
 
-    let active = true
-
-    async function run() {
-      setLoading(true)
-      const [
-        { data: group, error: groupErr },
-        { data: groups, error: groupsErr },
-      ] = await Promise.all([getMyPracticeGroup(), getAvailablePracticeGroups()])
-      if (!active) return
-
-      if (groupErr) {
-        setError(groupErr.message)
-        setLoading(false)
-        return
+  async function handleConfirm() {
+    if (screen.kind !== 'confirm' || submittingRef.current) return
+    submittingRef.current = true
+    setBusy(true)
+    setError(null)
+    const { identity, group } = screen
+    const result = await bookPracticeGroup({ ...identity, groupId: group.id })
+    if (result.data) {
+      setStudentId('')
+      setEmail('')
+      setScreen({ kind: 'booked', booking: result.data, newlyCreated: true })
+      setBusy(false)
+      submittingRef.current = false
+      return
+    }
+    if (result.status === 409) {
+      const refreshed = await verifyPracticeMember(identity)
+      if (refreshed.data?.state === 'booked') {
+        setStudentId('')
+        setEmail('')
+        setScreen({ kind: 'booked', booking: refreshed.data.booking, newlyCreated: false })
+      } else if (refreshed.data?.state === 'available') {
+        setScreen({ kind: 'available', identity, groups: refreshed.data.groups })
       }
-      setError(groupsErr && !group ? groupsErr.message : null)
-      setMyGroup(group)
-      if (!group) setAvailableGroups(groups ?? [])
-      setLoading(false)
     }
-
-    run()
-    return () => {
-      active = false
-    }
-  }, [reloadToken])
-
-  function showToast(message: string) {
-    setToast({ message, visible: true })
-    // Start fade-out after 2 seconds
-    setTimeout(() => {
-      setToast((prev) => prev ? { ...prev, visible: false } : null)
-    }, 2000)
-    // Remove from DOM after fade animation completes (0.6s)
-    setTimeout(() => {
-      setToast(null)
-    }, 2600)
+    setError(result.error ?? 'The booking could not be completed.')
+    setBusy(false)
+    submittingRef.current = false
   }
 
-  async function handleJoin(groupId: string) {
-    const group = availableGroups.find((g) => g.id === groupId)
-    setJoiningId(groupId)
-    const { error: joinErr } = await joinPracticeGroup(groupId)
-    setJoiningId(null)
-    if (joinErr) {
-      alert(joinErr.message)
-      return
-    }
-    if (group) showToast(`You've joined ${group.name}! 🎉`)
-    load()
+  if (screen.kind === 'verify') {
+    return (
+      <form onSubmit={handleVerify} style={{ ...cardStyle, maxWidth: '560px' }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: '19px' }}>Verify committee membership</h2>
+        <p style={{ margin: '0 0 20px', color: 'var(--text-muted, #64748B)', lineHeight: 1.5 }}>
+          Use your student ID and its matching <strong>@xmu.edu.my</strong> email.
+        </p>
+        <div style={{ display: 'grid', gap: '16px' }}>
+          <label style={{ display: 'grid', gap: '6px', fontWeight: 650, fontSize: '13px' }}>
+            Student ID
+            <input value={studentId} onChange={(event) => setStudentId(event.target.value)} required autoComplete="username" style={inputStyle} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', fontWeight: 650, fontSize: '13px' }}>
+            University email
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" style={inputStyle} />
+          </label>
+          {error && <div role="alert" style={{ color: '#B91C1C', background: '#FEF2F2', borderRadius: '9px', padding: '10px 12px' }}>{error}</div>}
+          <button type="submit" disabled={busy} style={{ ...primaryButton, opacity: busy ? .65 : 1 }}>
+            {busy ? 'Verifying…' : 'Verify and continue'}
+          </button>
+        </div>
+      </form>
+    )
   }
 
-  async function handleLeave() {
-    if (!window.confirm('Leave this practice group?')) return
-    setLeaving(true)
-    const { error: leaveErr } = await leavePracticeGroup()
-    setLeaving(false)
-    if (leaveErr) {
-      alert(leaveErr.message)
-      return
-    }
-    load()
+  if (screen.kind === 'available') {
+    return (
+      <section aria-labelledby="available-groups-title" style={{ display: 'grid', gap: '14px' }}>
+        <div>
+          <h2 id="available-groups-title" style={{ margin: 0, fontSize: '20px' }}>Choose your practice group</h2>
+          <p style={{ color: 'var(--text-muted, #64748B)', margin: '5px 0 0' }}>Your booking cannot be changed without an admin.</p>
+        </div>
+        {error && <div role="alert" style={{ color: '#B91C1C', background: '#FEF2F2', borderRadius: '9px', padding: '10px 12px' }}>{error}</div>}
+        {screen.groups.length === 0 && <div style={cardStyle}>No practice groups are open yet.</div>}
+        {screen.groups.map((group) => (
+          <article key={group.id} style={{ ...cardStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+            <div>
+              <h3 style={{ margin: '0 0 4px', fontSize: '17px' }}>{group.name}</h3>
+              <span style={{ color: 'var(--text-muted, #64748B)', fontSize: '13px' }}>
+                {group.seats_left} {group.seats_left === 1 ? 'space' : 'spaces'} remaining
+              </span>
+            </div>
+            <button
+              type="button" aria-label={`Choose ${group.name}`} disabled={group.seats_left < 1 || busy}
+              onClick={() => { setError(null); setScreen({ kind: 'confirm', identity: screen.identity, group, groups: screen.groups }) }}
+              style={{ ...primaryButton, opacity: group.seats_left < 1 ? .45 : 1 }}
+            >
+              {group.seats_left < 1 ? 'Full' : 'Choose group'}
+            </button>
+          </article>
+        ))}
+      </section>
+    )
   }
 
-  if (loading) {
-    return <div style={{ padding: '20px', color: '#64748B', fontSize: '14px' }}>Loading...</div>
-  }
-  if (error) {
-    return <div style={{ padding: '20px', color: '#B91C1C', fontSize: '14px' }}>{error}</div>
+  if (screen.kind === 'confirm') {
+    return (
+      <section style={{ ...cardStyle, maxWidth: '560px' }}>
+        <h2 style={{ margin: '0 0 8px' }}>Confirm your group</h2>
+        <p style={{ color: 'var(--text-muted, #64748B)', lineHeight: 1.5 }}>
+          You are booking <strong>{screen.group.name}</strong>. Only an admin can change or remove this booking later.
+        </p>
+        {error && <div role="alert">{error}</div>}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+          <button type="button" disabled={busy} onClick={() => setScreen({ kind: 'available', identity: screen.identity, groups: screen.groups })} style={{ ...primaryButton, background: '#E2E8F0', color: '#334155' }}>Back</button>
+          <button type="button" disabled={busy} onClick={handleConfirm} style={{ ...primaryButton, opacity: busy ? .65 : 1 }}>
+            {busy ? 'Booking…' : 'Confirm booking'}
+          </button>
+        </div>
+      </section>
+    )
   }
 
   return (
-    <>
-      {/* Toast notification */}
-      <style>{`
-        @keyframes toast-fade-out {
-          from { opacity: 1; transform: translateY(0) scale(1); }
-          to   { opacity: 0; transform: translateY(-8px) scale(0.97); }
-        }
-        .practice-toast {
-          position: fixed;
-          top: 24px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 9999;
-          background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%);
-          color: #fff;
-          padding: 14px 24px;
-          border-radius: 14px;
-          font-size: 14.5px;
-          font-weight: 700;
-          box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35), 0 2px 6px rgba(0,0,0,0.12);
-          white-space: nowrap;
-          pointer-events: none;
-          transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-        .practice-toast.fading {
-          animation: toast-fade-out 0.6s ease forwards;
-        }
-      `}</style>
-      {toast && (
-        <div className={`practice-toast${toast.visible ? '' : ' fading'}`}>
-          {toast.message}
-        </div>
-      )}
-
-      {!myGroup ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {availableGroups.length === 0 && (
-            <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '32px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>
-              No practice groups are open yet. Check back soon.
-            </div>
-          )}
-          {availableGroups.map((g) => {
-            const joinable = g.seats_left > 0 && g.status === 'open'
-            const isManagedByUser = Boolean(currentUserId && g.lead_id === currentUserId)
-            return (
-              <div key={g.id} style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary, #0F172A)' }}>
-                    <span>{g.name}</span>
-                    {isManagedByUser && (
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--accent-text, #2563EB)', background: 'var(--accent-subtle, #EFF4FF)', padding: '2px 8px', borderRadius: '99px' }}>
-                        your group
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
-                    Performance Lead: {g.lead_name}{isManagedByUser ? ' (your group)' : ''} · {g.session_count} session{g.session_count === 1 ? '' : 's'} scheduled
-                  </div>
-                  {g.member_names.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-                      {g.member_names.map((name) => (
-                        <span key={name} style={{ padding: '4px 10px', borderRadius: '99px', background: 'var(--bg-card-hover, #F1F5F9)', color: 'var(--text-secondary, #334155)', fontSize: '12px', fontWeight: 600 }}>
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '18px', fontWeight: 800, color: joinable ? '#2563EB' : '#94A3B8' }}>{g.seats_left}</div>
-                    <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600 }}>seats left</div>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={!joinable || joiningId === g.id}
-                    onClick={() => handleJoin(g.id)}
-                    style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: joinable ? 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)' : '#CBD5E1', color: '#fff', fontWeight: 700, fontSize: '13.5px', cursor: joinable ? 'pointer' : 'not-allowed' }}
-                  >
-                    {joiningId === g.id ? 'Joining...' : g.status !== 'open' ? 'Closed' : g.seats_left > 0 ? 'Join group' : 'Full'}
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+    <section style={{ ...cardStyle, maxWidth: '680px' }}>
+      {screen.newlyCreated && <p style={{ color: '#15803D', fontWeight: 800, margin: '0 0 8px' }}>Booking confirmed</p>}
+      <h2 style={{ margin: '0 0 6px' }}>{screen.booking.group_name}</h2>
+      <p style={{ color: 'var(--text-muted, #64748B)', margin: '0 0 20px' }}>Your performance-practice group</p>
+      <h3 style={{ fontSize: '15px', marginBottom: '10px' }}>Practice sessions</h3>
+      {screen.booking.sessions.length === 0 ? (
+        <p style={{ color: 'var(--text-muted, #64748B)' }}>No sessions have been scheduled yet.</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {!myGroup.is_lead && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" disabled={leaving} onClick={handleLeave} style={{ padding: '9px 16px', borderRadius: '9px', border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#B91C1C', fontWeight: 700, fontSize: '13px', cursor: leaving ? 'not-allowed' : 'pointer' }}>
-                {leaving ? 'Leaving...' : 'Leave group'}
-              </button>
-            </div>
-          )}
-          <MyGroupPanel myGroup={myGroup} currentUserId={currentUserId} onGroupChanged={load} />
-        </div>
+        <ul style={{ display: 'grid', gap: '10px', padding: 0, listStyle: 'none' }}>
+          {screen.booking.sessions.map((session) => (
+            <li key={session.id} style={{ padding: '12px', borderRadius: '10px', background: 'var(--bg-card-subtle, #F8FAFC)' }}>
+              <div style={{ fontWeight: 700 }}>{formatSessionTime(session.starts_at)} – {formatSessionTime(session.ends_at)}</div>
+              <div style={{ color: 'var(--text-muted, #64748B)', marginTop: '3px' }}>{session.location || 'Location to be confirmed'}</div>
+            </li>
+          ))}
+        </ul>
       )}
-    </>
+    </section>
   )
 }
-
