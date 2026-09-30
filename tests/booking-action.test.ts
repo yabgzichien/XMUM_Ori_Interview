@@ -46,3 +46,24 @@ describe('confirmReservationAction email domain validation', () => {
     })
   })
 })
+
+describe('confirmReservationAction deadline validation', () => {
+  it('rejects confirmation when game_master deadline has passed', async () => {
+    // 12:30 PM (GM closed)
+    const afterNoon = new Date('2026-09-30T12:30:00+08:00').getTime()
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(afterNoon)
+
+    const res = await confirmReservationAction('token-1', {
+      name: 'Tester',
+      studentId: 'ID123',
+      email: 'tester@xmu.edu.my',
+      track: 'game_master',
+    })
+    expect(res).toEqual({
+      data: null,
+      error: 'Game Master interview registration closed at 12:00 PM.',
+    })
+
+    nowSpy.mockRestore()
+  })
+})

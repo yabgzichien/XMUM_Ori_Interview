@@ -13,7 +13,9 @@
     "seed:committee": "node --env-file=.env.local scripts/seed-committee.mjs",
     "seed:all": "npm run seed && npm run seed:committee",
     "migrate": "node --env-file=.env.local scripts/apply-migrations.mjs",
-    "build:migrations": "node scripts/build-all-migrations.mjs"
+    "build:migrations": "node scripts/build-all-migrations.mjs",
+    "standby:check": "node --env-file=.env.local scripts/standby-check.mjs",
+    "release:holds": "node --env-file=.env.local scripts/release-holds.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

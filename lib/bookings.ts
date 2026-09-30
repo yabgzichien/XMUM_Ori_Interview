@@ -16,6 +16,7 @@ export type PublicBookingInput = {
   contactNumber?: string
   experiences?: string
   links?: string
+  track?: Track
 }
 
 export type PublicBooking = {

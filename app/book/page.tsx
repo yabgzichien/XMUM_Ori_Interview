@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: 'Book interview slots for Facilitator and Game Master orientation positions.',
 }
 
+export const dynamic = 'force-dynamic'
+
 type SearchParams = { [key: string]: string | string[] | undefined }
 
 function isTrack(value: string | string[] | undefined): value is Track {
@@ -45,6 +47,7 @@ export default async function BookPage({
         initialSlotsByTrack={initialSlotsByTrack}
         initialOrientation={initOrientation}
         initialTrack={initTrack}
+        serverTime={Date.now()}
       />
     </Suspense>
   )

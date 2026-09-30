@@ -218,6 +218,7 @@ describe('BookClient history and hold release', () => {
       studentId: 'DSC2405104',
       email: 'you@xmu.edu.my',
       contactNumber: '012-3456789',
+      track: 'facilitator',
     })
   })
 
@@ -311,5 +312,121 @@ describe('BookClient history and hold release', () => {
       window.dispatchEvent(new PopStateEvent('popstate', { state: { bookStep: 1 } }))
     })
     expect(screen.getByRole('heading', { name: /select your desired position/i })).toBeDefined()
+  })
+
+  it('disables Game Master button, keeps track as GM with "Position Closed", and only switches to Facilitator when manually clicked', async () => {
+    // 12:30 PM (GM closed, Facilitator open)
+    const afterNoonTime = new Date('2026-09-30T12:30:00+08:00').getTime()
+
+    render(
+      <BookClient
+        initialSlotsByTrack={sampleSlots}
+        initialOrientation="december"
+        initialTrack="game_master"
+        serverTime={afterNoonTime}
+      />
+    )
+
+    // Heading should be visible
+    expect(screen.getByRole('heading', { name: /select your desired position/i })).toBeDefined()
+
+    // Notice banner should state GM is closed
+    expect(screen.getByText(/Game Master interview registration closed at 12:00 PM/i)).toBeDefined()
+
+    // GM button should show Closed badge
+    expect(screen.getByText(/Closed \(12:00 PM\)/i)).toBeDefined()
+
+    // GM button should be disabled
+    const gmButton = screen.getByRole('button', { name: /game master/i })
+    expect(gmButton.getAttribute('disabled')).not.toBeNull()
+
+    // Facilitator button should be enabled
+    const facButton = screen.getByRole('button', { name: /facilitator/i })
+    expect(facButton.getAttribute('disabled')).toBeNull()
+
+    // It should NOT automatically switch to Facilitator.
+    // Instead, the primary action button is disabled with "Position Closed", and "Return to Home" links exist.
+    const positionClosedBtn = screen.getByRole('button', { name: /position closed/i })
+    expect(positionClosedBtn.getAttribute('disabled')).not.toBeNull()
+
+    const returnHomeLinks = screen.getAllByRole('link', { name: /return to home/i })
+    expect(returnHomeLinks.length).toBeGreaterThan(0)
+    expect(returnHomeLinks[0].getAttribute('href')).toBe('/')
+
+    // Clicking disabled GM button should remain disabled
+    await act(async () => {
+      fireEvent.click(gmButton)
+    })
+    expect(screen.getByRole('button', { name: /position closed/i })).toBeDefined()
+
+    // When the user explicitly chooses Facilitator
+    await act(async () => {
+      fireEvent.click(facButton)
+    })
+
+    // Now Facilitator is selected and they can proceed to select slot
+    const continueBtn = screen.getByRole('button', { name: /continue to select slot/i })
+    expect(continueBtn.getAttribute('disabled')).toBeNull()
+  })
+
+  it('updates UI to closed state and blocks proceeding when deadline passes while user is on page', async () => {
+    // Loaded at 11:55 AM (GM is still open)
+    const beforeNoon = new Date('2026-09-30T11:55:00+08:00').getTime()
+
+    render(
+      <BookClient
+        initialSlotsByTrack={sampleSlots}
+        initialOrientation="december"
+        initialTrack="game_master"
+        serverTime={beforeNoon}
+      />
+    )
+
+    // Button is initially "Continue to Select Slot →"
+    const continueBtn = screen.getByRole('button', { name: /continue to select slot/i })
+    expect(continueBtn.getAttribute('disabled')).toBeNull()
+
+    // Time passes to 12:05 PM while user is on page
+    const afterNoon = new Date('2026-09-30T12:05:00+08:00').getTime()
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(afterNoon)
+
+    // User attempts to click Continue to Select Slot
+    await act(async () => {
+      fireEvent.click(continueBtn)
+    })
+
+    // It should not advance to step 2; instead UI updates to Position Closed
+    expect(screen.queryByRole('heading', { name: /select an interview slot/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /position closed/i })).toBeDefined()
+    expect(screen.getByText(/Game Master interview registration closed at 12:00 PM/i)).toBeDefined()
+
+    nowSpy.mockRestore()
+  })
+
+  it('disables all tracks and provides Check My Booking Slot link when all deadlines (6:00 PM) have passed', async () => {
+    // 07:00 PM (Both closed)
+    const afterEveningTime = new Date('2026-09-30T19:00:00+08:00').getTime()
+
+    render(
+      <BookClient
+        initialSlotsByTrack={sampleSlots}
+        initialOrientation="december"
+        initialTrack="facilitator"
+        serverTime={afterEveningTime}
+      />
+    )
+
+    // Banner indicates all registrations closed
+    expect(screen.getByText(/All interview slots for December 2026 Orientation have concluded/i)).toBeDefined()
+
+    // Both track buttons should be disabled
+    const gmButton = screen.getByRole('button', { name: /game master/i })
+    const facButton = screen.getByRole('button', { name: /facilitator/i })
+    expect(gmButton.getAttribute('disabled')).not.toBeNull()
+    expect(facButton.getAttribute('disabled')).not.toBeNull()
+
+    // Should display Check My Booking Slot link
+    const checkBookingLink = screen.getByRole('link', { name: /check my booking slot/i })
+    expect(checkBookingLink.getAttribute('href')).toBe('/my-booking')
   })
 })

@@ -10,6 +10,8 @@ import {
   Orientation,
   isOrientation,
 } from '@/lib/orientation'
+import Link from 'next/link'
+import { TRACK_DEADLINES, isTrackClosed } from '@/lib/deadlines'
 
 const HOLD_STORAGE_KEY = 'xmumori-book-hold'
 const HOLD_TTL_MS = 10 * 60 * 1000
@@ -83,15 +85,24 @@ type BookClientProps = {
   initialSlotsByTrack?: Record<Track, AvailableSlot[]>
   initialOrientation?: Orientation
   initialTrack?: Track
+  serverTime?: number
 }
 
 export function BookClient({
   initialSlotsByTrack,
   initialOrientation,
   initialTrack,
+  serverTime,
 }: BookClientProps = {}) {
   const searchParams = useSearchParams()
+  const [now, setNow] = useState<number>(() => serverTime ?? Date.now())
+
+  const isGmClosed = isTrackClosed('game_master', now)
+  const isFaciClosed = isTrackClosed('facilitator', now)
+  const allTracksClosed = isGmClosed && isFaciClosed
+
   const initTrack: Track = initialTrack ?? (isTrack(searchParams.get('track')) ? (searchParams.get('track') as Track) : 'facilitator')
+
   const initOrientation: Orientation = initialOrientation ?? (isOrientation(searchParams.get('orientation'))
     ? (searchParams.get('orientation') as Orientation)
     : DEFAULT_ORIENTATION)
@@ -380,6 +391,17 @@ export function BookClient({
     setSubmitError(null)
     if (formInvalid) return
 
+    const currentNow = Date.now()
+    if (isTrackClosed(track, currentNow)) {
+      setNow(currentNow)
+      setSubmitError(
+        track === 'game_master'
+          ? 'Game Master interview registration closed at 12:00 PM.'
+          : 'Interview registration has closed for this position.'
+      )
+      return
+    }
+
     setSubmitting(true)
     let result: Awaited<ReturnType<typeof confirmReservationAction>>
     try {
@@ -388,6 +410,7 @@ export function BookClient({
         studentId: studentId.trim(),
         email: email.trim(),
         contactNumber: contactNumber.trim(),
+        track,
       })
     } catch {
       setSubmitting(false)
@@ -440,6 +463,11 @@ export function BookClient({
   }
 
   function proceedToStep2() {
+    const currentNow = Date.now()
+    if (isTrackClosed(track, currentNow)) {
+      setNow(currentNow)
+      return
+    }
     if (typeof window !== 'undefined') {
       window.history.pushState({ bookStep: 2 }, '')
     }
@@ -474,7 +502,11 @@ export function BookClient({
 
   async function handleStepClick(targetStep: number) {
     if (targetStep === step) return
-    if (step === 4) return
+    const currentNow = Date.now()
+    if ((targetStep === 2 || targetStep === 3) && isTrackClosed(track, currentNow)) {
+      setNow(currentNow)
+      return
+    }
 
     if (targetStep === 1) {
       if (step === 3) {
@@ -519,6 +551,12 @@ export function BookClient({
 
   async function reserveAndContinue() {
     if (!selectedSlot) return
+    const currentNow = Date.now()
+    if (isTrackClosed(track, currentNow)) {
+      setNow(currentNow)
+      setReserveError(`Registration for ${track === 'game_master' ? 'Game Master' : 'Facilitator'} is now closed.`)
+      return
+    }
     setReserving(true)
     setReserveError(null)
     const { data, error } = await reserveSlot(selectedSlot.id, holdToken)
@@ -734,7 +772,9 @@ export function BookClient({
           const canClick =
             !active &&
             step !== 4 &&
-            (n === 1 || n === 2 || (n === 3 && Boolean(selectedSlot)))
+            (n === 1 ||
+              (n === 2 && !isTrackClosed(track, now)) ||
+              (n === 3 && Boolean(selectedSlot) && !isTrackClosed(track, now)))
 
           return (
             <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -802,51 +842,200 @@ export function BookClient({
             </p>
           </div>
 
+          {allTracksClosed && (
+            <div
+              style={{
+                padding: '16px 20px',
+                borderRadius: '14px',
+                background: 'var(--bg-card-subtle, #F8FAFC)',
+                border: '1px solid var(--border-card, #EAEEF4)',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+              }}
+            >
+              <span style={{ fontSize: '24px' }}>🏁</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>
+                  Interview Registrations Closed
+                </div>
+                <div style={{ fontSize: '13.5px', color: 'var(--text-secondary, #475569)' }}>
+                  All interview slots for December 2026 Orientation have concluded. If you already booked a slot, you can check your details below.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!allTracksClosed && isGmClosed && (
+            <div
+              style={{
+                padding: '14px 18px',
+                borderRadius: '12px',
+                background: 'var(--badge-danger-bg, #FEF2F2)',
+                border: '1px solid var(--btn-danger-border, #FECACA)',
+                marginBottom: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '18px' }}>ℹ️</span>
+                <div style={{ fontSize: '13.5px', color: 'var(--badge-danger-text, #991B1B)', fontWeight: 600 }}>
+                  Game Master interview registration closed at 12:00 PM. Facilitator registration remains open until 6:00 PM.
+                </div>
+              </div>
+              <Link
+                href="/"
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: 'var(--badge-danger-text, #991B1B)',
+                  textDecoration: 'underline',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Return to Home →
+              </Link>
+            </div>
+          )}
+
           <div className="book-tracks" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             {TRACKS.map((t) => {
               const active = track === t.key
+              const closed = isTrackClosed(t.key, now)
+              const deadlineInfo = TRACK_DEADLINES[t.key]
+
               return (
                 <button
                   key={t.key}
                   type="button"
+                  disabled={closed}
                   onClick={() => {
+                    const currentNow = Date.now()
+                    if (isTrackClosed(t.key, currentNow)) {
+                      setNow(currentNow)
+                      return
+                    }
                     if (track !== t.key) {
                       setTrack(t.key)
                       setSelectedId(null)
                       setFilterDate('')
                     }
                   }}
-                  className="book-track-btn"
+                  className={`book-track-btn ${closed ? 'book-track-btn-disabled' : ''}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '18px 20px',
                     borderRadius: '16px',
-                    cursor: 'pointer',
+                    cursor: closed ? 'not-allowed' : 'pointer',
                     textAlign: 'left',
                     transition: 'all .15s ease',
-                    border: `2px solid ${active ? 'var(--btn-active-border, #2563EB)' : 'var(--border-card, #EAEEF4)'}`,
-                    background: active ? 'var(--btn-active-bg, #EFF4FF)' : 'var(--bg-card, #fff)',
-                    boxShadow: active ? '0 10px 25px -8px rgba(37,99,235,.25)' : 'none',
+                    opacity: closed ? 0.65 : 1,
+                    border: `2px solid ${
+                      closed
+                        ? 'var(--border-card, #E2E8F0)'
+                        : active
+                        ? 'var(--btn-active-border, #2563EB)'
+                        : 'var(--border-card, #EAEEF4)'
+                    }`,
+                    background: closed
+                      ? 'var(--bg-card-subtle, #F8FAFC)'
+                      : active
+                      ? 'var(--btn-active-bg, #EFF4FF)'
+                      : 'var(--bg-card, #fff)',
+                    boxShadow: !closed && active ? '0 10px 25px -8px rgba(37,99,235,.25)' : 'none',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span className="book-track-icon" style={{ fontSize: '26px', lineHeight: 1 }}>{t.icon}</span>
-                    <span className="book-track-title" style={{ fontWeight: 800, fontSize: '18px', color: active ? 'var(--btn-active-text, #2563EB)' : 'var(--text-primary, #0F172A)' }}>
-                      {t.title}
+                    <span
+                      className="book-track-icon"
+                      style={{
+                        fontSize: '26px',
+                        lineHeight: 1,
+                        filter: closed ? 'grayscale(80%)' : 'none',
+                      }}
+                    >
+                      {t.icon}
                     </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span
+                          className="book-track-title"
+                          style={{
+                            fontWeight: 800,
+                            fontSize: '18px',
+                            color: closed
+                              ? 'var(--text-muted, #94A3B8)'
+                              : active
+                              ? 'var(--btn-active-text, #2563EB)'
+                              : 'var(--text-primary, #0F172A)',
+                          }}
+                        >
+                          {t.title}
+                        </span>
+                        {closed && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              background: 'var(--badge-danger-bg, #FEE2E2)',
+                              color: 'var(--badge-danger-text, #B91C1C)',
+                              border: '1px solid var(--btn-danger-border, #FECACA)',
+                              letterSpacing: '0.02em',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            Closed ({deadlineInfo.label})
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary, #64748B)' }}>
+                        {closed
+                          ? `Registrations ended at ${deadlineInfo.label}`
+                          : `Closes today at ${deadlineInfo.label}`}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', border: `2px solid ${active ? '#2563EB' : 'var(--border-input, #CBD5E1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? '#2563EB' : 'transparent', flexShrink: 0 }}>
-                    {active && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff' }} />}
+                  <div
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      border: `2px solid ${
+                        closed
+                          ? 'var(--border-input, #CBD5E1)'
+                          : active
+                          ? '#2563EB'
+                          : 'var(--border-input, #CBD5E1)'
+                      }`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: !closed && active ? '#2563EB' : 'transparent',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {!closed && active && (
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff' }} />
+                    )}
                   </div>
                 </button>
               )
             })}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-            <a
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <Link
               href="/"
               style={{
                 padding: '14px 22px',
@@ -861,25 +1050,84 @@ export function BookClient({
                 alignItems: 'center',
               }}
             >
-              ← Back
-            </a>
-            <button
-              type="button"
-              onClick={proceedToStep2}
-              style={{
-                padding: '14px 28px',
-                borderRadius: '12px',
-                border: 'none',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '15px',
-                background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)',
-                cursor: 'pointer',
-                boxShadow: '0 8px 20px -6px rgba(37,99,235,.5)',
-              }}
-            >
-              Continue to Select Slot →
-            </button>
+              ← Return to Home
+            </Link>
+
+            {allTracksClosed ? (
+              <Link
+                href="/my-booking"
+                style={{
+                  padding: '14px 26px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '15px',
+                  background: 'var(--btn-accent-bg, #2563EB)',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  boxShadow: '0 8px 20px -6px rgba(37,99,235,.5)',
+                }}
+              >
+                Check My Booking Slot →
+              </Link>
+            ) : isTrackClosed(track, now) ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Link
+                  href="/"
+                  style={{
+                    padding: '14px 22px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-input, #E2E8F0)',
+                    background: 'var(--bg-card, #fff)',
+                    color: 'var(--text-primary, #0F172A)',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  Return to Home
+                </Link>
+                <button
+                  type="button"
+                  disabled={true}
+                  style={{
+                    padding: '14px 24px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    background: 'var(--btn-neutral-bg, #CBD5E1)',
+                    cursor: 'not-allowed',
+                    opacity: 0.65,
+                  }}
+                >
+                  Position Closed
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={proceedToStep2}
+                style={{
+                  padding: '14px 28px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '15px',
+                  background: 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 20px -6px rgba(37,99,235,.5)',
+                }}
+              >
+                Continue to Select Slot →
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -895,6 +1143,30 @@ export function BookClient({
               Slots are available on a first-come, first-served basis.
             </p>
           </div>
+
+          {isTrackClosed(track, now) && (
+            <div
+              style={{
+                padding: '14px 18px',
+                borderRadius: '12px',
+                background: 'var(--badge-danger-bg, #FEF2F2)',
+                border: '1px solid var(--btn-danger-border, #FECACA)',
+                color: 'var(--badge-danger-text, #B91C1C)',
+                marginBottom: '16px',
+                fontSize: '14px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>⚠️</span>
+              <span>
+                Registration for {track === 'game_master' ? 'Game Master' : 'Facilitator'} closed at{' '}
+                {TRACK_DEADLINES[track].label}. New slot reservations are no longer accepted.
+              </span>
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1018,11 +1290,31 @@ export function BookClient({
               </span>
               <button
                 type="button"
-                disabled={!selectedSlot || reserving}
+                disabled={!selectedSlot || reserving || isTrackClosed(track, now)}
                 onClick={reserveAndContinue}
-                style={{ padding: '12px 22px', borderRadius: '11px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '14.5px', background: selectedSlot && !reserving ? 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)' : 'var(--btn-neutral-bg, #CBD5E1)', cursor: selectedSlot && !reserving ? 'pointer' : 'not-allowed', boxShadow: selectedSlot && !reserving ? '0 8px 18px -7px rgba(37,99,235,.5)' : 'none' }}
+                style={{
+                  padding: '12px 22px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '14.5px',
+                  background: selectedSlot && !reserving && !isTrackClosed(track, now)
+                    ? 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)'
+                    : 'var(--btn-neutral-bg, #CBD5E1)',
+                  cursor: selectedSlot && !reserving && !isTrackClosed(track, now)
+                    ? 'pointer'
+                    : 'not-allowed',
+                  boxShadow: selectedSlot && !reserving && !isTrackClosed(track, now)
+                    ? '0 8px 18px -7px rgba(37,99,235,.5)'
+                    : 'none',
+                }}
               >
-                {reserving ? 'Holding your seat…' : 'Continue →'}
+                {reserving
+                  ? 'Holding your seat…'
+                  : isTrackClosed(track, now)
+                  ? 'Position Closed'
+                  : 'Continue →'}
               </button>
             </div>
           </div>
