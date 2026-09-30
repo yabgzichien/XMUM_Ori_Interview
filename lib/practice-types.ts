@@ -22,6 +22,10 @@ export type PracticeSession = {
   location: string
 }
 
+export type AdminPracticeSession = PracticeSession & {
+  group_id: string
+}
+
 export type PublicPracticeBooking = {
   id: string
   group_id: string
@@ -74,7 +78,7 @@ export type AdminPracticeSnapshot = {
   roster: AdminRosterMember[]
   groups: AdminPracticeGroup[]
   bookings: AdminPracticeBooking[]
-  sessions: PracticeSession[]
+  sessions: AdminPracticeSession[]
   positions: Array<{ value: string; label: string }>
 }
 
