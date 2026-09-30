@@ -221,4 +221,41 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
     })
     expect(allowed.error).toBeNull()
   })
+
+  it('keeps the original booking when two admin moves race for one destination space', async () => {
+    const first = await createRosterMember('MoveA')
+    const second = await createRosterMember('MoveB')
+    const occupant = await createRosterMember('MoveOccupant')
+    const origin = await createGroup('Move Origin', 2)
+    const destination = await createGroup('Move Destination', 2)
+
+    const firstBooking = await adminClient.rpc('admin_assign_practice_member', {
+      p_roster_member: first.id,
+      p_group: origin.id,
+    })
+    const secondBooking = await adminClient.rpc('admin_assign_practice_member', {
+      p_roster_member: second.id,
+      p_group: origin.id,
+    })
+    await adminClient.rpc('admin_assign_practice_member', {
+      p_roster_member: occupant.id,
+      p_group: destination.id,
+    })
+
+    const bookingIds = [firstBooking.data.id as string, secondBooking.data.id as string]
+    const results = await Promise.all(bookingIds.map((bookingId) => adminClient.rpc(
+      'admin_move_practice_member',
+      { p_booking: bookingId, p_group: destination.id },
+    )))
+    expect(results.filter((result) => !result.error)).toHaveLength(1)
+
+    const failedIndex = results.findIndex((result) => result.error)
+    const { data: unchanged, error } = await service
+      .from('practice_group_bookings')
+      .select('group_id')
+      .eq('id', bookingIds[failedIndex])
+      .single()
+    expect(error).toBeNull()
+    expect(unchanged?.group_id).toBe(origin.id)
+  })
 })
