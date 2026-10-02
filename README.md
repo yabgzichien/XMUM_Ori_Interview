@@ -14,7 +14,12 @@ Vitest. Booking concurrency is enforced in Postgres via a locking RPC (`book_slo
 slot can never be overbooked.
 
 Set `PRACTICE_RATE_LIMIT_SECRET` to a long random server-only value for the public
-performance-practice verification rate limit. Never give it a `NEXT_PUBLIC_` prefix.
+performance-practice verification rate limit. Never give it a `NEXT_PUBLIC_` prefix or
+commit it. For example, this sends a generated value directly to Vercel without printing it:
+
+```bash
+openssl rand -hex 32 | vercel env add PRACTICE_RATE_LIMIT_SECRET production
+```
 
 ## Role-Based Access Control
 
@@ -30,20 +35,15 @@ performance-practice verification rate limit. Never give it a `NEXT_PUBLIC_` pre
 
 | Role | Account? | Primary route | Key permissions | Scope |
 |---|---|---|---|---|
-| `committee` | Login required | `/practice` | Join/leave a practice group; view own group's members and sessions | Own group only |
-| `performance_lead` | Login required | `/practice` | Everything `committee` can do, plus edit own group's name/capacity and create/edit/delete its practice sessions | Own group only |
-| `head_facilitator` / `head_gm` | Login required | `/practice` | Same as `committee` (or `performance_lead` if they lead a group) — HOF/HOG carries no extra practice privileges; no visibility into other groups or their members | Own group only |
-| `admin` | Login required | `/head/practice` | View all groups and their members; create/rename/delete groups, reassign leads, and assign committee positions (HOF/HOG etc.) | Both tracks, all orientations |
+| Rostered committee member | No account | `/practice` | Verify student ID + matching `studentID@xmu.edu.my`, book once, and re-verify to view the assigned group and sessions | Own booking only |
+| `head_facilitator` / `head_gm` | Not required for practice | `/practice` | Same account-free booking flow as any rostered committee member; their accounts still provide `/head` interview access | Own booking only |
+| `admin` | Login required | `/admin/practice` | Manage the roster, import files, groups, capacities, sessions, and member assignment/movement/removal | All December 2026 practice data |
 
-Interviewees do **not** log in — booking, lookup, and cancellation all run through public,
-Student-ID-scoped functions. Only committee/staff have accounts; new staff profiles start
-as a placeholder `applicant` role until a Head or Admin assigns their real role. At most one
-active booking per applicant per track. Practice group governance and cross-group visibility
-(view all groups or any group's members; create/rename/delete a group;
-reassign its lead) is admin-only. HOF/HOG grants real `/head` dashboard access for interview
-booking (see above) but, for the practice-group feature specifically, is purely a cosmetic
-committee position — a HOF/HOG account uses `/practice` exactly like any other committee
-member.
+Interviewees and practice participants do **not** need accounts. Practice identity is checked
+case-insensitively against the admin roster: `DSC2344112` must use
+`DSC2344112@xmu.edu.my`. A participant can book once and cannot change or remove the booking;
+an admin must move or remove it. HOF/HOG accounts continue to control interview management,
+but do not gain practice-management access.
 
 ## Routes
 
@@ -53,6 +53,30 @@ member.
 - `/register` — committee activation: a pre-invited committee member sets a password (email + invite code)
 - `/head` — Committee dashboard (admin/Heads)
 - `/admin` — admin-only: invite committee (name, student ID, email, role) and view invite codes/status
+- `/practice` — public, no login: verify roster identity, book once, or view an existing booking
+- `/admin/practice` — admin-only roster, import, group, session, and assignment management
+
+## Performance practice operations (December 2026)
+
+Migration `0041_account_free_practice_booking.sql` replaces the earlier account-based practice
+model. Applying it intentionally resets existing practice groups, sessions, memberships, and
+practice roster data to empty; interview bookings, profiles, and staff accounts are not reset.
+Back up any old practice data before applying it if it must be retained.
+
+After applying migrations:
+
+1. Sign in as an admin and open `/admin/practice`.
+2. Add roster members manually or download the XLSX template from the Import roster tab.
+3. Import `.xlsx`, `.csv`, or `.json`. Every row must contain exactly the fields `name`,
+   `student_id`, and `position`; position values must already exist in Committee Management.
+   Validation is all-or-nothing: no row is saved until the complete file passes and the admin
+   selects **Apply import**. The limit is 5 MB and 5,000 rows.
+4. Create groups, set capacities/open status, add sessions, and optionally assign members.
+5. Give committee members `/practice`; only group names and remaining spaces appear after
+   successful identity verification.
+
+The current release is fixed to the **December 2026** orientation intake. The roster and group
+tables begin empty, and there is no performance-lead role in this workflow.
 
 ## Staff onboarding
 
@@ -84,6 +108,7 @@ npm run build:migrations           # regenerate supabase/all_migrations.sql from
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key # Keep secret, never expose to browser
+PRACTICE_RATE_LIMIT_SECRET=generate-a-long-random-server-only-value
 
 # Canonical site URL used to build links in outbound emails (invite
 # activation, etc). Without this, links fall back to whatever Host header
@@ -147,6 +172,9 @@ Live at **https://xmum-ori-interview.vercel.app**.
 - `bookings` — slot, applicant, track, status (booked/cancelled); partial unique index =
   one active booking per applicant per track
 - `track_settings` — per-track booking window + reschedule cutoff
+- `committee_roster` — account-free practice eligibility: name, student ID, position, active status
+- `practice_groups` / `practice_sessions` — December 2026 group capacity and schedule
+- `practice_group_bookings` — one immutable self-service booking per roster member; admin-managed moves/removals
 
 ### Key RPCs
 
@@ -203,35 +231,25 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Head["Head/Admin creates\npractice groups"] --> SetGroup["Set name, capacity,\nassign a performance lead"]
-    SetGroup --> Groups[("Practice groups\nopen for signup")]
-
-    Committee(["Committee member logs in"]) --> Practice["/practice page"]
-    Practice --> HasGroup{"Already in a group?"}
-
-    HasGroup -- "No" --> Browse["Browse open groups\n(name, lead, seats left)"]
-    Browse --> Join{"Seats available?"}
-    Join -- "No" --> Full["Show as Full"]
-    Join -- "Yes" --> JoinGroup["Join group"]
-    JoinGroup --> Groups
-
-    HasGroup -- "Yes" --> MyGroup["View my group:\nsessions + members"]
-    MyGroup --> LeaveChoice{"Leave group?"}
-    LeaveChoice -- "Yes" --> Leave["Leave group\n(seat freed up)"]
-    Leave --> Browse
-
-    MyGroup --> IsLead{"Is performance lead\nof this group?"}
-    IsLead -- "Yes" --> ManageSessions["Create / edit / delete\npractice sessions\n(date, time)"]
-    ManageSessions --> MyGroup
+    Admin["Admin loads roster and creates groups"] --> Groups[("Open practice groups")]
+    Committee(["Committee member opens /practice"]) --> Verify["Enter student ID and matching university email"]
+    Verify --> Valid{"Active roster match?"}
+    Valid -- "No" --> GenericError["Show generic verification error"]
+    Valid -- "Yes, no booking" --> Browse["Show group names and remaining spaces"]
+    Browse --> Confirm["Choose and confirm once"]
+    Confirm --> Groups
+    Valid -- "Yes, booked" --> MyGroup["Show assigned group and sessions"]
+    Admin --> Manage["Move/remove members and manage sessions"]
+    Manage --> Groups
 
     classDef head fill:#fef3c7,stroke:#d97706,color:#78350f
     classDef committee fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
     classDef decision fill:#f3f4f6,stroke:#6b7280,color:#111827
     classDef db fill:#dcfce7,stroke:#16a34a,color:#14532d
 
-    class Head,SetGroup head
-    class Practice,Browse,JoinGroup,MyGroup,Leave,ManageSessions committee
-    class HasGroup,Join,LeaveChoice,IsLead decision
+    class Admin,Manage head
+    class Verify,Browse,Confirm,MyGroup committee
+    class Valid decision
     class Groups db
 ```
 
