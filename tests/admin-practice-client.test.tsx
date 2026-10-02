@@ -1,9 +1,10 @@
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RosterManager } from '@/app/admin/practice/RosterManager'
 import { RosterImportPanel } from '@/app/admin/practice/RosterImportPanel'
 import { PracticeGroupManager } from '@/app/admin/practice/PracticeGroupManager'
+import { AdminPracticeDashboard } from '@/app/admin/practice/AdminPracticeDashboard'
 import * as actions from '@/app/actions/practiceAdminActions'
 
 const navigation = vi.hoisted(() => ({ refresh: vi.fn() }))
@@ -43,6 +44,7 @@ const groups = [{ id: 'group-1', name: 'Group A', capacity: 3, status: 'open' as
 const bookings = [{ id: 'booking-1', group_id: 'group-1', roster_member_id: 'member-1', member_name: 'Alice Tan', student_id: 'DSC2344112', source: 'self_service' as const }]
 const sessions = [{ id: 'session-1', group_id: 'group-1', starts_at: '2026-12-05T02:00:00.000Z', ends_at: '2026-12-05T03:00:00.000Z', location: 'D5-101' }]
 const positions = [{ value: 'facilitator', label: 'Facilitator' }, { value: 'game_master', label: 'Game Master' }]
+const snapshot = { roster, groups, bookings, sessions, positions }
 
 describe('admin practice management', () => {
   beforeEach(() => {
@@ -57,6 +59,45 @@ describe('admin practice management', () => {
     vi.mocked(actions.assignPracticeMemberAction).mockResolvedValue({ data: {}, error: null })
     vi.mocked(actions.movePracticeMemberAction).mockResolvedValue({ data: {}, error: null })
     vi.mocked(actions.removePracticeBookingAction).mockResolvedValue({ data: true, error: null })
+  })
+
+  it('summarizes the operation and switches workspaces', () => {
+    render(<AdminPracticeDashboard snapshot={snapshot} />)
+    const overview = screen.getByLabelText('Practice overview')
+    expect(within(overview).getByText('3')).toBeDefined()
+    expect(within(overview).getByText('Roster members')).toBeDefined()
+    expect(within(overview).getByText('1 booked')).toBeDefined()
+    expect(within(overview).getByText('2 remaining spaces')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('tab', { name: /groups/i }))
+    expect(screen.getByRole('heading', { name: /practice groups and schedules/i })).toBeDefined()
+  })
+
+  it('supports keyboard navigation between management tabs', () => {
+    render(<AdminPracticeDashboard snapshot={snapshot} />)
+    const rosterTab = screen.getByRole('tab', { name: /^roster3$/i })
+    const importTab = screen.getByRole('tab', { name: /^import roster$/i })
+    const groupsTab = screen.getByRole('tab', { name: /^groups2$/i })
+
+    rosterTab.focus()
+    fireEvent.keyDown(rosterTab, { key: 'ArrowRight' })
+    expect(importTab.getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(importTab)
+
+    fireEvent.keyDown(importTab, { key: 'End' })
+    expect(groupsTab.getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(groupsTab)
+  })
+
+  it('filters the roster by name, student ID, or position', () => {
+    render(<RosterManager roster={roster} positions={positions} />)
+    fireEvent.change(screen.getByRole('searchbox', { name: /search roster/i }), { target: { value: 'Bob' } })
+    expect(screen.getByText('Bob Lee')).toBeDefined()
+    expect(screen.queryByText('Alice Tan')).toBeNull()
+
+    fireEvent.change(screen.getByRole('searchbox', { name: /search roster/i }), { target: { value: 'DSC2344114' } })
+    expect(screen.getByText('Carol Lim')).toBeDefined()
+    expect(screen.queryByText('Bob Lee')).toBeNull()
   })
 
   it('adds, edits, deactivates, and reactivates roster members', async () => {
@@ -111,6 +152,9 @@ describe('admin practice management', () => {
     expect(validatedBody.get('file')).toBe(good)
     expect(appliedBody.get('file')).toBe(good)
     expect(navigation.refresh).toHaveBeenCalledTimes(1)
+    expect(screen.getByText(/roster updated. choose another file/i)).toBeDefined()
+    expect(screen.queryByText(/your roster is not changed until/i)).toBeNull()
+    expect(screen.getByLabelText(/roster file/i)).not.toBe(input)
     fetchMock.mockRestore()
   })
 

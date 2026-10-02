@@ -12,13 +12,13 @@ import {
   updatePracticeGroupAction,
 } from '@/app/actions/practiceAdminActions'
 import type { AdminPracticeBooking, AdminPracticeGroup, AdminRosterMember, PracticeSession } from '@/lib/practice-types'
+import { AlertCircle, ArrowRightLeft, CalendarClock, CheckCircle2, Clock3, Layers3, MapPin, Pencil, Plus, Trash2, UserRoundPlus, UsersRound } from 'lucide-react'
+import styles from './practice-admin.module.css'
 
 type AdminSession = PracticeSession & { group_id: string }
 type Props = { groups: AdminPracticeGroup[]; roster: AdminRosterMember[]; bookings: AdminPracticeBooking[]; sessions: AdminSession[] }
 type SessionDraft = { id?: string; startsAt: string; endsAt: string; location: string }
 
-const fieldStyle = { padding: '8px 9px', border: '1px solid #dbe2ea', borderRadius: '8px' }
-const buttonStyle = { padding: '7px 10px', border: '1px solid #dbe2ea', borderRadius: '8px', background: '#fff', cursor: 'pointer' }
 const emptySession: SessionDraft = { startsAt: '', endsAt: '', location: '' }
 
 function localDateTime(value: string) {
@@ -70,67 +70,103 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
   const unbooked = roster.filter((member) => member.active && !member.booking_id)
 
   return (
-    <section aria-labelledby="groups-heading">
-      <h2 id="groups-heading">Practice groups and schedules</h2>
-      <form onSubmit={createGroup} style={{ display: 'flex', gap: '9px', alignItems: 'end', flexWrap: 'wrap', marginBottom: '18px' }}>
-        <label>New group name<input aria-label="New group name" required value={newName} onChange={(event) => setNewName(event.target.value)} style={{ ...fieldStyle, display: 'block' }} /></label>
-        <label>Capacity<input aria-label="New group capacity" type="number" min="1" required value={newCapacity} onChange={(event) => setNewCapacity(Number(event.target.value))} style={{ ...fieldStyle, display: 'block', width: '90px' }} /></label>
-        <button type="submit" disabled={busy} style={buttonStyle}>Create group</button>
+    <section className={styles.section} aria-labelledby="groups-heading">
+      <header className={styles.sectionHeader}>
+        <div>
+          <h2 id="groups-heading">Practice groups and schedules</h2>
+          <p>Set capacity first, then add sessions and place members. Closed groups stay visible to admins but cannot receive public bookings.</p>
+        </div>
+        <span className={styles.intakeBadge}><Layers3 size={14} /> {groups.filter((group) => group.status === 'open').length} open</span>
+      </header>
+
+      <form className={styles.createPanel} onSubmit={createGroup}>
+        <h3 className={styles.formHeading}><Plus size={17} /> Create a practice group</h3>
+        <div className={styles.createGrid}>
+          <label className={styles.label}>Group name<input className={styles.input} aria-label="New group name" placeholder="e.g. Stage Left" required value={newName} onChange={(event) => setNewName(event.target.value)} /></label>
+          <label className={styles.label}>Capacity<input className={styles.input} aria-label="New group capacity" type="number" min="1" required value={newCapacity} onChange={(event) => setNewCapacity(Number(event.target.value))} /></label>
+          <button className={`${styles.button} ${styles.primaryButton}`} type="submit" disabled={busy}><Plus size={15} /> Create group</button>
+        </div>
       </form>
-      {message && <p role={isError ? 'alert' : 'status'}>{message}</p>}
-      {groups.length === 0 && <p>No practice groups yet.</p>}
-      <div style={{ display: 'grid', gap: '16px' }}>{groups.map((group) => {
+      {message && <div className={`${styles.notice} ${isError ? styles.noticeError : ''}`} role={isError ? 'alert' : 'status'}>{isError ? <AlertCircle size={17} /> : <CheckCircle2 size={17} />}<span>{message}</span></div>}
+      {groups.length === 0 && <div className={styles.emptyState}><Layers3 size={25} /><strong>No practice groups yet</strong><span>Create the first group above, then add its sessions and members.</span></div>}
+      <div className={styles.groupsGrid}>{groups.map((group) => {
         const groupBookings = bookings.filter((booking) => booking.group_id === group.id)
         const groupSessions = sessions.filter((session) => session.group_id === group.id)
         const groupDraft = groupDrafts[group.id] ?? { name: group.name, capacity: group.capacity }
         const sessionDraft = sessionDrafts[group.id] ?? emptySession
+        const occupancy = Math.min((group.booking_count / Math.max(group.capacity, 1)) * 100, 100)
         return (
-          <article key={group.id} style={{ border: '1px solid #e1e7ef', borderRadius: '14px', padding: '16px' }}>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'end', flexWrap: 'wrap' }}>
-              <label>Group name<input aria-label={`Group name for ${group.name}`} value={groupDraft.name} onChange={(event) => setGroupDrafts((current) => ({ ...current, [group.id]: { ...groupDraft, name: event.target.value } }))} style={{ ...fieldStyle, display: 'block' }} /></label>
-              <label>Capacity<input aria-label={`Capacity for ${group.name}`} type="number" min="1" value={groupDraft.capacity} onChange={(event) => setGroupDrafts((current) => ({ ...current, [group.id]: { ...groupDraft, capacity: Number(event.target.value) } }))} style={{ ...fieldStyle, display: 'block', width: '85px' }} /></label>
-              <button type="button" disabled={busy} onClick={() => updateGroup(group)} style={buttonStyle}>Save {group.name}</button>
-              <button type="button" disabled={busy} aria-label={`${group.status === 'open' ? 'Close' : 'Open'} ${group.name}`} onClick={() => updateGroup(group, group.status === 'open' ? 'closed' : 'open')} style={buttonStyle}>{group.status === 'open' ? 'Close' : 'Open'}</button>
-              <button type="button" disabled={busy} aria-label={`Delete ${group.name}`} onClick={() => run(() => deletePracticeGroupAction(group.id), 'Group deleted.')} style={buttonStyle}>Delete</button>
-              <span>{group.booking_count}/{group.capacity} members · {group.status}</span>
-            </div>
+          <article className={styles.groupCard} key={group.id}>
+            <header className={styles.groupHeader}>
+              <div>
+                <div className={styles.groupTitleRow}>
+                  <h3>{group.name}</h3>
+                  <span className={`${styles.statusBadge} ${group.status === 'open' ? '' : styles.statusInactive}`}>{group.status === 'open' ? 'Open for booking' : 'Closed'}</span>
+                </div>
+                <p className={styles.groupMeta}>{groupSessions.length} session{groupSessions.length === 1 ? '' : 's'} scheduled</p>
+              </div>
+              <div className={styles.capacity}>
+                <span className={styles.capacityText}>{group.booking_count} of {group.capacity} places filled</span>
+                <div className={styles.capacityTrack} aria-hidden="true"><div className={styles.capacityFill} style={{ width: `${occupancy}%` }} /></div>
+              </div>
+            </header>
 
-            <h3>Sessions</h3>
-            {groupSessions.map((session) => <div key={session.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-              <span>{new Date(session.starts_at).toLocaleString()} – {session.location || 'Location not set'}</span>
-              <button type="button" aria-label={`Edit session ${session.location}`} onClick={() => setSessionDrafts((current) => ({ ...current, [group.id]: { id: session.id, startsAt: localDateTime(session.starts_at), endsAt: localDateTime(session.ends_at), location: session.location } }))} style={buttonStyle}>Edit</button>
-              <button type="button" aria-label={`Delete session ${session.location}`} onClick={() => run(() => deletePracticeSessionAction(session.id), 'Session deleted.')} style={buttonStyle}>Delete</button>
-            </div>)}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'end', flexWrap: 'wrap' }}>
-              <label>Start<input aria-label={`Session start for ${group.name}`} type="datetime-local" value={sessionDraft.startsAt} onChange={(event) => setSessionDrafts((current) => ({ ...current, [group.id]: { ...sessionDraft, startsAt: event.target.value } }))} style={{ ...fieldStyle, display: 'block' }} /></label>
-              <label>End<input aria-label={`Session end for ${group.name}`} type="datetime-local" value={sessionDraft.endsAt} onChange={(event) => setSessionDrafts((current) => ({ ...current, [group.id]: { ...sessionDraft, endsAt: event.target.value } }))} style={{ ...fieldStyle, display: 'block' }} /></label>
-              <label>Location<input aria-label={`Session location for ${group.name}`} value={sessionDraft.location} onChange={(event) => setSessionDrafts((current) => ({ ...current, [group.id]: { ...sessionDraft, location: event.target.value } }))} style={{ ...fieldStyle, display: 'block' }} /></label>
-              <button type="button" aria-label={`${sessionDraft.id ? 'Save session for' : 'Add session to'} ${group.name}`} onClick={() => saveSession(group)} style={buttonStyle}>{sessionDraft.id ? 'Save session' : 'Add session'}</button>
-            </div>
+            <div className={styles.groupBody}>
+              <div className={styles.groupSettings}>
+                <label className={styles.label}>Group name<input className={styles.input} aria-label={`Group name for ${group.name}`} value={groupDraft.name} onChange={(event) => setGroupDrafts((current) => ({ ...current, [group.id]: { ...groupDraft, name: event.target.value } }))} /></label>
+                <label className={styles.label}>Capacity<input className={styles.input} aria-label={`Capacity for ${group.name}`} type="number" min="1" value={groupDraft.capacity} onChange={(event) => setGroupDrafts((current) => ({ ...current, [group.id]: { ...groupDraft, capacity: Number(event.target.value) } }))} /></label>
+                <div className={styles.buttonRow}>
+                  <button className={`${styles.button} ${styles.secondaryButton}`} type="button" disabled={busy} onClick={() => updateGroup(group)}><CheckCircle2 size={14} /> Save {group.name}</button>
+                  <button className={`${styles.button} ${group.status === 'open' ? styles.dangerButton : styles.successButton}`} type="button" disabled={busy} aria-label={`${group.status === 'open' ? 'Close' : 'Open'} ${group.name}`} onClick={() => updateGroup(group, group.status === 'open' ? 'closed' : 'open')}>{group.status === 'open' ? 'Close booking' : 'Open booking'}</button>
+                  <button className={`${styles.iconButton} ${styles.dangerButton}`} type="button" disabled={busy} aria-label={`Delete ${group.name}`} onClick={() => run(() => deletePracticeGroupAction(group.id), 'Group deleted.')}><Trash2 size={14} /> Delete</button>
+                </div>
+              </div>
 
-            <h3>Members</h3>
-            {groupBookings.map((booking) => <div key={booking.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', margin: '7px 0', flexWrap: 'wrap' }}>
-              <span>{booking.member_name} ({booking.student_id})</span>
-              <select aria-label={`Move ${booking.student_id}`} value={moves[booking.id] ?? group.id} onChange={(event) => setMoves((current) => ({ ...current, [booking.id]: event.target.value }))} style={fieldStyle}>
-                {groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
-              </select>
-              <button type="button" aria-label={`Move ${booking.student_id}`} disabled={!moves[booking.id] || moves[booking.id] === group.id} onClick={async () => {
-                const destination = moves[booking.id]
-                const success = await run(() => movePracticeMemberAction(booking.id, destination), 'Member moved.')
-                if (success) setMoves((current) => ({ ...current, [booking.id]: destination }))
-              }} style={buttonStyle}>Move</button>
-              <button type="button" aria-label={`Remove ${booking.student_id}`} onClick={() => run(() => removePracticeBookingAction(booking.id), 'Booking removed.')} style={buttonStyle}>Remove</button>
-            </div>)}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <select aria-label={`Assign member to ${group.name}`} value={assignments[group.id] ?? ''} onChange={(event) => setAssignments((current) => ({ ...current, [group.id]: event.target.value }))} style={fieldStyle}>
+              <div className={styles.groupSection}>
+                <div className={styles.groupSectionHeader}><h4><CalendarClock size={16} /> Sessions</h4><span className={styles.countPill}>{groupSessions.length}</span></div>
+                {groupSessions.length === 0 ? <div className={styles.emptyState}><Clock3 size={22} /><strong>No sessions scheduled</strong><span>Add the first practice time below.</span></div> : <div className={styles.sessionList}>{groupSessions.map((session) => <div className={styles.sessionItem} key={session.id}>
+                  <div className={styles.sessionInfo}><Clock3 size={16} /><span>{new Date(session.starts_at).toLocaleString()}<small><MapPin size={11} /> {session.location || 'Location not set'}</small></span></div>
+                  <div className={styles.inlineActions}>
+                    <button className={`${styles.iconButton} ${styles.secondaryButton}`} type="button" aria-label={`Edit session ${session.location}`} onClick={() => setSessionDrafts((current) => ({ ...current, [group.id]: { id: session.id, startsAt: localDateTime(session.starts_at), endsAt: localDateTime(session.ends_at), location: session.location } }))}><Pencil size={14} /> Edit</button>
+                    <button className={`${styles.iconButton} ${styles.dangerButton}`} type="button" aria-label={`Delete session ${session.location}`} onClick={() => run(() => deletePracticeSessionAction(session.id), 'Session deleted.')}><Trash2 size={14} /> Delete</button>
+                  </div>
+                </div>)}</div>}
+                <div className={styles.sessionForm}>
+                  <label className={styles.label}>Start<input className={styles.input} aria-label={`Session start for ${group.name}`} type="datetime-local" value={sessionDraft.startsAt} onChange={(event) => setSessionDrafts((current) => ({ ...current, [group.id]: { ...sessionDraft, startsAt: event.target.value } }))} /></label>
+                  <label className={styles.label}>End<input className={styles.input} aria-label={`Session end for ${group.name}`} type="datetime-local" value={sessionDraft.endsAt} onChange={(event) => setSessionDrafts((current) => ({ ...current, [group.id]: { ...sessionDraft, endsAt: event.target.value } }))} /></label>
+                  <label className={styles.label}>Location<input className={styles.input} aria-label={`Session location for ${group.name}`} placeholder="Room or venue" value={sessionDraft.location} onChange={(event) => setSessionDrafts((current) => ({ ...current, [group.id]: { ...sessionDraft, location: event.target.value } }))} /></label>
+                  <button className={`${styles.button} ${styles.primaryButton}`} type="button" aria-label={`${sessionDraft.id ? 'Save session for' : 'Add session to'} ${group.name}`} onClick={() => saveSession(group)}>{sessionDraft.id ? <CheckCircle2 size={14} /> : <Plus size={14} />}{sessionDraft.id ? 'Save session' : 'Add session'}</button>
+                </div>
+              </div>
+
+              <div className={styles.groupSection}>
+                <div className={styles.groupSectionHeader}><h4><UsersRound size={16} /> Members</h4><span className={styles.countPill}>{groupBookings.length}</span></div>
+                {groupBookings.length === 0 ? <div className={styles.emptyState}><UsersRound size={22} /><strong>No members in this group</strong><span>Members can book publicly, or you can assign one below.</span></div> : <div className={styles.memberList}>{groupBookings.map((booking) => <div className={styles.memberItem} key={booking.id}>
+                  <div className={styles.memberInfo}><UsersRound size={16} /><span><strong>{booking.member_name}</strong><small>{booking.student_id} · {booking.source === 'self_service' ? 'Self-booked' : 'Assigned by admin'}</small></span></div>
+                  <div className={styles.inlineActions}>
+                    <select className={styles.select} aria-label={`Move ${booking.student_id}`} value={moves[booking.id] ?? group.id} onChange={(event) => setMoves((current) => ({ ...current, [booking.id]: event.target.value }))}>
+                      {groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+                    </select>
+                    <button className={`${styles.iconButton} ${styles.secondaryButton}`} type="button" aria-label={`Move ${booking.student_id}`} disabled={!moves[booking.id] || moves[booking.id] === group.id} onClick={async () => {
+                      const destination = moves[booking.id]
+                      const success = await run(() => movePracticeMemberAction(booking.id, destination), 'Member moved.')
+                      if (success) setMoves((current) => ({ ...current, [booking.id]: destination }))
+                    }}><ArrowRightLeft size={14} /> Move</button>
+                    <button className={`${styles.iconButton} ${styles.dangerButton}`} type="button" aria-label={`Remove ${booking.student_id}`} onClick={() => run(() => removePracticeBookingAction(booking.id), 'Booking removed.')}><Trash2 size={14} /> Remove</button>
+                  </div>
+                </div>)}</div>}
+                <div className={styles.assignRow}>
+                  <select className={styles.select} aria-label={`Assign member to ${group.name}`} value={assignments[group.id] ?? ''} onChange={(event) => setAssignments((current) => ({ ...current, [group.id]: event.target.value }))}>
                 <option value="">Select an active unbooked member</option>
                 {unbooked.map((member) => <option key={member.id} value={member.id}>{member.name} ({member.student_id})</option>)}
               </select>
-              <button type="button" aria-label={`Assign to ${group.name}`} disabled={!assignments[group.id]} onClick={async () => {
-                const memberId = assignments[group.id]
-                const success = await run(() => assignPracticeMemberAction(memberId, group.id), 'Member assigned.')
-                if (success) setAssignments((current) => ({ ...current, [group.id]: '' }))
-              }} style={buttonStyle}>Assign</button>
+                  <button className={`${styles.button} ${styles.primaryButton}`} type="button" aria-label={`Assign to ${group.name}`} disabled={!assignments[group.id]} onClick={async () => {
+                    const memberId = assignments[group.id]
+                    const success = await run(() => assignPracticeMemberAction(memberId, group.id), 'Member assigned.')
+                    if (success) setAssignments((current) => ({ ...current, [group.id]: '' }))
+                  }}><UserRoundPlus size={14} /> Assign</button>
+                </div>
+              </div>
             </div>
           </article>
         )

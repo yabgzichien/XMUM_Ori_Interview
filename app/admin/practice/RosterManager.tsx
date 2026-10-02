@@ -3,14 +3,13 @@
 import { useState } from 'react'
 import { saveRosterMemberAction, setRosterMemberActiveAction } from '@/app/actions/practiceAdminActions'
 import type { AdminRosterMember } from '@/lib/practice-types'
+import { AlertCircle, CheckCircle2, Pencil, Search, UserPlus, UserRoundCheck, UserRoundX } from 'lucide-react'
+import styles from './practice-admin.module.css'
 
 type Props = {
   roster: AdminRosterMember[]
   positions: Array<{ value: string; label: string }>
 }
-
-const fieldStyle = { padding: '9px 10px', border: '1px solid #dbe2ea', borderRadius: '8px' }
-const buttonStyle = { padding: '8px 12px', border: '1px solid #dbe2ea', borderRadius: '8px', background: '#fff', cursor: 'pointer' }
 
 export function RosterManager({ roster, positions }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -20,6 +19,7 @@ export function RosterManager({ roster, positions }: Props) {
   const [message, setMessage] = useState<string | null>(null)
   const [messageKind, setMessageKind] = useState<'error' | 'success' | null>(null)
   const [busy, setBusy] = useState(false)
+  const [query, setQuery] = useState('')
 
   function resetForm() {
     setEditingId(null)
@@ -63,33 +63,66 @@ export function RosterManager({ roster, positions }: Props) {
     setMessage(result.error ?? (active ? 'Member reactivated.' : 'Member deactivated.'))
   }
 
+  const normalizedQuery = query.trim().toLowerCase()
+  const visibleRoster = normalizedQuery
+    ? roster.filter((member) => {
+      const positionLabel = positions.find((option) => option.value === member.position)?.label ?? member.position
+      return [member.name, member.student_id, positionLabel, member.group_name ?? '']
+        .some((value) => value.toLowerCase().includes(normalizedQuery))
+    })
+    : roster
+
   return (
-    <section aria-labelledby="roster-heading">
-      <h2 id="roster-heading">Committee roster</h2>
-      <p>Only active members can verify and book. Deactivating a member does not remove their existing booking.</p>
-      <form onSubmit={save} style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr auto', gap: '10px', alignItems: 'end', margin: '18px 0' }}>
-        <label>Name<input aria-label="Name" required value={name} onChange={(event) => setName(event.target.value)} style={{ ...fieldStyle, display: 'block', width: '100%', marginTop: '5px' }} /></label>
-        <label>Student ID<input aria-label="Student ID" required value={studentId} onChange={(event) => setStudentId(event.target.value)} style={{ ...fieldStyle, display: 'block', width: '100%', marginTop: '5px' }} /></label>
-        <label>Position<select aria-label="Position" required value={position} onChange={(event) => setPosition(event.target.value)} style={{ ...fieldStyle, display: 'block', width: '100%', marginTop: '5px' }}>{positions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button type="submit" disabled={busy} style={buttonStyle}>{editingId ? 'Save member' : 'Add member'}</button>
-          {editingId && <button type="button" onClick={resetForm} style={buttonStyle}>Cancel</button>}
+    <section className={styles.section} aria-labelledby="roster-heading">
+      <header className={styles.sectionHeader}>
+        <div>
+          <h2 id="roster-heading">Committee roster</h2>
+          <p>Active members can verify and book. Deactivate someone to pause access without removing their existing booking.</p>
+        </div>
+        <span className={styles.intakeBadge}><UserRoundCheck size={14} /> {roster.filter((member) => member.active).length} active</span>
+      </header>
+
+      <form className={styles.formPanel} onSubmit={save}>
+        <h3 className={styles.formHeading}><UserPlus size={17} /> {editingId ? 'Edit roster member' : 'Add a roster member'}</h3>
+        <div className={styles.formGrid}>
+          <label className={styles.label}>Name<input className={styles.input} aria-label="Name" placeholder="Full name" required value={name} onChange={(event) => setName(event.target.value)} /></label>
+          <label className={styles.label}>Student ID<input className={styles.input} aria-label="Student ID" placeholder="DSC2404106" required value={studentId} onChange={(event) => setStudentId(event.target.value)} /></label>
+          <label className={styles.label}>Position<select className={styles.select} aria-label="Position" required value={position} onChange={(event) => setPosition(event.target.value)}>{positions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <div className={styles.buttonRow}>
+            <button className={`${styles.button} ${styles.primaryButton}`} type="submit" disabled={busy}><UserPlus size={15} /> {editingId ? 'Save member' : 'Add member'}</button>
+            {editingId && <button className={`${styles.button} ${styles.secondaryButton}`} type="button" onClick={resetForm}>Cancel</button>}
+          </div>
         </div>
       </form>
-      {message && <p role={messageKind === 'error' ? 'alert' : 'status'}>{message}</p>}
-      {roster.length === 0 ? <p>No committee members yet.</p> : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th align="left">Member</th><th align="left">Position</th><th align="left">Practice group</th><th align="left">Status</th><th>Actions</th></tr></thead>
-            <tbody>{roster.map((member) => (
-              <tr key={member.id} style={{ borderTop: '1px solid #e5eaf0' }}>
-                <td style={{ padding: '12px 0' }}><strong>{member.name}</strong><br /><small>{member.student_id}</small></td>
-                <td>{positions.find((option) => option.value === member.position)?.label ?? member.position}</td>
-                <td>{member.group_name ?? 'Not booked'}</td>
-                <td>{member.active ? 'Active' : 'Inactive'}</td>
-                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button type="button" aria-label={`Edit ${member.student_id}`} onClick={() => edit(member)} style={buttonStyle}>Edit</button>{' '}
-                  <button type="button" disabled={busy} aria-label={`${member.active ? 'Deactivate' : 'Reactivate'} ${member.student_id}`} onClick={() => setActive(member, !member.active)} style={buttonStyle}>{member.active ? 'Deactivate' : 'Reactivate'}</button>
+      {message && <div className={`${styles.notice} ${messageKind === 'error' ? styles.noticeError : ''}`} role={messageKind === 'error' ? 'alert' : 'status'}>
+        {messageKind === 'error' ? <AlertCircle size={17} /> : <CheckCircle2 size={17} />}<span>{message}</span>
+      </div>}
+
+      <div className={styles.toolbar}>
+        <div className={styles.searchWrap}>
+          <Search size={16} />
+          <input className={styles.input} type="search" aria-label="Search roster" placeholder="Search name, ID, position, or group" value={query} onChange={(event) => setQuery(event.target.value)} />
+        </div>
+        <span className={styles.resultCount}>{visibleRoster.length} of {roster.length} members</span>
+      </div>
+
+      {roster.length === 0 ? <div className={styles.emptyState}><UserPlus size={24} /><strong>No roster members yet</strong><span>Add someone above or use the import workspace.</span></div> : visibleRoster.length === 0 ? (
+        <div className={styles.emptyState}><Search size={24} /><strong>No matching members</strong><span>Try a different name, student ID, position, or group.</span></div>
+      ) : (
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead><tr><th>Member</th><th>Position</th><th>Practice group</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead>
+            <tbody>{visibleRoster.map((member) => (
+              <tr key={member.id}>
+                <td><strong className={styles.memberName}>{member.name}</strong><span className={styles.studentId}>{member.student_id}</span></td>
+                <td data-label="Position"><span className={styles.positionBadge}>{positions.find((option) => option.value === member.position)?.label ?? member.position}</span></td>
+                <td data-label="Practice group">{member.group_name ? <span className={styles.groupBadge}>{member.group_name}</span> : <span className={styles.studentId}>Not booked</span>}</td>
+                <td data-label="Status"><span className={`${styles.statusBadge} ${member.active ? '' : styles.statusInactive}`}>{member.active ? 'Active' : 'Inactive'}</span></td>
+                <td data-label="Actions">
+                  <div className={styles.actions}>
+                    <button className={`${styles.iconButton} ${styles.secondaryButton}`} type="button" aria-label={`Edit ${member.student_id}`} onClick={() => edit(member)}><Pencil size={14} /> Edit</button>
+                    <button className={`${styles.iconButton} ${member.active ? styles.dangerButton : styles.successButton}`} type="button" disabled={busy} aria-label={`${member.active ? 'Deactivate' : 'Reactivate'} ${member.student_id}`} onClick={() => setActive(member, !member.active)}>{member.active ? <UserRoundX size={14} /> : <UserRoundCheck size={14} />}{member.active ? 'Deactivate' : 'Reactivate'}</button>
+                  </div>
                 </td>
               </tr>
             ))}</tbody>

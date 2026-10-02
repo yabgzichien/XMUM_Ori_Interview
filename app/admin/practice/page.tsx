@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { getAdminPracticeSnapshot } from '@/lib/practice-admin'
 import { AdminPracticeDashboard } from './AdminPracticeDashboard'
+import { ArrowLeft, CalendarDays } from 'lucide-react'
+import styles from './practice-admin.module.css'
 
 export const metadata: Metadata = {
   title: 'Performance Practice Management',
@@ -16,12 +18,17 @@ export default async function AdminPracticePage() {
   if (profile.role !== 'admin') redirect('/head')
   const snapshot = await getAdminPracticeSnapshot()
   return (
-    <main className="scr" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px', boxSizing: 'border-box' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <Link href="/admin">← Committee management</Link>
-        <h1 style={{ marginBottom: '6px' }}>Performance Practice</h1>
-        <p style={{ margin: 0, color: 'var(--text-muted, #64748b)' }}>December 2026 · Manage eligible committee members, groups, bookings, and schedules.</p>
-      </div>
+    <main className={`scr ${styles.page}`}>
+      <Link className={styles.backLink} href="/admin"><ArrowLeft size={16} /> Committee management</Link>
+      <header className={styles.hero}>
+        <div className={styles.heroTop}>
+          <div>
+            <h1>Performance Practice</h1>
+            <p>Prepare the committee roster, organise practice groups, and keep every session ready for December orientation.</p>
+          </div>
+          <span className={styles.intakeBadge}><CalendarDays size={14} /> December 2026</span>
+        </div>
+      </header>
       <AdminPracticeDashboard snapshot={snapshot} />
     </main>
   )
