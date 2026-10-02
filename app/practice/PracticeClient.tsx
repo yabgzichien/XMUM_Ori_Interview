@@ -94,7 +94,7 @@ export function PracticeClient() {
 
   if (screen.kind === 'verify') {
     return (
-      <form onSubmit={handleVerify} style={{ ...cardStyle, maxWidth: '560px' }}>
+      <form onSubmit={handleVerify} style={{ ...cardStyle, maxWidth: '560px', margin: '0 auto' }}>
         <h2 style={{ margin: '0 0 6px', fontSize: '19px' }}>Verify committee membership</h2>
         <p style={{ margin: '0 0 20px', color: 'var(--text-muted, #64748B)', lineHeight: 1.5 }}>
           Use your student ID and its matching <strong>@xmu.edu.my</strong> email.
@@ -119,7 +119,7 @@ export function PracticeClient() {
 
   if (screen.kind === 'available') {
     return (
-      <section aria-labelledby="available-groups-title" style={{ display: 'grid', gap: '14px' }}>
+      <section aria-labelledby="available-groups-title" style={{ display: 'grid', gap: '14px', maxWidth: '680px', margin: '0 auto' }}>
         <div>
           <h2 id="available-groups-title" style={{ margin: 0, fontSize: '20px' }}>Choose your practice group</h2>
           <p style={{ color: 'var(--text-muted, #64748B)', margin: '5px 0 0' }}>Your booking cannot be changed without an admin.</p>
@@ -149,7 +149,7 @@ export function PracticeClient() {
 
   if (screen.kind === 'confirm') {
     return (
-      <section style={{ ...cardStyle, maxWidth: '560px' }}>
+      <section style={{ ...cardStyle, maxWidth: '560px', margin: '0 auto' }}>
         <h2 style={{ margin: '0 0 8px' }}>Confirm your group</h2>
         <p style={{ color: 'var(--text-muted, #64748B)', lineHeight: 1.5 }}>
           You are booking <strong>{screen.group.name}</strong>. Only an admin can change or remove this booking later.
@@ -166,7 +166,7 @@ export function PracticeClient() {
   }
 
   return (
-    <section style={{ ...cardStyle, maxWidth: '680px' }}>
+    <section style={{ ...cardStyle, maxWidth: '680px', margin: '0 auto' }}>
       {screen.newlyCreated && <p style={{ color: '#15803D', fontWeight: 800, margin: '0 0 8px' }}>Booking confirmed</p>}
       <h2 style={{ margin: '0 0 6px' }}>{screen.booking.group_name}</h2>
       <p style={{ color: 'var(--text-muted, #64748B)', margin: '0 0 20px' }}>Your performance-practice group</p>

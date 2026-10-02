@@ -2,6 +2,7 @@ import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PracticeClient } from '@/app/practice/PracticeClient'
+import PracticePage from '@/app/practice/page'
 import * as publicPractice from '@/lib/practice-public'
 
 vi.mock('@/lib/practice-public', () => ({
@@ -22,6 +23,15 @@ function fillIdentity() {
 describe('account-free practice booking', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('centers the public practice heading and verification card', () => {
+    render(<PracticePage />)
+    const headingContainer = screen.getByRole('heading', { name: /december 2026 performance practice/i }).parentElement
+    const form = screen.getByRole('button', { name: /verify and continue/i }).closest('form')
+    expect(headingContainer?.style.margin).toBe('0px auto 24px')
+    expect(headingContainer?.style.maxWidth).toBe('560px')
+    expect(form?.style.margin).toBe('0px auto')
   })
 
   it('hides groups until verification and shows only name and remaining spaces', async () => {

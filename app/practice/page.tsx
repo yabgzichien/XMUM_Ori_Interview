@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function PracticePage() {
   return (
     <main className="scr" style={{ width: '100%', maxWidth: '920px', margin: '0 auto', padding: '32px 16px 48px', boxSizing: 'border-box' }}>
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ maxWidth: '560px', margin: '0 auto 24px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>
           December 2026 Performance Practice
         </h1>
