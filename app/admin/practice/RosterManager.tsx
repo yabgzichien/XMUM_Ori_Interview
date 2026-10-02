@@ -18,6 +18,7 @@ export function RosterManager({ roster, positions }: Props) {
   const [studentId, setStudentId] = useState('')
   const [position, setPosition] = useState(positions[0]?.value ?? '')
   const [message, setMessage] = useState<string | null>(null)
+  const [messageKind, setMessageKind] = useState<'error' | 'success' | null>(null)
   const [busy, setBusy] = useState(false)
 
   function resetForm() {
@@ -31,9 +32,14 @@ export function RosterManager({ roster, positions }: Props) {
     event.preventDefault()
     setBusy(true)
     setMessage(null)
+    setMessageKind(null)
     const result = await saveRosterMemberAction({ ...(editingId ? { id: editingId } : {}), name, studentId, position })
     setBusy(false)
-    if (result.error) return setMessage(result.error)
+    if (result.error) {
+      setMessageKind('error')
+      return setMessage(result.error)
+    }
+    setMessageKind('success')
     setMessage(editingId ? 'Member updated.' : 'Member added.')
     resetForm()
   }
@@ -44,13 +50,16 @@ export function RosterManager({ roster, positions }: Props) {
     setStudentId(member.student_id)
     setPosition(member.position)
     setMessage(null)
+    setMessageKind(null)
   }
 
   async function setActive(member: AdminRosterMember, active: boolean) {
     setBusy(true)
     setMessage(null)
+    setMessageKind(null)
     const result = await setRosterMemberActiveAction(member.id, active)
     setBusy(false)
+    setMessageKind(result.error ? 'error' : 'success')
     setMessage(result.error ?? (active ? 'Member reactivated.' : 'Member deactivated.'))
   }
 
@@ -67,7 +76,7 @@ export function RosterManager({ roster, positions }: Props) {
           {editingId && <button type="button" onClick={resetForm} style={buttonStyle}>Cancel</button>}
         </div>
       </form>
-      {message && <p role={message.toLowerCase().includes('could not') || message.toLowerCase().includes('required') ? 'alert' : 'status'}>{message}</p>}
+      {message && <p role={messageKind === 'error' ? 'alert' : 'status'}>{message}</p>}
       {roster.length === 0 ? <p>No committee members yet.</p> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>

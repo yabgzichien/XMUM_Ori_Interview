@@ -6,6 +6,12 @@ import { RosterImportPanel } from '@/app/admin/practice/RosterImportPanel'
 import { PracticeGroupManager } from '@/app/admin/practice/PracticeGroupManager'
 import * as actions from '@/app/actions/practiceAdminActions'
 
+const navigation = vi.hoisted(() => ({ refresh: vi.fn() }))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: navigation.refresh }),
+}))
+
 vi.mock('@/app/actions/practiceAdminActions', () => ({
   saveRosterMemberAction: vi.fn(),
   setRosterMemberActiveAction: vi.fn(),
@@ -72,6 +78,15 @@ describe('admin practice management', () => {
     await waitFor(() => expect(actions.setRosterMemberActiveAction).toHaveBeenCalledWith('member-2', true))
   })
 
+  it('announces roster action errors as alerts', async () => {
+    vi.mocked(actions.saveRosterMemberAction).mockResolvedValue({ data: null, error: 'That student ID is already in use.' })
+    render(<RosterManager roster={roster} positions={positions} />)
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Duplicate Member' } })
+    fireEvent.change(screen.getByLabelText('Student ID'), { target: { value: 'DSC2344112' } })
+    fireEvent.click(screen.getByRole('button', { name: /add member/i }))
+    expect((await screen.findByRole('alert')).textContent).toContain('already in use')
+  })
+
   it('shows import errors and applies only the same validated file', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({ data: { rows: [], inserted: 0, updated: 0, errors: [{ row: 3, field: 'student_id', message: 'Duplicate student ID.' }] } }), { status: 400, headers: { 'content-type': 'application/json' } }))
@@ -95,6 +110,7 @@ describe('admin practice management', () => {
     const appliedBody = fetchMock.mock.calls[2][1]?.body as FormData
     expect(validatedBody.get('file')).toBe(good)
     expect(appliedBody.get('file')).toBe(good)
+    expect(navigation.refresh).toHaveBeenCalledTimes(1)
     fetchMock.mockRestore()
   })
 

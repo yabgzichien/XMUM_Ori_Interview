@@ -78,6 +78,41 @@ describe('practice roster imports', () => {
     expect(extraField.errors[0].message).toMatch(/exactly/i)
   })
 
+  it('rejects extra CSV and XLSX data columns', async () => {
+    const files = [
+      new File([
+        'name,student_id,position\nExample,DSC1,facilitator,unexpected\n',
+      ], 'roster.csv'),
+      await xlsxFile([
+        ['name', 'student_id', 'position'],
+        ['Example', 'DSC1', 'facilitator', 'unexpected'],
+      ]),
+    ]
+
+    for (const file of files) {
+      const result = await parsePracticeRosterFile(file, positions)
+      expect(result.rows).toEqual([])
+      expect(result.errors[0]).toMatchObject({ row: 2, field: 'file' })
+      expect(result.errors[0].message).toMatch(/exactly/i)
+    }
+  })
+
+  it('reports the physical CSV row number after blank rows', async () => {
+    const file = new File([
+      'name,student_id,position\n\n\nExample,,facilitator\n',
+    ], 'roster.csv')
+    const result = await parsePracticeRosterFile(file, positions)
+    expect(result.errors).toContainEqual(expect.objectContaining({ row: 4, field: 'student_id' }))
+  })
+
+  it('reports the physical CSV row number after a multiline quoted field', async () => {
+    const file = new File([
+      'name,student_id,position\n"First\nMember",DSC1,facilitator\nSecond,,facilitator\n',
+    ], 'roster.csv')
+    const result = await parsePracticeRosterFile(file, positions)
+    expect(result.errors).toContainEqual(expect.objectContaining({ row: 4, field: 'student_id' }))
+  })
+
   it('reports blank values and positions outside the configured list', async () => {
     const file = new File([JSON.stringify([
       { name: '', student_id: 'DSC1', position: 'unknown' },

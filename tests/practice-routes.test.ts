@@ -7,8 +7,8 @@ const serviceMocks = vi.hoisted(() => ({
 
 const rateLimitMocks = vi.hoisted(() => ({
   getVerificationFingerprint: vi.fn(),
-  isVerificationRateLimited: vi.fn(),
-  recordFailedVerification: vi.fn(),
+  reserveVerificationAttempt: vi.fn(),
+  releaseVerificationAttempt: vi.fn(),
 }))
 
 vi.mock('@/lib/practice-server', () => serviceMocks)
@@ -30,8 +30,8 @@ describe('public practice routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     rateLimitMocks.getVerificationFingerprint.mockReturnValue('fingerprint')
-    rateLimitMocks.isVerificationRateLimited.mockResolvedValue(false)
-    rateLimitMocks.recordFailedVerification.mockResolvedValue(undefined)
+    rateLimitMocks.reserveVerificationAttempt.mockResolvedValue(123)
+    rateLimitMocks.releaseVerificationAttempt.mockResolvedValue(undefined)
   })
 
   it('returns verified groups with no-store caching', async () => {
@@ -49,6 +49,7 @@ describe('public practice routes', () => {
     expect(await response.json()).toEqual({
       data: { state: 'available', groups: [{ id: 'group-1', name: 'Group A', seats_left: 3 }] },
     })
+    expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
   })
 
   it('rejects malformed JSON and wrong primitive types', async () => {
@@ -74,11 +75,11 @@ describe('public practice routes', () => {
     expect(await response.json()).toEqual({
       error: 'Student ID or university email could not be verified.',
     })
-    expect(rateLimitMocks.recordFailedVerification).toHaveBeenCalledWith('fingerprint')
+    expect(rateLimitMocks.releaseVerificationAttempt).not.toHaveBeenCalled()
   })
 
   it('returns 429 before looking up the roster after ten failed attempts', async () => {
-    rateLimitMocks.isVerificationRateLimited.mockResolvedValue(true)
+    rateLimitMocks.reserveVerificationAttempt.mockResolvedValue(null)
     const response = await verifyPOST(request('/api/practice/verify', {
       studentId: 'UNKNOWN',
       email: 'unknown@xmu.edu.my',
@@ -109,7 +110,29 @@ describe('public practice routes', () => {
     }))
     expect(response.status).toBe(409)
     expect(await response.json()).toEqual({ error: 'That practice group is full.' })
-    expect(rateLimitMocks.recordFailedVerification).not.toHaveBeenCalled()
+    expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
+  })
+
+  it('does not turn a committed booking into an error when reservation cleanup fails', async () => {
+    serviceMocks.createPracticeBooking.mockResolvedValue({
+      data: { id: 'booking-1', group_id: 'group-1', group_name: 'Group A', sessions: [] },
+      error: null,
+    })
+    rateLimitMocks.releaseVerificationAttempt.mockRejectedValue(new Error('cleanup failed'))
+    const response = await bookPOST(request('/api/practice/book', {
+      studentId: 'DSC2344112', email: 'DSC2344112@xmu.edu.my', groupId: 'group-1',
+    }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ data: { id: 'booking-1' } })
+  })
+
+  it('releases a reservation when the booking service throws', async () => {
+    serviceMocks.createPracticeBooking.mockRejectedValue(new Error('backend unavailable'))
+    const response = await bookPOST(request('/api/practice/book', {
+      studentId: 'DSC2344112', email: 'DSC2344112@xmu.edu.my', groupId: 'group-1',
+    }))
+    expect(response.status).toBe(500)
+    expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
   })
 
   it('uses the platform-controlled address header ahead of forwarded-for in production', () => {

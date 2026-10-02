@@ -74,6 +74,8 @@ async function makeSignedInStaff(role: 'admin' | 'head_facilitator') {
 
 afterAll(async () => {
   if (!hasEnv) return
+  if (rosterIds.length) await service.from('practice_group_bookings').delete().in('roster_member_id', rosterIds)
+  if (groupIds.length) await service.from('practice_sessions').delete().in('group_id', groupIds)
   if (rosterIds.length) await service.from('committee_roster').delete().in('id', rosterIds)
   if (groupIds.length) await service.from('practice_groups').delete().in('id', groupIds)
   for (const id of authUserIds) {
@@ -102,10 +104,10 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
       p_email: `${member.student_id}@XMU.EDU.MY`,
     })
     expect(error).toBeNull()
-    expect(data).toMatchObject({
-      state: 'available',
-      groups: [{ id: group.id, name: group.name, seats_left: 4 }],
-    })
+    expect(data.state).toBe('available')
+    expect(data.groups).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: group.id, name: group.name, seats_left: 4 }),
+    ]))
   })
 
   it.each([
@@ -135,12 +137,25 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
   it('returns a booked group and its sessions on repeat verification', async () => {
     const member = await createRosterMember('Repeat')
     const group = await createGroup('Repeat Group')
+    const { data: session, error: sessionError } = await service.from('practice_sessions').insert({
+      group_id: group.id,
+      starts_at: '2026-12-05T02:00:00.000Z',
+      ends_at: '2026-12-05T03:00:00.000Z',
+      location: 'D5-101',
+      created_by: adminProfileId,
+    }).select('id, starts_at, ends_at, location').single()
+    expect(sessionError).toBeNull()
+    if (!session) throw new Error('Session fixture was not created')
     const booked = await service.rpc('public_book_practice_group', {
       p_student_id: member.student_id,
       p_email: `${member.student_id}@xmu.edu.my`,
       p_group: group.id,
     })
     expect(booked.error).toBeNull()
+    expect(booked.data).toMatchObject({
+      group_id: group.id,
+      sessions: [{ id: session.id, location: 'D5-101' }],
+    })
 
     const lookup = await service.rpc('public_practice_lookup', {
       p_student_id: member.student_id,
@@ -149,7 +164,7 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
     expect(lookup.error).toBeNull()
     expect(lookup.data).toMatchObject({
       state: 'booked',
-      booking: { group_id: group.id, group_name: group.name, sessions: [] },
+      booking: { group_id: group.id, group_name: group.name, sessions: [{ id: session.id, location: 'D5-101' }] },
     })
   })
 
@@ -198,6 +213,18 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
     expect(results.filter((result) => result.error)[0].error?.message).toContain('group_full')
   })
 
+  it('atomically reserves at most ten concurrent verification attempts per fingerprint', async () => {
+    const fingerprint = `a${suffix}`.replace(/[^a-f0-9]/g, 'a').slice(0, 64).padEnd(64, 'a')
+    const results = await Promise.all(Array.from({ length: 30 }, () => service.rpc(
+      'reserve_practice_verification_attempt',
+      { p_address_fingerprint: fingerprint },
+    )))
+    expect(results.every((result) => !result.error)).toBe(true)
+    const reservations = results.map((result) => result.data as number | null).filter((id): id is number => id !== null)
+    expect(reservations).toHaveLength(10)
+    await Promise.all(reservations.map((id) => service.rpc('release_practice_verification_attempt', { p_attempt: id })))
+  })
+
   it('denies anonymous direct table access', async () => {
     const result = await anon.from('committee_roster').select('id').limit(1)
     expect(result.error).not.toBeNull()
@@ -220,6 +247,32 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
       p_group: group.id,
     })
     expect(allowed.error).toBeNull()
+  })
+
+  it('attributes an admin removal of a self-service booking to the admin', async () => {
+    const member = await createRosterMember('AuditRemoval')
+    const group = await createGroup('Audit Removal Group')
+    const booked = await service.rpc('public_book_practice_group', {
+      p_student_id: member.student_id,
+      p_email: `${member.student_id}@xmu.edu.my`,
+      p_group: group.id,
+    })
+    expect(booked.error).toBeNull()
+
+    const removed = await adminClient.rpc('admin_remove_practice_booking', {
+      p_booking: booked.data.id,
+    })
+    expect(removed.error).toBeNull()
+
+    const { data: audit, error } = await service
+      .from('audit_log')
+      .select('actor_type, actor_id, action')
+      .eq('table_name', 'practice_group_bookings')
+      .eq('record_id', booked.data.id)
+      .eq('action', 'delete')
+      .single()
+    expect(error).toBeNull()
+    expect(audit).toMatchObject({ actor_type: 'user', actor_id: adminProfileId, action: 'delete' })
   })
 
   it('keeps the original booking when two admin moves race for one destination space', async () => {

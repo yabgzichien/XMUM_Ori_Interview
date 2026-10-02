@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { ImportValidation } from '@/lib/practice-types'
 
 type ImportReply = { data?: ImportValidation; error?: string }
 
 export function RosterImportPanel() {
+  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [validatedFile, setValidatedFile] = useState<File | null>(null)
   const [validation, setValidation] = useState<ImportValidation | null>(null)
@@ -53,6 +55,7 @@ export function RosterImportPanel() {
       else {
         setMessage('Import complete.')
         setValidatedFile(null)
+        router.refresh()
       }
     } catch {
       setMessage('The roster import could not be applied.')
