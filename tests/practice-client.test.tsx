@@ -8,6 +8,7 @@ import * as practiceServer from '@/lib/practice-server'
 
 const groupA = (seatsLeft = 3) => ({
   id: 'group-1', name: 'Group A', status: 'open' as const, seats_left: seatsLeft,
+  committee_seats_left: seatsLeft, faci_gm_seats_left: seatsLeft,
   performance_type: null, description: null, leader: null,
   performance_video_url: null, song: null,
 })
@@ -134,7 +135,8 @@ describe('account-free practice booking', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
     await act(async () => fireEvent.click(screen.getByRole('button', { name: /^confirm booking$/i })))
     expect(screen.getByRole('alert').textContent).toContain('full')
-    expect(screen.getByText('0 spaces remaining')).toBeDefined()
+    expect(screen.getByText('0 Committee spaces')).toBeDefined()
+    expect(screen.getByText('0 Faci/GM spaces')).toBeDefined()
     expect((screen.getByRole('button', { name: /full/i }) as HTMLButtonElement).disabled).toBe(true)
   })
 

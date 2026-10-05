@@ -19,8 +19,11 @@ async function requirePracticeAdmin() {
 function mapDatabaseError(message: string): string {
   if (message.includes('member_not_active')) return 'Reactivate this roster member before assigning them.'
   if (message.includes('already_booked')) return 'This roster member already has a group booking.'
+  if (message.includes('member_category_capacity_full')) return "This member's booked group has no space in the new category."
   if (message.includes('group_full')) return 'The destination group is full.'
   if (message.includes('group_has_bookings')) return 'Move or remove every member before deleting this group.'
+  if (message.includes('committee_capacity_below_booking_count')) return 'Committee capacity cannot be lower than the current committee member count.'
+  if (message.includes('faci_gm_capacity_below_booking_count')) return 'Faci/GM capacity cannot be lower than the current Faci/GM member count.'
   if (message.includes('capacity_below_booking_count')) return 'Capacity cannot be lower than the current member count.'
   if (message.includes('duplicate') || message.includes('unique')) return 'That value is already in use.'
   return 'The practice change could not be saved.'
@@ -204,18 +207,31 @@ export async function setRosterMemberActiveAction(id: string, active: boolean): 
   return { data, error: null }
 }
 
-export async function createPracticeGroupAction(input: { name: string; capacity: number }): Promise<ActionResult> {
+function validateCategoryCapacities(committeeCapacity: number, faciGmCapacity: number) {
+  if (!Number.isInteger(committeeCapacity) || !Number.isInteger(faciGmCapacity) || committeeCapacity < 0 || faciGmCapacity < 0) {
+    return 'Each category capacity must be 0 or more.'
+  }
+  if (committeeCapacity + faciGmCapacity < 1) return 'At least one category must have capacity.'
+  return null
+}
+
+export async function createPracticeGroupAction(input: {
+  name: string
+  committeeCapacity: number
+  faciGmCapacity: number
+}): Promise<ActionResult> {
   const auth = await requirePracticeAdmin()
   if (auth.error) return { data: null, error: auth.error }
   const name = input.name.trim()
   if (!name) return { data: null, error: 'Group name is required.' }
-  if (!Number.isInteger(input.capacity) || input.capacity < 1) {
-    return { data: null, error: 'Capacity must be at least 1.' }
-  }
+  const capacityError = validateCategoryCapacities(input.committeeCapacity, input.faciGmCapacity)
+  if (capacityError) return { data: null, error: capacityError }
   const database = await createClient()
   const { data, error } = await database.from('practice_groups').insert({
     name,
-    capacity: input.capacity,
+    capacity: input.committeeCapacity + input.faciGmCapacity,
+    committee_capacity: input.committeeCapacity,
+    faci_gm_capacity: input.faciGmCapacity,
     status: 'open',
     orientation: 'december',
     orientation_year: 2026,
@@ -229,16 +245,16 @@ export async function createPracticeGroupAction(input: { name: string; capacity:
 export async function updatePracticeGroupAction(input: {
   id: string
   name: string
-  capacity: number
+  committeeCapacity: number
+  faciGmCapacity: number
   status: PracticeGroupStatus
 }): Promise<ActionResult> {
   const auth = await requirePracticeAdmin()
   if (auth.error) return { data: null, error: auth.error }
   const name = input.name.trim()
   if (!name) return { data: null, error: 'Group name is required.' }
-  if (!Number.isInteger(input.capacity) || input.capacity < 1) {
-    return { data: null, error: 'Capacity must be at least 1.' }
-  }
+  const capacityError = validateCategoryCapacities(input.committeeCapacity, input.faciGmCapacity)
+  if (capacityError) return { data: null, error: capacityError }
   if (input.status !== 'open' && input.status !== 'closed') {
     return { data: null, error: 'Choose a valid group status.' }
   }
@@ -246,7 +262,8 @@ export async function updatePracticeGroupAction(input: {
   const { data, error } = await database.rpc('admin_update_practice_group', {
     p_group: input.id,
     p_name: name,
-    p_capacity: input.capacity,
+    p_committee_capacity: input.committeeCapacity,
+    p_faci_gm_capacity: input.faciGmCapacity,
     p_status: input.status,
   })
   if (error) return { data: null, error: mapDatabaseError(error.message) }

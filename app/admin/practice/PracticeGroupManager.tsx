@@ -49,8 +49,13 @@ function localDateTime(value: string) {
 
 export function PracticeGroupManager({ groups, roster, bookings, sessions }: Props) {
   const [newName, setNewName] = useState('')
-  const [newCapacity, setNewCapacity] = useState(1)
-  const [groupDrafts, setGroupDrafts] = useState<Record<string, { name: string; capacity: number }>>({})
+  const [newCommitteeCapacity, setNewCommitteeCapacity] = useState(1)
+  const [newFaciGmCapacity, setNewFaciGmCapacity] = useState(1)
+  const [groupDrafts, setGroupDrafts] = useState<Record<string, {
+    name: string
+    committeeCapacity: number
+    faciGmCapacity: number
+  }>>({})
   const [sessionDrafts, setSessionDrafts] = useState<Record<string, SessionDraft>>({})
   const [assignments, setAssignments] = useState<Record<string, string>>({})
   const [moves, setMoves] = useState<Record<string, string>>({})
@@ -72,13 +77,31 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
 
   async function createGroup(event: React.FormEvent) {
     event.preventDefault()
-    const success = await run(() => createPracticeGroupAction({ name: newName, capacity: newCapacity }), 'Group created.')
-    if (success) { setNewName(''); setNewCapacity(1) }
+    const success = await run(() => createPracticeGroupAction({
+      name: newName,
+      committeeCapacity: newCommitteeCapacity,
+      faciGmCapacity: newFaciGmCapacity,
+    }), 'Group created.')
+    if (success) {
+      setNewName('')
+      setNewCommitteeCapacity(1)
+      setNewFaciGmCapacity(1)
+    }
   }
 
   async function updateGroup(group: AdminPracticeGroup, status = group.status) {
-    const draft = groupDrafts[group.id] ?? { name: group.name, capacity: group.capacity }
-    await run(() => updatePracticeGroupAction({ id: group.id, name: draft.name, capacity: draft.capacity, status }), 'Group updated.')
+    const draft = groupDrafts[group.id] ?? {
+      name: group.name,
+      committeeCapacity: group.committee_capacity,
+      faciGmCapacity: group.faci_gm_capacity,
+    }
+    await run(() => updatePracticeGroupAction({
+      id: group.id,
+      name: draft.name,
+      committeeCapacity: draft.committeeCapacity,
+      faciGmCapacity: draft.faciGmCapacity,
+      status,
+    }), 'Group updated.')
   }
 
   async function saveSession(group: AdminPracticeGroup) {
@@ -112,7 +135,7 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
       <header className={styles.sectionHeader}>
         <div>
           <h2 id="groups-heading">Practice groups and schedules</h2>
-          <p>Set capacity first, then add sessions and place members. Closed groups stay visible to admins but cannot receive public bookings.</p>
+          <p>Set separate Committee and Faci/GM capacities, then add sessions and place members. HOF and HOG use Committee spaces.</p>
         </div>
         <span className={styles.intakeBadge}><Layers3 size={14} /> {groups.filter((group) => group.status === 'open').length} open</span>
       </header>
@@ -121,7 +144,8 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
         <h3 className={styles.formHeading}><Plus size={17} /> Create a practice group</h3>
         <div className={styles.createGrid}>
           <label className={styles.label}>Group name<input className={styles.input} aria-label="New group name" placeholder="e.g. Stage Left" required value={newName} onChange={(event) => setNewName(event.target.value)} /></label>
-          <label className={styles.label}>Capacity<input className={styles.input} aria-label="New group capacity" type="number" min="1" required value={newCapacity} onChange={(event) => setNewCapacity(Number(event.target.value))} /></label>
+          <label className={styles.label}>Committee capacity<input className={styles.input} aria-label="New group committee capacity" type="number" min="0" required value={newCommitteeCapacity} onChange={(event) => setNewCommitteeCapacity(Number(event.target.value))} /></label>
+          <label className={styles.label}>Faci/GM capacity<input className={styles.input} aria-label="New group Faci/GM capacity" type="number" min="0" required value={newFaciGmCapacity} onChange={(event) => setNewFaciGmCapacity(Number(event.target.value))} /></label>
           <button className={`${styles.button} ${styles.primaryButton}`} type="submit" disabled={busy}><Plus size={15} /> Create group</button>
         </div>
       </form>
@@ -130,10 +154,15 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
       <div className={styles.groupsGrid}>{groups.map((group) => {
         const groupBookings = bookings.filter((booking) => booking.group_id === group.id)
         const groupSessions = sessions.filter((session) => session.group_id === group.id)
-        const groupDraft = groupDrafts[group.id] ?? { name: group.name, capacity: group.capacity }
+        const groupDraft = groupDrafts[group.id] ?? {
+          name: group.name,
+          committeeCapacity: group.committee_capacity,
+          faciGmCapacity: group.faci_gm_capacity,
+        }
         const sessionDraft = sessionDrafts[group.id] ?? emptySession
         const detailDraft = detailDrafts[group.id] ?? detailsFor(group)
-        const occupancy = Math.min((group.booking_count / Math.max(group.capacity, 1)) * 100, 100)
+        const committeeOccupancy = Math.min((group.committee_booking_count / Math.max(group.committee_capacity, 1)) * 100, 100)
+        const faciGmOccupancy = Math.min((group.faci_gm_booking_count / Math.max(group.faci_gm_capacity, 1)) * 100, 100)
         return (
           <article className={styles.groupCard} key={group.id}>
             <header className={styles.groupHeader}>
@@ -145,15 +174,18 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
                 <p className={styles.groupMeta}>{groupSessions.length} session{groupSessions.length === 1 ? '' : 's'} scheduled</p>
               </div>
               <div className={styles.capacity}>
-                <span className={styles.capacityText}>{group.booking_count} of {group.capacity} places filled</span>
-                <div className={styles.capacityTrack} aria-hidden="true"><div className={styles.capacityFill} style={{ width: `${occupancy}%` }} /></div>
+                <span className={styles.capacityText}>Committee: {group.committee_booking_count} of {group.committee_capacity}</span>
+                <div className={styles.capacityTrack} aria-hidden="true"><div className={styles.capacityFill} style={{ width: `${committeeOccupancy}%` }} /></div>
+                <span className={styles.capacityText}>Faci/GM: {group.faci_gm_booking_count} of {group.faci_gm_capacity}</span>
+                <div className={styles.capacityTrack} aria-hidden="true"><div className={styles.capacityFill} style={{ width: `${faciGmOccupancy}%` }} /></div>
               </div>
             </header>
 
             <div className={styles.groupBody}>
               <div className={styles.groupSettings}>
                 <label className={styles.label}>Group name<input className={styles.input} aria-label={`Group name for ${group.name}`} value={groupDraft.name} onChange={(event) => setGroupDrafts((current) => ({ ...current, [group.id]: { ...groupDraft, name: event.target.value } }))} /></label>
-                <label className={styles.label}>Capacity<input className={styles.input} aria-label={`Capacity for ${group.name}`} type="number" min="1" value={groupDraft.capacity} onChange={(event) => setGroupDrafts((current) => ({ ...current, [group.id]: { ...groupDraft, capacity: Number(event.target.value) } }))} /></label>
+                <label className={styles.label}>Committee capacity<input className={styles.input} aria-label={`Committee capacity for ${group.name}`} type="number" min="0" value={groupDraft.committeeCapacity} onChange={(event) => setGroupDrafts((current) => ({ ...current, [group.id]: { ...groupDraft, committeeCapacity: Number(event.target.value) } }))} /></label>
+                <label className={styles.label}>Faci/GM capacity<input className={styles.input} aria-label={`Faci/GM capacity for ${group.name}`} type="number" min="0" value={groupDraft.faciGmCapacity} onChange={(event) => setGroupDrafts((current) => ({ ...current, [group.id]: { ...groupDraft, faciGmCapacity: Number(event.target.value) } }))} /></label>
                 <div className={styles.buttonRow}>
                   <button className={`${styles.button} ${styles.secondaryButton}`} type="button" disabled={busy} onClick={() => updateGroup(group)}><CheckCircle2 size={14} /> Save {group.name}</button>
                   <button className={`${styles.button} ${group.status === 'open' ? styles.dangerButton : styles.successButton}`} type="button" disabled={busy} aria-label={`${group.status === 'open' ? 'Close' : 'Open'} ${group.name}`} onClick={() => updateGroup(group, group.status === 'open' ? 'closed' : 'open')}>{group.status === 'open' ? 'Close booking' : 'Open booking'}</button>

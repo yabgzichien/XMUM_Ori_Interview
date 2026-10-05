@@ -420,7 +420,7 @@
 .errorList { display: grid; gap: 8px; margin-top: 14px; }
 
 .createPanel { margin-bottom: 18px; }
-.createGrid { display: grid; grid-template-columns: minmax(220px, 1fr) 120px auto; gap: 12px; align-items: end; }
+.createGrid { display: grid; grid-template-columns: minmax(220px, 1fr) 140px 140px auto; gap: 12px; align-items: end; }
 .groupsGrid { display: grid; gap: 16px; }
 .groupCard { border: 1px solid var(--practice-border); border-radius: 14px; background: var(--practice-surface); overflow: hidden; }
 .groupHeader { display: flex; justify-content: space-between; gap: 18px; padding: 18px; background: var(--practice-surface-soft); }
@@ -432,7 +432,7 @@
 .capacityTrack { height: 7px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: var(--border-input); }
 .capacityFill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--practice-accent-strong), var(--practice-violet)); }
 .groupBody { padding: 18px; }
-.groupSettings { display: grid; grid-template-columns: minmax(180px, 1fr) 110px auto; gap: 10px; align-items: end; padding-bottom: 18px; border-bottom: 1px solid var(--practice-border); }
+.groupSettings { display: grid; grid-template-columns: minmax(180px, 1fr) 130px 130px auto; gap: 10px; align-items: end; padding-bottom: 18px; border-bottom: 1px solid var(--practice-border); }
 .groupSection { padding-top: 18px; }
 .groupSectionHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .groupSectionHeader h4 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }

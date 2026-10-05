@@ -22,7 +22,9 @@ export function AdminPracticeDashboard({ snapshot }: { snapshot: AdminPracticeSn
   const bookedMembers = snapshot.bookings.length
   const openGroups = snapshot.groups.filter((group) => group.status === 'open')
   const remainingSpaces = openGroups.reduce(
-    (total, group) => total + Math.max(group.capacity - group.booking_count, 0),
+    (total, group) => total
+      + Math.max(group.committee_capacity - group.committee_booking_count, 0)
+      + Math.max(group.faci_gm_capacity - group.faci_gm_booking_count, 0),
     0,
   )
 

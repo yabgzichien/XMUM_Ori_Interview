@@ -24,14 +24,14 @@ let originalBookingOpensAt: string | null = null
 type RosterFixture = { id: string; student_id: string }
 type GroupFixture = { id: string; name: string }
 
-async function createRosterMember(label: string, active = true): Promise<RosterFixture> {
+async function createRosterMember(label: string, active = true, position = 'facilitator'): Promise<RosterFixture> {
   const studentId = `T${label}${suffix}`.replace(/[^A-Za-z0-9_-]/g, '').toUpperCase()
   const { data, error } = await service
     .from('committee_roster')
     .insert({
       name: `Test ${label}`,
       student_id: studentId,
-      position: 'facilitator',
+      position,
       active,
     })
     .select('id, student_id')
@@ -44,7 +44,14 @@ async function createRosterMember(label: string, active = true): Promise<RosterF
 async function createGroup(label: string, capacity = 4, status: 'open' | 'closed' = 'open'): Promise<GroupFixture> {
   const { data, error } = await service
     .from('practice_groups')
-    .insert({ name: `${label} ${suffix}`, capacity, status, created_by: adminProfileId })
+    .insert({
+      name: `${label} ${suffix}`,
+      capacity: capacity * 2,
+      committee_capacity: capacity,
+      faci_gm_capacity: capacity,
+      status,
+      created_by: adminProfileId,
+    })
     .select('id, name')
     .single()
   if (error) throw error
@@ -160,6 +167,62 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
     expect(data.state).toBe('available')
     expect(data.groups).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: group.id, name: group.name, seats_left: 4 }),
+    ]))
+  })
+
+  it('separates Committee and Faci/GM capacity while treating HOF and HOG as Committee', async () => {
+    const hof = await createRosterMember('SplitHof', true, 'hof')
+    const hog = await createRosterMember('SplitHog', true, 'hog')
+    const facilitator = await createRosterMember('SplitFaci', true, 'facilitator')
+    const gameMaster = await createRosterMember('SplitGm', true, 'game_master')
+    const facilitatorOverflow = await createRosterMember('SplitFaciOverflow', true, 'facilitator')
+    const group = await createGroup('Split Capacity', 2)
+    const capacityUpdate = await service.from('practice_groups').update({
+      capacity: 3,
+      committee_capacity: 1,
+      faci_gm_capacity: 2,
+    }).eq('id', group.id)
+    expect(capacityUpdate.error).toBeNull()
+
+    const [committeeLookup, faciGmLookup] = await Promise.all([
+      service.rpc('public_practice_lookup', {
+        p_student_id: hof.student_id,
+        p_email: `${hof.student_id}@xmu.edu.my`,
+      }),
+      service.rpc('public_practice_lookup', {
+        p_student_id: facilitator.student_id,
+        p_email: `${facilitator.student_id}@xmu.edu.my`,
+      }),
+    ])
+    expect(committeeLookup.error).toBeNull()
+    expect(faciGmLookup.error).toBeNull()
+    expect(committeeLookup.data.groups).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: group.id, seats_left: 1 }),
+    ]))
+    expect(faciGmLookup.data.groups).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: group.id, seats_left: 2 }),
+    ]))
+
+    const book = (member: RosterFixture) => service.rpc('public_book_practice_group', {
+      p_student_id: member.student_id,
+      p_email: `${member.student_id}@xmu.edu.my`,
+      p_group: group.id,
+    })
+
+    expect((await book(hof)).error).toBeNull()
+    expect((await book(facilitator)).error).toBeNull()
+    expect((await book(hog)).error?.message).toContain('group_full')
+    expect((await book(gameMaster)).error).toBeNull()
+    expect((await book(facilitatorOverflow)).error?.message).toContain('group_full')
+
+    const catalog = await service.rpc('public_practice_catalog')
+    expect(catalog.error).toBeNull()
+    expect(catalog.data.groups).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: group.id,
+        committee_seats_left: 0,
+        faci_gm_seats_left: 0,
+      }),
     ]))
   })
 
@@ -288,6 +351,13 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
     const group = await createGroup('Admin Group', 3)
     const calls = [
       ['admin_assign_practice_member', { p_roster_member: member.id, p_group: group.id }],
+      ['admin_update_practice_group', {
+        p_group: group.id,
+        p_name: group.name,
+        p_committee_capacity: 3,
+        p_faci_gm_capacity: 3,
+        p_status: 'open',
+      }],
       ['admin_apply_practice_roster', { p_rows: [] }],
     ] as const
     for (const [rpc, args] of calls) {
@@ -300,6 +370,84 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
       p_group: group.id,
     })
     expect(allowed.error).toBeNull()
+  })
+
+  it('keeps the legacy group update RPC compatible with split capacity', async () => {
+    const group = await createGroup('Legacy RPC', 2)
+    const updated = await adminClient.rpc('admin_update_practice_group', {
+      p_group: group.id,
+      p_name: group.name,
+      p_capacity: 5,
+      p_status: 'open',
+    })
+
+    expect(updated.error).toBeNull()
+    expect(updated.data).toMatchObject({
+      committee_capacity: 5,
+      faci_gm_capacity: 5,
+    })
+  })
+
+  it('maps a legacy direct-insert capacity into both split quotas', async () => {
+    const { data, error } = await service
+      .from('practice_groups')
+      .insert({
+        name: `Legacy Insert ${suffix}`,
+        capacity: 6,
+        status: 'open',
+        created_by: adminProfileId,
+      })
+      .select('id, committee_capacity, faci_gm_capacity')
+      .single()
+
+    expect(error).toBeNull()
+    if (!data) throw new Error('Legacy group fixture was not created')
+    groupIds.push(data.id)
+    expect(data).toMatchObject({
+      committee_capacity: 6,
+      faci_gm_capacity: 6,
+    })
+  })
+
+  it('prevents admins from lowering either category below its current bookings', async () => {
+    const committee = await createRosterMember('CapacityCommittee', true, 'hof')
+    const faciGm = await createRosterMember('CapacityFaciGm', true, 'game_master')
+    const group = await createGroup('Capacity Guard', 2)
+    expect((await adminClient.rpc('admin_assign_practice_member', {
+      p_roster_member: committee.id, p_group: group.id,
+    })).error).toBeNull()
+    expect((await adminClient.rpc('admin_assign_practice_member', {
+      p_roster_member: faciGm.id, p_group: group.id,
+    })).error).toBeNull()
+
+    const update = (committeeCapacity: number, faciGmCapacity: number) => adminClient.rpc(
+      'admin_update_practice_group',
+      {
+        p_group: group.id,
+        p_name: group.name,
+        p_committee_capacity: committeeCapacity,
+        p_faci_gm_capacity: faciGmCapacity,
+        p_status: 'open',
+      },
+    )
+    expect((await update(0, 2)).error?.message).toContain('committee_capacity_below_booking_count')
+    expect((await update(2, 0)).error?.message).toContain('faci_gm_capacity_below_booking_count')
+    expect((await update(1, 1)).error).toBeNull()
+  })
+
+  it('prevents a roster position edit from moving a booked member into a full category', async () => {
+    const committee = await createRosterMember('PositionCommittee', true, 'hog')
+    const faciGm = await createRosterMember('PositionFaciGm', true, 'facilitator')
+    const group = await createGroup('Position Guard', 1)
+    expect((await adminClient.rpc('admin_assign_practice_member', {
+      p_roster_member: committee.id, p_group: group.id,
+    })).error).toBeNull()
+    expect((await adminClient.rpc('admin_assign_practice_member', {
+      p_roster_member: faciGm.id, p_group: group.id,
+    })).error).toBeNull()
+
+    const changed = await service.from('committee_roster').update({ position: 'designer' }).eq('id', faciGm.id)
+    expect(changed.error?.message).toContain('member_category_capacity_full')
   })
 
   it('attributes an admin removal of a self-service booking to the admin', async () => {

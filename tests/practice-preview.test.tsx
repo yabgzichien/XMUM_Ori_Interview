@@ -17,6 +17,8 @@ const previewCatalog = {
     name: 'Neon Pulse',
     status: 'open' as const,
     seats_left: 5,
+    committee_seats_left: 2,
+    faci_gm_seats_left: 3,
     performance_type: 'K-pop dance',
     description: 'A high-energy dance performance for the orientation finale.',
     leader: { id: 'member-1', name: 'Alice Tan', position: 'Facilitator' },
@@ -44,6 +46,8 @@ describe('performance-practice preview mode', () => {
     expect(screen.getByText(/Alice Tan/)).toBeDefined()
     expect(screen.getByTitle(/performance video for Neon Pulse/i).getAttribute('src')).toContain('youtube.com/embed/dQw4w9WgXcQ')
     expect(screen.getByLabelText(/song audio for Neon Pulse/i)).toBeDefined()
+    expect(screen.getByText('2 Committee spaces')).toBeDefined()
+    expect(screen.getByText('3 Faci/GM spaces')).toBeDefined()
     expect(screen.queryByLabelText(/student id/i)).toBeNull()
     expect(screen.getByRole('button', { name: /available when booking opens/i })).toHaveProperty('disabled', true)
   })

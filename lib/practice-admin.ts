@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { getCurrentProfile } from '@/lib/auth'
+import { getPracticeCapacityCategory } from '@/lib/practice-capacity'
 import type {
   AdminPracticeBooking,
   AdminPracticeGroup,
@@ -16,7 +17,7 @@ export async function getAdminPracticeSnapshot(): Promise<AdminPracticeSnapshot>
   const database = await createClient()
   const [rosterResult, groupResult, bookingResult, sessionResult, positionResult, settingsResult] = await Promise.all([
     database.from('committee_roster').select('id, name, student_id, position, active, practice_group_bookings(id, group_id, practice_groups(name))').order('name'),
-    database.from('practice_groups').select('id, name, capacity, status, performance_type, description, leader_roster_member_id, performance_video_url, song_source_type, song_url, song_storage_path, practice_group_bookings(id), practice_sessions(id)').order('name'),
+    database.from('practice_groups').select('id, name, capacity, committee_capacity, faci_gm_capacity, status, performance_type, description, leader_roster_member_id, performance_video_url, song_source_type, song_url, song_storage_path, practice_group_bookings(id, committee_roster(position)), practice_sessions(id)').order('name'),
     database.from('practice_group_bookings').select('id, group_id, roster_member_id, source, committee_roster(name, student_id)').order('created_at'),
     database.from('practice_sessions').select('id, group_id, starts_at, ends_at, location').order('starts_at'),
     database.from('committee_positions').select('value, label').order('label'),
@@ -46,12 +47,26 @@ export async function getAdminPracticeSnapshot(): Promise<AdminPracticeSnapshot>
   const rosterById = new Map(roster.map((member) => [member.id, member]))
   const groups = ((groupResult.data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => {
     const leaderId = row.leader_roster_member_id as string | null
+    const rawBookings = Array.isArray(row.practice_group_bookings)
+      ? row.practice_group_bookings as Array<{ committee_roster?: { position?: string } | Array<{ position?: string }> }>
+      : []
+    const categoryCounts = rawBookings.reduce((counts, booking) => {
+      const rawMember = booking.committee_roster
+      const member = Array.isArray(rawMember) ? rawMember[0] : rawMember
+      const category = getPracticeCapacityCategory(member?.position ?? '')
+      counts[category] += 1
+      return counts
+    }, { committee: 0, faci_gm: 0 })
     return {
       id: row.id as string,
       name: row.name as string,
       capacity: row.capacity as number,
+      committee_capacity: row.committee_capacity as number,
+      faci_gm_capacity: row.faci_gm_capacity as number,
       status: row.status as 'open' | 'closed',
-      booking_count: Array.isArray(row.practice_group_bookings) ? row.practice_group_bookings.length : 0,
+      booking_count: rawBookings.length,
+      committee_booking_count: categoryCounts.committee,
+      faci_gm_booking_count: categoryCounts.faci_gm,
       session_count: Array.isArray(row.practice_sessions) ? row.practice_sessions.length : 0,
       performance_type: row.performance_type as string | null,
       description: row.description as string | null,

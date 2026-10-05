@@ -40,12 +40,14 @@ const roster = [{
 }]
 
 const groups = [{
-  id: 'group-1', name: 'Group A', capacity: 3, status: 'open' as const, booking_count: 1, session_count: 1,
+  id: 'group-1', name: 'Group A', capacity: 5, committee_capacity: 3, faci_gm_capacity: 2,
+  status: 'open' as const, booking_count: 1, committee_booking_count: 0, faci_gm_booking_count: 1, session_count: 1,
   performance_type: 'K-pop dance', description: 'High energy performance.', leader_roster_member_id: 'member-1', leader_name: 'Alice Tan',
   performance_video_url: 'https://youtu.be/dQw4w9WgXcQ', song_source_type: 'youtube' as const,
   song_url: 'https://youtu.be/5qap5aO4i9A', song_storage_path: null,
 }, {
-  id: 'group-2', name: 'Group B', capacity: 4, status: 'closed' as const, booking_count: 0, session_count: 0,
+  id: 'group-2', name: 'Group B', capacity: 6, committee_capacity: 4, faci_gm_capacity: 2,
+  status: 'closed' as const, booking_count: 0, committee_booking_count: 0, faci_gm_booking_count: 0, session_count: 0,
   performance_type: null, description: null, leader_roster_member_id: null, leader_name: null,
   performance_video_url: null, song_source_type: null, song_url: null, song_storage_path: null,
 }]
@@ -81,7 +83,9 @@ describe('admin practice management', () => {
     fireEvent.click(screen.getByRole('button', { name: /save opening time/i }))
     await waitFor(() => expect(actions.savePracticeOpeningAction).toHaveBeenCalledWith({ opensAt: '2026-12-02T10:30' }))
 
-    fireEvent.click(screen.getByRole('button', { name: /clear opening time/i }))
+    const clearButton = screen.getByRole('button', { name: /clear opening time/i })
+    await waitFor(() => expect(clearButton.hasAttribute('disabled')).toBe(false))
+    fireEvent.click(clearButton)
     await waitFor(() => expect(actions.savePracticeOpeningAction).toHaveBeenCalledWith({ opensAt: null }))
   })
 
@@ -91,7 +95,7 @@ describe('admin practice management', () => {
     expect(within(overview).getByText('3')).toBeDefined()
     expect(within(overview).getByText('Roster members')).toBeDefined()
     expect(within(overview).getByText('1 booked')).toBeDefined()
-    expect(within(overview).getByText('2 remaining spaces')).toBeDefined()
+    expect(within(overview).getByText('4 remaining spaces')).toBeDefined()
 
     fireEvent.click(screen.getByRole('tab', { name: /groups/i }))
     expect(screen.getByRole('heading', { name: /practice groups and schedules/i })).toBeDefined()
@@ -185,9 +189,19 @@ describe('admin practice management', () => {
   it('manages groups, sessions, assignments, moves, and removals', async () => {
     render(<PracticeGroupManager groups={groups} roster={roster} bookings={bookings} sessions={sessions} />)
     fireEvent.change(screen.getByLabelText('New group name'), { target: { value: 'Group C' } })
-    fireEvent.change(screen.getByLabelText('New group capacity'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('New group committee capacity'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('New group Faci/GM capacity'), { target: { value: '7' } })
     fireEvent.click(screen.getByRole('button', { name: /create group/i }))
-    await waitFor(() => expect(actions.createPracticeGroupAction).toHaveBeenCalledWith({ name: 'Group C', capacity: 5 }))
+    await waitFor(() => expect(actions.createPracticeGroupAction).toHaveBeenCalledWith({
+      name: 'Group C', committeeCapacity: 5, faciGmCapacity: 7,
+    }))
+
+    fireEvent.change(screen.getByLabelText('Committee capacity for Group A'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Faci/GM capacity for Group A'), { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: /save group a/i }))
+    await waitFor(() => expect(actions.updatePracticeGroupAction).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'group-1', committeeCapacity: 4, faciGmCapacity: 3,
+    })))
 
     fireEvent.click(screen.getByRole('button', { name: /close group a/i }))
     await waitFor(() => expect(actions.updatePracticeGroupAction).toHaveBeenCalledWith(expect.objectContaining({ id: 'group-1', status: 'closed' })))

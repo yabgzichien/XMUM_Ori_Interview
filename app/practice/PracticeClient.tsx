@@ -271,7 +271,10 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
                 {group.description && <p className={styles.description}>{group.description}</p>}
                 <MediaEmbed group={group} />
                 <footer className={styles.cardFooter}>
-                  <span>{bookingOpen ? `${group.seats_left} ${group.seats_left === 1 ? 'space' : 'spaces'} remaining` : 'Preview mode'}</span>
+                  <div className={styles.capacitySplit} aria-label={`Remaining spaces for ${group.name}`}>
+                    <span>{group.committee_seats_left} Committee {group.committee_seats_left === 1 ? 'space' : 'spaces'}</span>
+                    <span>{group.faci_gm_seats_left} Faci/GM {group.faci_gm_seats_left === 1 ? 'space' : 'spaces'}</span>
+                  </div>
                   <button
                     className={styles.primaryButton}
                     type="button"

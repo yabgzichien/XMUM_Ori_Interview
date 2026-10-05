@@ -6,6 +6,8 @@ const rawGroup = {
   name: 'Neon Pulse',
   status: 'open' as const,
   seats_left: 4,
+  committee_seats_left: 2,
+  faci_gm_seats_left: 2,
   performance_type: 'K-pop dance',
   description: 'High energy performance.',
   leader: { id: 'member-1', name: 'Alice Tan', position: 'Facilitator' },

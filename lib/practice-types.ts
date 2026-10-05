@@ -15,6 +15,8 @@ export type PublicPracticeGroup = {
   name: string
   status: PracticeGroupStatus
   seats_left: number
+  committee_seats_left: number
+  faci_gm_seats_left: number
   performance_type: string | null
   description: string | null
   leader: {
@@ -81,8 +83,12 @@ export type AdminPracticeGroup = {
   id: string
   name: string
   capacity: number
+  committee_capacity: number
+  faci_gm_capacity: number
   status: PracticeGroupStatus
   booking_count: number
+  committee_booking_count: number
+  faci_gm_booking_count: number
   session_count: number
   performance_type: string | null
   description: string | null

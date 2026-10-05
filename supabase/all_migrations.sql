@@ -6382,3 +6382,632 @@ REVOKE ALL ON FUNCTION public_practice_catalog() FROM PUBLIC, anon, authenticate
 GRANT EXECUTE ON FUNCTION public_practice_catalog() TO service_role;
 
 NOTIFY pgrst, 'reload schema';
+
+-- ==========================================
+-- MIGRATION: 0045_split_practice_capacity.sql
+-- ==========================================
+
+-- 0045_split_practice_capacity.sql
+-- Give each performance group independent Committee and Faci/GM quotas.
+-- Only facilitator and game_master positions use the Faci/GM quota;
+-- every other position, including HOF and HOG, uses Committee quota.
+
+ALTER TABLE practice_groups
+  ADD COLUMN committee_capacity int,
+  ADD COLUMN faci_gm_capacity int;
+
+UPDATE practice_groups
+SET committee_capacity = capacity,
+    faci_gm_capacity = capacity;
+
+ALTER TABLE practice_groups
+  ALTER COLUMN committee_capacity SET NOT NULL,
+  ALTER COLUMN faci_gm_capacity SET NOT NULL,
+  ADD CONSTRAINT practice_groups_committee_capacity_nonnegative CHECK (committee_capacity >= 0),
+  ADD CONSTRAINT practice_groups_faci_gm_capacity_nonnegative CHECK (faci_gm_capacity >= 0),
+  ADD CONSTRAINT practice_groups_split_capacity_nonempty CHECK (committee_capacity + faci_gm_capacity >= 1);
+
+CREATE OR REPLACE FUNCTION practice_capacity_category(p_position text)
+RETURNS text
+LANGUAGE sql IMMUTABLE SET search_path = public AS $$
+  SELECT CASE
+    WHEN p_position IN ('facilitator', 'game_master') THEN 'faci_gm'
+    ELSE 'committee'
+  END
+$$;
+
+CREATE OR REPLACE FUNCTION public_practice_catalog()
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+DECLARE
+  opens_at timestamptz;
+  server_time timestamptz := statement_timestamp();
+BEGIN
+  SELECT booking_opens_at INTO opens_at
+  FROM practice_settings
+  WHERE orientation = 'december' AND orientation_year = 2026;
+
+  RETURN jsonb_build_object(
+    'server_now', server_time,
+    'booking_opens_at', opens_at,
+    'booking_open', opens_at IS NOT NULL AND server_time >= opens_at,
+    'groups', coalesce((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', g.id,
+        'name', g.name,
+        'status', g.status,
+        'seats_left', greatest(g.committee_capacity - counts.committee_count, 0)
+          + greatest(g.faci_gm_capacity - counts.faci_gm_count, 0),
+        'committee_seats_left', greatest(g.committee_capacity - counts.committee_count, 0),
+        'faci_gm_seats_left', greatest(g.faci_gm_capacity - counts.faci_gm_count, 0),
+        'performance_type', g.performance_type,
+        'description', g.description,
+        'leader', CASE WHEN leader.id IS NULL THEN NULL ELSE jsonb_build_object(
+          'id', leader.id,
+          'name', leader.name,
+          'position', coalesce(position.label, leader.position)
+        ) END,
+        'performance_video_url', g.performance_video_url,
+        'song', CASE
+          WHEN g.song_source_type = 'mp3' AND g.song_storage_path IS NOT NULL
+            THEN jsonb_build_object('type', 'mp3', 'storage_path', g.song_storage_path)
+          WHEN g.song_source_type IN ('youtube', 'external') AND g.song_url IS NOT NULL
+            THEN jsonb_build_object('type', g.song_source_type, 'url', g.song_url)
+          ELSE NULL
+        END
+      ) ORDER BY g.name)
+      FROM practice_groups g
+      LEFT JOIN committee_roster leader ON leader.id = g.leader_roster_member_id
+      LEFT JOIN committee_positions position ON position.value = leader.position
+      LEFT JOIN LATERAL (
+        SELECT
+          count(*) FILTER (WHERE practice_capacity_category(r.position) = 'committee')::int AS committee_count,
+          count(*) FILTER (WHERE practice_capacity_category(r.position) = 'faci_gm')::int AS faci_gm_count
+        FROM practice_group_bookings b
+        JOIN committee_roster r ON r.id = b.roster_member_id
+        WHERE b.group_id = g.id
+      ) counts ON true
+      WHERE g.orientation = 'december' AND g.orientation_year = 2026
+    ), '[]'::jsonb)
+  );
+END $$;
+
+CREATE OR REPLACE FUNCTION public_practice_lookup(p_student_id text, p_email text)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+DECLARE
+  member committee_roster;
+  existing practice_group_bookings;
+  group_row practice_groups;
+  opens_at timestamptz;
+  member_category text;
+BEGIN
+  member := verified_practice_member(p_student_id, p_email);
+  member_category := practice_capacity_category(member.position);
+  SELECT * INTO existing FROM practice_group_bookings WHERE roster_member_id = member.id;
+
+  IF existing.id IS NOT NULL THEN
+    SELECT * INTO group_row FROM practice_groups WHERE id = existing.group_id;
+    RETURN jsonb_build_object(
+      'state', 'booked',
+      'booking', jsonb_build_object(
+        'id', existing.id,
+        'group_id', group_row.id,
+        'group_name', group_row.name,
+        'sessions', coalesce((
+          SELECT jsonb_agg(jsonb_build_object(
+            'id', s.id, 'starts_at', s.starts_at, 'ends_at', s.ends_at, 'location', s.location
+          ) ORDER BY s.starts_at)
+          FROM practice_sessions s WHERE s.group_id = group_row.id
+        ), '[]'::jsonb)
+      )
+    );
+  END IF;
+
+  SELECT booking_opens_at INTO opens_at FROM practice_settings
+  WHERE orientation = 'december' AND orientation_year = 2026;
+  IF opens_at IS NULL OR statement_timestamp() < opens_at THEN
+    RAISE EXCEPTION 'booking_not_open';
+  END IF;
+
+  RETURN jsonb_build_object(
+    'state', 'available',
+    'groups', coalesce((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', g.id,
+        'name', g.name,
+        'status', g.status,
+        'seats_left', CASE member_category
+          WHEN 'faci_gm' THEN greatest(g.faci_gm_capacity - counts.faci_gm_count, 0)
+          ELSE greatest(g.committee_capacity - counts.committee_count, 0)
+        END,
+        'committee_seats_left', greatest(g.committee_capacity - counts.committee_count, 0),
+        'faci_gm_seats_left', greatest(g.faci_gm_capacity - counts.faci_gm_count, 0),
+        'performance_type', g.performance_type,
+        'description', g.description,
+        'leader', CASE WHEN leader.id IS NULL THEN NULL ELSE jsonb_build_object(
+          'id', leader.id,
+          'name', leader.name,
+          'position', coalesce(position.label, leader.position)
+        ) END,
+        'performance_video_url', g.performance_video_url,
+        'song', CASE
+          WHEN g.song_source_type = 'mp3' AND g.song_storage_path IS NOT NULL
+            THEN jsonb_build_object('type', 'mp3', 'storage_path', g.song_storage_path)
+          WHEN g.song_source_type IN ('youtube', 'external') AND g.song_url IS NOT NULL
+            THEN jsonb_build_object('type', g.song_source_type, 'url', g.song_url)
+          ELSE NULL
+        END
+      ) ORDER BY g.name)
+      FROM practice_groups g
+      LEFT JOIN committee_roster leader ON leader.id = g.leader_roster_member_id
+      LEFT JOIN committee_positions position ON position.value = leader.position
+      LEFT JOIN LATERAL (
+        SELECT
+          count(*) FILTER (WHERE practice_capacity_category(r.position) = 'committee')::int AS committee_count,
+          count(*) FILTER (WHERE practice_capacity_category(r.position) = 'faci_gm')::int AS faci_gm_count
+        FROM practice_group_bookings b
+        JOIN committee_roster r ON r.id = b.roster_member_id
+        WHERE b.group_id = g.id
+      ) counts ON true
+      WHERE g.orientation = 'december' AND g.orientation_year = 2026 AND g.status = 'open'
+    ), '[]'::jsonb)
+  );
+END $$;
+
+CREATE OR REPLACE FUNCTION public_book_practice_group(
+  p_student_id text,
+  p_email text,
+  p_group uuid
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  member committee_roster;
+  group_row practice_groups;
+  booking practice_group_bookings;
+  member_category text;
+  taken int;
+  category_capacity int;
+  opens_at timestamptz;
+BEGIN
+  SELECT booking_opens_at INTO opens_at FROM practice_settings
+  WHERE orientation = 'december' AND orientation_year = 2026;
+  IF opens_at IS NULL OR statement_timestamp() < opens_at THEN
+    RAISE EXCEPTION 'booking_not_open';
+  END IF;
+
+  member := verified_practice_member(p_student_id, p_email);
+  member_category := practice_capacity_category(member.position);
+  IF EXISTS (SELECT 1 FROM practice_group_bookings WHERE roster_member_id = member.id) THEN
+    RAISE EXCEPTION 'already_booked';
+  END IF;
+
+  SELECT * INTO group_row FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF group_row IS NULL OR group_row.status <> 'open'
+     OR group_row.orientation <> 'december' OR group_row.orientation_year <> 2026 THEN
+    RAISE EXCEPTION 'group_unavailable';
+  END IF;
+
+  category_capacity := CASE member_category
+    WHEN 'faci_gm' THEN group_row.faci_gm_capacity
+    ELSE group_row.committee_capacity
+  END;
+  SELECT count(*) INTO taken
+  FROM practice_group_bookings b
+  JOIN committee_roster r ON r.id = b.roster_member_id
+  WHERE b.group_id = p_group AND practice_capacity_category(r.position) = member_category;
+  IF taken >= category_capacity THEN RAISE EXCEPTION 'group_full'; END IF;
+
+  BEGIN
+    INSERT INTO practice_group_bookings (group_id, roster_member_id, source)
+    VALUES (p_group, member.id, 'self_service') RETURNING * INTO booking;
+  EXCEPTION WHEN unique_violation THEN
+    RAISE EXCEPTION 'already_booked';
+  END;
+
+  RETURN jsonb_build_object(
+    'id', booking.id,
+    'group_id', group_row.id,
+    'group_name', group_row.name,
+    'sessions', coalesce((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', s.id, 'starts_at', s.starts_at, 'ends_at', s.ends_at, 'location', s.location
+      ) ORDER BY s.starts_at)
+      FROM practice_sessions s WHERE s.group_id = group_row.id
+    ), '[]'::jsonb)
+  );
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_assign_practice_member(p_roster_member uuid, p_group uuid)
+RETURNS practice_group_bookings
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  member committee_roster;
+  group_row practice_groups;
+  booking practice_group_bookings;
+  member_category text;
+  taken int;
+  category_capacity int;
+BEGIN
+  IF NOT is_admin() THEN RAISE EXCEPTION 'not_authorized'; END IF;
+  SELECT * INTO member FROM committee_roster WHERE id = p_roster_member;
+  IF member IS NULL OR NOT member.active THEN RAISE EXCEPTION 'member_not_active'; END IF;
+  IF EXISTS (SELECT 1 FROM practice_group_bookings WHERE roster_member_id = member.id) THEN
+    RAISE EXCEPTION 'already_booked';
+  END IF;
+  SELECT * INTO group_row FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF group_row IS NULL THEN RAISE EXCEPTION 'group_unavailable'; END IF;
+  member_category := practice_capacity_category(member.position);
+  category_capacity := CASE member_category
+    WHEN 'faci_gm' THEN group_row.faci_gm_capacity
+    ELSE group_row.committee_capacity
+  END;
+  SELECT count(*) INTO taken
+  FROM practice_group_bookings b
+  JOIN committee_roster r ON r.id = b.roster_member_id
+  WHERE b.group_id = p_group AND practice_capacity_category(r.position) = member_category;
+  IF taken >= category_capacity THEN RAISE EXCEPTION 'group_full'; END IF;
+  INSERT INTO practice_group_bookings (group_id, roster_member_id, source, assigned_by)
+  VALUES (p_group, member.id, 'admin', auth.uid()) RETURNING * INTO booking;
+  RETURN booking;
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_move_practice_member(p_booking uuid, p_group uuid)
+RETURNS practice_group_bookings
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  booking practice_group_bookings;
+  member committee_roster;
+  group_row practice_groups;
+  member_category text;
+  taken int;
+  category_capacity int;
+BEGIN
+  IF NOT is_admin() THEN RAISE EXCEPTION 'not_authorized'; END IF;
+  SELECT * INTO booking FROM practice_group_bookings WHERE id = p_booking FOR UPDATE;
+  IF booking IS NULL THEN RAISE EXCEPTION 'booking_not_found'; END IF;
+  IF booking.group_id = p_group THEN RETURN booking; END IF;
+  SELECT * INTO member FROM committee_roster WHERE id = booking.roster_member_id;
+  SELECT * INTO group_row FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF group_row IS NULL THEN RAISE EXCEPTION 'group_unavailable'; END IF;
+  member_category := practice_capacity_category(member.position);
+  category_capacity := CASE member_category
+    WHEN 'faci_gm' THEN group_row.faci_gm_capacity
+    ELSE group_row.committee_capacity
+  END;
+  SELECT count(*) INTO taken
+  FROM practice_group_bookings b
+  JOIN committee_roster r ON r.id = b.roster_member_id
+  WHERE b.group_id = p_group AND practice_capacity_category(r.position) = member_category;
+  IF taken >= category_capacity THEN RAISE EXCEPTION 'group_full'; END IF;
+  UPDATE practice_group_bookings
+  SET group_id = p_group, source = 'admin', assigned_by = auth.uid()
+  WHERE id = p_booking RETURNING * INTO booking;
+  RETURN booking;
+END $$;
+
+DROP FUNCTION admin_update_practice_group(uuid, text, int, slot_status);
+
+CREATE FUNCTION admin_update_practice_group(
+  p_group uuid,
+  p_name text,
+  p_committee_capacity int,
+  p_faci_gm_capacity int,
+  p_status slot_status
+) RETURNS practice_groups
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  group_row practice_groups;
+  committee_booked int;
+  faci_gm_booked int;
+BEGIN
+  IF NOT is_admin() THEN RAISE EXCEPTION 'not_authorized'; END IF;
+  SELECT * INTO group_row FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF group_row IS NULL THEN RAISE EXCEPTION 'group_unavailable'; END IF;
+  IF btrim(coalesce(p_name, '')) = ''
+     OR p_committee_capacity < 0
+     OR p_faci_gm_capacity < 0
+     OR p_committee_capacity + p_faci_gm_capacity < 1 THEN
+    RAISE EXCEPTION 'invalid_group';
+  END IF;
+
+  SELECT
+    count(*) FILTER (WHERE practice_capacity_category(r.position) = 'committee')::int,
+    count(*) FILTER (WHERE practice_capacity_category(r.position) = 'faci_gm')::int
+  INTO committee_booked, faci_gm_booked
+  FROM practice_group_bookings b
+  JOIN committee_roster r ON r.id = b.roster_member_id
+  WHERE b.group_id = p_group;
+
+  IF p_committee_capacity < committee_booked THEN
+    RAISE EXCEPTION 'committee_capacity_below_booking_count';
+  END IF;
+  IF p_faci_gm_capacity < faci_gm_booked THEN
+    RAISE EXCEPTION 'faci_gm_capacity_below_booking_count';
+  END IF;
+
+  UPDATE practice_groups
+  SET name = btrim(p_name),
+      capacity = p_committee_capacity + p_faci_gm_capacity,
+      committee_capacity = p_committee_capacity,
+      faci_gm_capacity = p_faci_gm_capacity,
+      status = p_status
+  WHERE id = p_group RETURNING * INTO group_row;
+  RETURN group_row;
+END $$;
+
+REVOKE ALL ON FUNCTION practice_capacity_category(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION practice_capacity_category(text) TO service_role;
+REVOKE ALL ON FUNCTION public_practice_catalog() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public_practice_catalog() TO service_role;
+REVOKE ALL ON FUNCTION admin_update_practice_group(uuid, text, int, int, slot_status) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION admin_update_practice_group(uuid, text, int, int, slot_status) TO authenticated;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ==========================================
+-- MIGRATION: 0046_default_split_practice_capacity.sql
+-- ==========================================
+
+-- 0046_default_split_practice_capacity.sql
+-- Preserve compatibility for trusted scripts that insert practice groups
+-- without explicitly supplying the new category quotas.
+
+ALTER TABLE practice_groups
+  ALTER COLUMN committee_capacity SET DEFAULT 1,
+  ALTER COLUMN faci_gm_capacity SET DEFAULT 1;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ==========================================
+-- MIGRATION: 0047_guard_booked_member_category_change.sql
+-- ==========================================
+
+-- 0047_guard_booked_member_category_change.sql
+-- Roster edits and JSON/CSV imports may change positions. Prevent a booked
+-- member from being moved into a category whose quota is already full.
+
+CREATE OR REPLACE FUNCTION guard_booked_practice_member_category_change()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  booked_group uuid;
+  group_row practice_groups;
+  next_category text;
+  next_count int;
+  next_capacity int;
+BEGIN
+  IF practice_capacity_category(new.position) = practice_capacity_category(old.position) THEN
+    RETURN new;
+  END IF;
+
+  SELECT b.group_id INTO booked_group
+  FROM practice_group_bookings b
+  WHERE b.roster_member_id = old.id;
+  IF booked_group IS NULL THEN RETURN new; END IF;
+
+  SELECT * INTO group_row FROM practice_groups WHERE id = booked_group FOR UPDATE;
+  next_category := practice_capacity_category(new.position);
+  next_capacity := CASE next_category
+    WHEN 'faci_gm' THEN group_row.faci_gm_capacity
+    ELSE group_row.committee_capacity
+  END;
+
+  SELECT count(*) INTO next_count
+  FROM practice_group_bookings b
+  JOIN committee_roster r ON r.id = b.roster_member_id
+  WHERE b.group_id = booked_group
+    AND b.roster_member_id <> old.id
+    AND practice_capacity_category(r.position) = next_category;
+
+  IF next_count >= next_capacity THEN
+    RAISE EXCEPTION 'member_category_capacity_full';
+  END IF;
+  RETURN new;
+END $$;
+
+DROP TRIGGER IF EXISTS guard_booked_practice_member_category_change ON committee_roster;
+CREATE TRIGGER guard_booked_practice_member_category_change
+  BEFORE UPDATE OF position ON committee_roster
+  FOR EACH ROW EXECUTE FUNCTION guard_booked_practice_member_category_change();
+
+NOTIFY pgrst, 'reload schema';
+
+-- ==========================================
+-- MIGRATION: 0048_harden_split_practice_capacity.sql
+-- ==========================================
+
+-- 0048_harden_split_practice_capacity.sql
+-- Serialize roster classification with bookings and preserve legacy group writers.
+
+ALTER TABLE practice_groups
+  ALTER COLUMN committee_capacity DROP DEFAULT,
+  ALTER COLUMN faci_gm_capacity DROP DEFAULT;
+
+CREATE OR REPLACE FUNCTION fill_legacy_practice_group_capacities()
+RETURNS trigger
+LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  NEW.committee_capacity := coalesce(NEW.committee_capacity, NEW.capacity);
+  NEW.faci_gm_capacity := coalesce(NEW.faci_gm_capacity, NEW.capacity);
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS practice_groups_fill_legacy_capacities ON practice_groups;
+CREATE TRIGGER practice_groups_fill_legacy_capacities
+  BEFORE INSERT ON practice_groups
+  FOR EACH ROW EXECUTE FUNCTION fill_legacy_practice_group_capacities();
+
+CREATE OR REPLACE FUNCTION public_book_practice_group(
+  p_student_id text,
+  p_email text,
+  p_group uuid
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  normalized_id text := normalize_practice_student_id(p_student_id);
+  normalized_email text := lower(btrim(coalesce(p_email, '')));
+  member committee_roster;
+  group_row practice_groups;
+  booking practice_group_bookings;
+  member_category text;
+  taken int;
+  category_capacity int;
+  opens_at timestamptz;
+BEGIN
+  SELECT booking_opens_at INTO opens_at FROM practice_settings
+  WHERE orientation = 'december' AND orientation_year = 2026;
+  IF opens_at IS NULL OR statement_timestamp() < opens_at THEN
+    RAISE EXCEPTION 'booking_not_open';
+  END IF;
+
+  IF normalized_id IS NULL
+     OR normalized_email <> lower(normalized_id) || '@xmu.edu.my' THEN
+    RAISE EXCEPTION 'identity_not_verified';
+  END IF;
+
+  SELECT * INTO member
+  FROM committee_roster
+  WHERE lower(student_id) = lower(normalized_id) AND active
+  FOR UPDATE;
+  IF member IS NULL THEN RAISE EXCEPTION 'identity_not_verified'; END IF;
+
+  member_category := practice_capacity_category(member.position);
+  IF EXISTS (SELECT 1 FROM practice_group_bookings WHERE roster_member_id = member.id) THEN
+    RAISE EXCEPTION 'already_booked';
+  END IF;
+
+  SELECT * INTO group_row FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF group_row IS NULL OR group_row.status <> 'open'
+     OR group_row.orientation <> 'december' OR group_row.orientation_year <> 2026 THEN
+    RAISE EXCEPTION 'group_unavailable';
+  END IF;
+
+  category_capacity := CASE member_category
+    WHEN 'faci_gm' THEN group_row.faci_gm_capacity
+    ELSE group_row.committee_capacity
+  END;
+  SELECT count(*) INTO taken
+  FROM practice_group_bookings b
+  JOIN committee_roster r ON r.id = b.roster_member_id
+  WHERE b.group_id = p_group AND practice_capacity_category(r.position) = member_category;
+  IF taken >= category_capacity THEN RAISE EXCEPTION 'group_full'; END IF;
+
+  BEGIN
+    INSERT INTO practice_group_bookings (group_id, roster_member_id, source)
+    VALUES (p_group, member.id, 'self_service') RETURNING * INTO booking;
+  EXCEPTION WHEN unique_violation THEN
+    RAISE EXCEPTION 'already_booked';
+  END;
+
+  RETURN jsonb_build_object(
+    'id', booking.id,
+    'group_id', group_row.id,
+    'group_name', group_row.name,
+    'sessions', coalesce((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', s.id, 'starts_at', s.starts_at, 'ends_at', s.ends_at, 'location', s.location
+      ) ORDER BY s.starts_at)
+      FROM practice_sessions s WHERE s.group_id = group_row.id
+    ), '[]'::jsonb)
+  );
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_assign_practice_member(p_roster_member uuid, p_group uuid)
+RETURNS practice_group_bookings
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  member committee_roster;
+  group_row practice_groups;
+  booking practice_group_bookings;
+  member_category text;
+  taken int;
+  category_capacity int;
+BEGIN
+  IF NOT is_admin() THEN RAISE EXCEPTION 'not_authorized'; END IF;
+  SELECT * INTO member
+  FROM committee_roster
+  WHERE id = p_roster_member
+  FOR UPDATE;
+  IF member IS NULL OR NOT member.active THEN RAISE EXCEPTION 'member_not_active'; END IF;
+  IF EXISTS (SELECT 1 FROM practice_group_bookings WHERE roster_member_id = member.id) THEN
+    RAISE EXCEPTION 'already_booked';
+  END IF;
+  SELECT * INTO group_row FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF group_row IS NULL THEN RAISE EXCEPTION 'group_unavailable'; END IF;
+  member_category := practice_capacity_category(member.position);
+  category_capacity := CASE member_category
+    WHEN 'faci_gm' THEN group_row.faci_gm_capacity
+    ELSE group_row.committee_capacity
+  END;
+  SELECT count(*) INTO taken
+  FROM practice_group_bookings b
+  JOIN committee_roster r ON r.id = b.roster_member_id
+  WHERE b.group_id = p_group AND practice_capacity_category(r.position) = member_category;
+  IF taken >= category_capacity THEN RAISE EXCEPTION 'group_full'; END IF;
+  INSERT INTO practice_group_bookings (group_id, roster_member_id, source, assigned_by)
+  VALUES (p_group, member.id, 'admin', auth.uid()) RETURNING * INTO booking;
+  RETURN booking;
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_move_practice_member(p_booking uuid, p_group uuid)
+RETURNS practice_group_bookings
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  booking practice_group_bookings;
+  member committee_roster;
+  group_row practice_groups;
+  member_category text;
+  taken int;
+  category_capacity int;
+BEGIN
+  IF NOT is_admin() THEN RAISE EXCEPTION 'not_authorized'; END IF;
+  SELECT * INTO booking FROM practice_group_bookings WHERE id = p_booking FOR UPDATE;
+  IF booking IS NULL THEN RAISE EXCEPTION 'booking_not_found'; END IF;
+  IF booking.group_id = p_group THEN RETURN booking; END IF;
+  SELECT * INTO member
+  FROM committee_roster
+  WHERE id = booking.roster_member_id
+  FOR UPDATE;
+  SELECT * INTO group_row FROM practice_groups WHERE id = p_group FOR UPDATE;
+  IF group_row IS NULL THEN RAISE EXCEPTION 'group_unavailable'; END IF;
+  member_category := practice_capacity_category(member.position);
+  category_capacity := CASE member_category
+    WHEN 'faci_gm' THEN group_row.faci_gm_capacity
+    ELSE group_row.committee_capacity
+  END;
+  SELECT count(*) INTO taken
+  FROM practice_group_bookings b
+  JOIN committee_roster r ON r.id = b.roster_member_id
+  WHERE b.group_id = p_group AND practice_capacity_category(r.position) = member_category;
+  IF taken >= category_capacity THEN RAISE EXCEPTION 'group_full'; END IF;
+  UPDATE practice_group_bookings
+  SET group_id = p_group, source = 'admin', assigned_by = auth.uid()
+  WHERE id = p_booking RETURNING * INTO booking;
+  RETURN booking;
+END $$;
+
+-- Keep the pre-split signature available during rolling deployments. Its
+-- single capacity becomes the limit for each category, matching the backfill
+-- applied to groups that existed before split quotas were introduced.
+CREATE OR REPLACE FUNCTION admin_update_practice_group(
+  p_group uuid,
+  p_name text,
+  p_capacity int,
+  p_status slot_status
+) RETURNS practice_groups
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN admin_update_practice_group(
+    p_group,
+    p_name,
+    p_capacity,
+    p_capacity,
+    p_status
+  );
+END $$;
+
+REVOKE ALL ON FUNCTION admin_update_practice_group(uuid, text, int, slot_status) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION admin_update_practice_group(uuid, text, int, slot_status) TO authenticated;
+
+NOTIFY pgrst, 'reload schema';

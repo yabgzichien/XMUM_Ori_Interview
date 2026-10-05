@@ -57,6 +57,8 @@
 .audioWrap a { color: var(--accent-text, #2563eb); font-size: 12px; font-weight: 750; }
 .cardFooter { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 28px; }
 .cardFooter > span { color: var(--text-muted, #64748b); font-size: 13px; font-weight: 700; }
+.capacitySplit { display: flex; flex-wrap: wrap; gap: 8px; }
+.capacitySplit span { padding: 6px 9px; border: 1px solid var(--border-card, #e2e8f0); border-radius: 999px; color: var(--text-muted, #64748b); font-size: 12px; font-weight: 750; }
 .primaryButton,
 .secondaryButton,
 .backButton { min-height: 43px; border-radius: 11px; padding: 10px 16px; font: inherit; font-weight: 800; cursor: pointer; }

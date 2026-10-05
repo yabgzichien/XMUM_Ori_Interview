@@ -19,6 +19,7 @@ import {
   savePracticeOpeningAction,
   savePracticeSessionAction,
   saveRosterMemberAction,
+  updatePracticeGroupAction,
 } from '@/app/actions/practiceAdminActions'
 
 function queryBuilder(result: { data?: unknown; error?: unknown } = { data: null, error: null }) {
@@ -63,26 +64,53 @@ describe('practice admin actions', () => {
 
   it('rejects signed-out and HOF/HOG callers before opening a database client', async () => {
     mocks.getCurrentProfile.mockResolvedValueOnce(null)
-    expect(await createPracticeGroupAction({ name: 'A', capacity: 5 })).toEqual({
+    expect(await createPracticeGroupAction({ name: 'A', committeeCapacity: 5, faciGmCapacity: 5 })).toEqual({
       data: null,
       error: 'Not signed in.',
     })
     mocks.getCurrentProfile.mockResolvedValueOnce({ id: 'head-1', role: 'head_gm' })
-    expect(await createPracticeGroupAction({ name: 'A', capacity: 5 })).toEqual({
+    expect(await createPracticeGroupAction({ name: 'A', committeeCapacity: 5, faciGmCapacity: 5 })).toEqual({
       data: null,
       error: 'Not authorized.',
     })
     expect(mocks.createClient).not.toHaveBeenCalled()
   })
 
-  it('rejects blank group names and capacities below one', async () => {
-    expect(await createPracticeGroupAction({ name: ' ', capacity: 5 })).toEqual({
+  it('rejects blank group names, negative category capacities, and groups with no capacity', async () => {
+    expect(await createPracticeGroupAction({ name: ' ', committeeCapacity: 5, faciGmCapacity: 5 })).toEqual({
       data: null,
       error: 'Group name is required.',
     })
-    expect(await createPracticeGroupAction({ name: 'Group A', capacity: 0 })).toEqual({
+    expect(await createPracticeGroupAction({ name: 'Group A', committeeCapacity: -1, faciGmCapacity: 2 })).toEqual({
       data: null,
-      error: 'Capacity must be at least 1.',
+      error: 'Each category capacity must be 0 or more.',
+    })
+    expect(await createPracticeGroupAction({ name: 'Group A', committeeCapacity: 0, faciGmCapacity: 0 })).toEqual({
+      data: null,
+      error: 'At least one category must have capacity.',
+    })
+  })
+
+  it('stores and updates separate committee and Faci/GM capacities', async () => {
+    const database = databaseFixture()
+    mocks.createClient.mockResolvedValue(database)
+
+    await createPracticeGroupAction({ name: 'Group A', committeeCapacity: 3, faciGmCapacity: 5 })
+    expect(database.builders.practice_groups.insert).toHaveBeenCalledWith(expect.objectContaining({
+      capacity: 8,
+      committee_capacity: 3,
+      faci_gm_capacity: 5,
+    }))
+
+    await updatePracticeGroupAction({
+      id: 'group-1', name: 'Group A', committeeCapacity: 4, faciGmCapacity: 6, status: 'open',
+    })
+    expect(database.rpc).toHaveBeenCalledWith('admin_update_practice_group', {
+      p_group: 'group-1',
+      p_name: 'Group A',
+      p_committee_capacity: 4,
+      p_faci_gm_capacity: 6,
+      p_status: 'open',
     })
   })
 
@@ -111,6 +139,23 @@ describe('practice admin actions', () => {
       position: 'facilitator',
     })
     expect(database.builders.committee_roster.eq).toHaveBeenCalledWith('id', 'member-1')
+  })
+
+  it('explains when a booked member cannot move into a full capacity category', async () => {
+    const database = databaseFixture()
+    database.builders.committee_roster.single.mockResolvedValue({
+      data: null,
+      error: { message: 'member_category_capacity_full' },
+    })
+    mocks.createClient.mockResolvedValue(database)
+
+    const result = await saveRosterMemberAction({
+      id: 'member-1', name: 'Member', studentId: 'DSC1', position: 'designer',
+    })
+    expect(result).toEqual({
+      data: null,
+      error: "This member's booked group has no space in the new category.",
+    })
   })
 
   it('rejects sessions whose end time is not after the start time', async () => {
