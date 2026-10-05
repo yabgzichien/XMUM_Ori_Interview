@@ -19,6 +19,7 @@ const rosterIds: string[] = []
 const groupIds: string[] = []
 const authUserIds: string[] = []
 let adminProfileId = ''
+let originalBookingOpensAt: string | null = null
 
 type RosterFixture = { id: string; student_id: string }
 type GroupFixture = { id: string; name: string }
@@ -74,6 +75,7 @@ async function makeSignedInStaff(role: 'admin' | 'head_facilitator') {
 
 afterAll(async () => {
   if (!hasEnv) return
+  await service.from('practice_settings').update({ booking_opens_at: originalBookingOpensAt }).eq('orientation', 'december').eq('orientation_year', 2026)
   if (rosterIds.length) await service.from('practice_group_bookings').delete().in('roster_member_id', rosterIds)
   if (groupIds.length) await service.from('practice_sessions').delete().in('group_id', groupIds)
   if (rosterIds.length) await service.from('committee_roster').delete().in('id', rosterIds)
@@ -94,6 +96,57 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
     adminClient = admin.client
     adminProfileId = admin.id
     headClient = head.client
+    const settings = await service.from('practice_settings').select('booking_opens_at').eq('orientation', 'december').eq('orientation_year', 2026).maybeSingle()
+    if (settings.error) throw settings.error
+    originalBookingOpensAt = settings.data?.booking_opens_at ?? null
+    const release = await service.from('practice_settings').upsert({
+      orientation: 'december', orientation_year: 2026,
+      booking_opens_at: '2026-01-01T00:00:00.000Z', updated_by: admin.id,
+    }, { onConflict: 'orientation,orientation_year' })
+    if (release.error) throw release.error
+  })
+
+  it('publishes preview metadata but rejects booking before the shared opening time', async () => {
+    const leader = await createRosterMember('PreviewLeader')
+    const visitor = await createRosterMember('PreviewVisitor')
+    const group = await createGroup('Preview Group')
+    const details = await service.from('practice_groups').update({
+      performance_type: 'K-pop dance',
+      description: 'Preview description',
+      leader_roster_member_id: leader.id,
+      performance_video_url: 'https://youtu.be/dQw4w9WgXcQ',
+      song_source_type: 'external',
+      song_url: 'https://example.test/song.mp3',
+    }).eq('id', group.id)
+    expect(details.error).toBeNull()
+
+    const future = await service.from('practice_settings').update({
+      booking_opens_at: '2099-12-01T00:00:00.000Z',
+    }).eq('orientation', 'december').eq('orientation_year', 2026)
+    expect(future.error).toBeNull()
+    try {
+      const catalog = await service.rpc('public_practice_catalog')
+      expect(catalog.error).toBeNull()
+      expect(catalog.data).toMatchObject({ booking_open: false })
+      expect(catalog.data.groups).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id: group.id,
+          performance_type: 'K-pop dance',
+          leader: expect.objectContaining({ id: leader.id }),
+        }),
+      ]))
+
+      const booking = await service.rpc('public_book_practice_group', {
+        p_student_id: visitor.student_id,
+        p_email: `${visitor.student_id}@xmu.edu.my`,
+        p_group: group.id,
+      })
+      expect(booking.error?.message).toContain('booking_not_open')
+    } finally {
+      await service.from('practice_settings').update({
+        booking_opens_at: '2026-01-01T00:00:00.000Z',
+      }).eq('orientation', 'december').eq('orientation_year', 2026)
+    }
   })
 
   it('matches student ID and derived university email without case sensitivity', async () => {

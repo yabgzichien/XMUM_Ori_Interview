@@ -1,4 +1,5 @@
 export type PracticeGroupStatus = 'open' | 'closed'
+export type PracticeSongType = 'youtube' | 'mp3' | 'external'
 
 export type PracticeIdentityInput = {
   studentId: string
@@ -12,7 +13,27 @@ export type PracticeBookingInput = PracticeIdentityInput & {
 export type PublicPracticeGroup = {
   id: string
   name: string
+  status: PracticeGroupStatus
   seats_left: number
+  performance_type: string | null
+  description: string | null
+  leader: {
+    id: string
+    name: string
+    position: string
+  } | null
+  performance_video_url: string | null
+  song: {
+    type: PracticeSongType
+    url: string
+  } | null
+}
+
+export type PracticeCatalog = {
+  server_now: string
+  booking_opens_at: string | null
+  booking_open: boolean
+  groups: PublicPracticeGroup[]
 }
 
 export type PracticeSession = {
@@ -63,6 +84,14 @@ export type AdminPracticeGroup = {
   status: PracticeGroupStatus
   booking_count: number
   session_count: number
+  performance_type: string | null
+  description: string | null
+  leader_roster_member_id: string | null
+  leader_name: string | null
+  performance_video_url: string | null
+  song_source_type: PracticeSongType | null
+  song_url: string | null
+  song_storage_path: string | null
 }
 
 export type AdminPracticeBooking = {
@@ -80,6 +109,7 @@ export type AdminPracticeSnapshot = {
   bookings: AdminPracticeBooking[]
   sessions: AdminPracticeSession[]
   positions: Array<{ value: string; label: string }>
+  booking_opens_at: string | null
 }
 
 export type CanonicalRosterRow = {

@@ -8,18 +8,38 @@ import {
   deletePracticeSessionAction,
   movePracticeMemberAction,
   removePracticeBookingAction,
+  savePracticeGroupDetailsAction,
   savePracticeSessionAction,
   updatePracticeGroupAction,
 } from '@/app/actions/practiceAdminActions'
-import type { AdminPracticeBooking, AdminPracticeGroup, AdminRosterMember, PracticeSession } from '@/lib/practice-types'
-import { AlertCircle, ArrowRightLeft, CalendarClock, CheckCircle2, Clock3, Layers3, MapPin, Pencil, Plus, Trash2, UserRoundPlus, UsersRound } from 'lucide-react'
+import type { AdminPracticeBooking, AdminPracticeGroup, AdminRosterMember, PracticeSession, PracticeSongType } from '@/lib/practice-types'
+import { AlertCircle, ArrowRightLeft, CalendarClock, CheckCircle2, Clock3, Film, Headphones, Layers3, MapPin, Pencil, Plus, Trash2, UserRoundPlus, UsersRound } from 'lucide-react'
 import styles from './practice-admin.module.css'
 
 type AdminSession = PracticeSession & { group_id: string }
 type Props = { groups: AdminPracticeGroup[]; roster: AdminRosterMember[]; bookings: AdminPracticeBooking[]; sessions: AdminSession[] }
 type SessionDraft = { id?: string; startsAt: string; endsAt: string; location: string }
+type DetailDraft = {
+  performanceType: string
+  description: string
+  leaderRosterMemberId: string
+  performanceVideoUrl: string
+  songSourceType: PracticeSongType | ''
+  songUrl: string
+}
 
 const emptySession: SessionDraft = { startsAt: '', endsAt: '', location: '' }
+
+function detailsFor(group: AdminPracticeGroup): DetailDraft {
+  return {
+    performanceType: group.performance_type ?? '',
+    description: group.description ?? '',
+    leaderRosterMemberId: group.leader_roster_member_id ?? '',
+    performanceVideoUrl: group.performance_video_url ?? '',
+    songSourceType: group.song_source_type ?? '',
+    songUrl: group.song_url ?? '',
+  }
+}
 
 function localDateTime(value: string) {
   const date = new Date(value)
@@ -34,6 +54,8 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
   const [sessionDrafts, setSessionDrafts] = useState<Record<string, SessionDraft>>({})
   const [assignments, setAssignments] = useState<Record<string, string>>({})
   const [moves, setMoves] = useState<Record<string, string>>({})
+  const [detailDrafts, setDetailDrafts] = useState<Record<string, DetailDraft>>({})
+  const [songFiles, setSongFiles] = useState<Record<string, File | null>>({})
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -67,6 +89,22 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
     if (success) setSessionDrafts((current) => ({ ...current, [group.id]: emptySession }))
   }
 
+  async function saveDetails(group: AdminPracticeGroup) {
+    const draft = detailDrafts[group.id] ?? detailsFor(group)
+    const body = new FormData()
+    body.set('groupId', group.id)
+    body.set('performanceType', draft.performanceType)
+    body.set('description', draft.description)
+    body.set('leaderRosterMemberId', draft.leaderRosterMemberId)
+    body.set('performanceVideoUrl', draft.performanceVideoUrl)
+    body.set('songSourceType', draft.songSourceType)
+    body.set('songUrl', draft.songUrl)
+    const songFile = songFiles[group.id]
+    if (songFile) body.set('songFile', songFile)
+    const success = await run(() => savePracticeGroupDetailsAction(body), 'Performance details saved.')
+    if (success) setSongFiles((current) => ({ ...current, [group.id]: null }))
+  }
+
   const unbooked = roster.filter((member) => member.active && !member.booking_id)
 
   return (
@@ -94,6 +132,7 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
         const groupSessions = sessions.filter((session) => session.group_id === group.id)
         const groupDraft = groupDrafts[group.id] ?? { name: group.name, capacity: group.capacity }
         const sessionDraft = sessionDrafts[group.id] ?? emptySession
+        const detailDraft = detailDrafts[group.id] ?? detailsFor(group)
         const occupancy = Math.min((group.booking_count / Math.max(group.capacity, 1)) * 100, 100)
         return (
           <article className={styles.groupCard} key={group.id}>
@@ -119,6 +158,48 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions }: Pro
                   <button className={`${styles.button} ${styles.secondaryButton}`} type="button" disabled={busy} onClick={() => updateGroup(group)}><CheckCircle2 size={14} /> Save {group.name}</button>
                   <button className={`${styles.button} ${group.status === 'open' ? styles.dangerButton : styles.successButton}`} type="button" disabled={busy} aria-label={`${group.status === 'open' ? 'Close' : 'Open'} ${group.name}`} onClick={() => updateGroup(group, group.status === 'open' ? 'closed' : 'open')}>{group.status === 'open' ? 'Close booking' : 'Open booking'}</button>
                   <button className={`${styles.iconButton} ${styles.dangerButton}`} type="button" disabled={busy} aria-label={`Delete ${group.name}`} onClick={() => run(() => deletePracticeGroupAction(group.id), 'Group deleted.')}><Trash2 size={14} /> Delete</button>
+                </div>
+              </div>
+
+              <div className={styles.groupSection}>
+                <div className={styles.groupSectionHeader}><h4><Film size={16} /> Performance details</h4><span className={styles.optionalLabel}>Optional preview content</span></div>
+                <div className={styles.detailsGrid}>
+                  <label className={styles.label}>Performance type
+                    <input className={styles.input} aria-label={`Performance type for ${group.name}`} placeholder="e.g. K-pop dance" value={detailDraft.performanceType} onChange={(event) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, performanceType: event.target.value } }))} />
+                  </label>
+                  <label className={styles.label}>Performance leader
+                    <select className={styles.select} aria-label={`Performance leader for ${group.name}`} value={detailDraft.leaderRosterMemberId} onChange={(event) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, leaderRosterMemberId: event.target.value } }))}>
+                      <option value="">No leader selected</option>
+                      {roster.filter((member) => member.active).map((member) => <option key={member.id} value={member.id}>{member.name} ({member.student_id})</option>)}
+                    </select>
+                  </label>
+                  <label className={`${styles.label} ${styles.detailsWide}`}>Description
+                    <textarea className={styles.textarea} aria-label={`Description for ${group.name}`} rows={4} maxLength={2000} placeholder="Describe the concept, style, or experience." value={detailDraft.description} onChange={(event) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, description: event.target.value } }))} />
+                  </label>
+                  <label className={`${styles.label} ${styles.detailsWide}`}>YouTube performance video
+                    <input className={styles.input} aria-label={`Performance video for ${group.name}`} type="url" placeholder="https://youtube.com/watch?v=…" value={detailDraft.performanceVideoUrl} onChange={(event) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, performanceVideoUrl: event.target.value } }))} />
+                  </label>
+                </div>
+
+                <div className={styles.songPanel}>
+                  <div className={styles.songHeading}><Headphones size={16} /><div><strong>Song audio</strong><span>Optional · YouTube, MP3 upload, or external audio link</span></div></div>
+                  <div className={styles.songGrid}>
+                    <label className={styles.label}>Song source
+                      <select className={styles.select} aria-label={`Song source for ${group.name}`} value={detailDraft.songSourceType} onChange={(event) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, songSourceType: event.target.value as PracticeSongType | '', songUrl: '' } }))}>
+                        <option value="">No song audio</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="mp3">Upload MP3</option>
+                        <option value="external">External audio link</option>
+                      </select>
+                    </label>
+                    {(detailDraft.songSourceType === 'youtube' || detailDraft.songSourceType === 'external') && <label className={styles.label}>Song link
+                      <input className={styles.input} aria-label={`Song link for ${group.name}`} type="url" placeholder={detailDraft.songSourceType === 'youtube' ? 'https://youtube.com/watch?v=…' : 'https://example.com/song.mp3'} value={detailDraft.songUrl} onChange={(event) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, songUrl: event.target.value } }))} />
+                    </label>}
+                    {detailDraft.songSourceType === 'mp3' && <label className={styles.label}>MP3 file
+                      <input className={styles.fileInput} aria-label={`MP3 file for ${group.name}`} type="file" accept="audio/mpeg,.mp3" onChange={(event) => setSongFiles((current) => ({ ...current, [group.id]: event.target.files?.[0] ?? null }))} />
+                    </label>}
+                    <button className={`${styles.button} ${styles.primaryButton}`} type="button" aria-label={`Save performance details for ${group.name}`} disabled={busy} onClick={() => saveDetails(group)}><CheckCircle2 size={14} /> Save performance details</button>
+                  </div>
                 </div>
               </div>
 

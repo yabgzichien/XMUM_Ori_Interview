@@ -12,6 +12,7 @@ const conflictMessages: Partial<Record<PracticeServiceError, string>> = {
   group_full: 'That practice group is full.',
   group_unavailable: 'That practice group is no longer available.',
   already_booked: 'You already have a performance-practice group booking.',
+  booking_not_open: 'Booking has not opened yet.',
 }
 
 export async function POST(request: Request) {

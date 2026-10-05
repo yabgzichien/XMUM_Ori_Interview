@@ -47,6 +47,12 @@ export async function POST(request: Request) {
         { status: 400, headers: NO_STORE },
       )
     }
+    if (result.error === 'booking_not_open') {
+      return NextResponse.json(
+        { error: 'Booking has not opened yet.' },
+        { status: 409, headers: NO_STORE },
+      )
+    }
     if (result.error) {
       return NextResponse.json(
         { error: 'Practice verification is temporarily unavailable.' },

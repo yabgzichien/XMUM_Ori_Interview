@@ -15,13 +15,15 @@ import {
   createPracticeGroupAction,
   deletePracticeGroupAction,
   movePracticeMemberAction,
+  savePracticeGroupDetailsAction,
+  savePracticeOpeningAction,
   savePracticeSessionAction,
   saveRosterMemberAction,
 } from '@/app/actions/practiceAdminActions'
 
 function queryBuilder(result: { data?: unknown; error?: unknown } = { data: null, error: null }) {
   const builder: Record<string, ReturnType<typeof vi.fn>> & { then?: unknown } = {}
-  for (const method of ['select', 'eq', 'in', 'order', 'insert', 'update', 'delete']) {
+  for (const method of ['select', 'eq', 'in', 'order', 'insert', 'upsert', 'update', 'delete']) {
     builder[method] = vi.fn(() => builder)
   }
   builder.single = vi.fn().mockResolvedValue(result)
@@ -37,11 +39,18 @@ function databaseFixture() {
     committee_roster: queryBuilder({ data: { id: 'member-1' }, error: null }),
     practice_groups: queryBuilder({ data: { id: 'group-1' }, error: null }),
     practice_sessions: queryBuilder({ data: { id: 'session-1' }, error: null }),
+    practice_settings: queryBuilder({ data: { id: 'settings-1' }, error: null }),
+  }
+  const bucket = {
+    upload: vi.fn().mockResolvedValue({ data: { path: 'uploaded.mp3' }, error: null }),
+    remove: vi.fn().mockResolvedValue({ data: {}, error: null }),
   }
   return {
     builders,
     from: vi.fn((table: string) => builders[table] ?? queryBuilder()),
     rpc: vi.fn().mockResolvedValue({ data: { id: 'result-1' }, error: null }),
+    storage: { from: vi.fn(() => bucket) },
+    bucket,
   }
 }
 
@@ -112,6 +121,65 @@ describe('practice admin actions', () => {
       location: 'D5-101',
     })
     expect(result).toEqual({ data: null, error: 'Session end time must be after its start time.' })
+  })
+
+  it('stores the shared Malaysia opening time as UTC and allows Preview Mode without a date', async () => {
+    const database = databaseFixture()
+    mocks.createClient.mockResolvedValue(database)
+
+    expect(await savePracticeOpeningAction({ opensAt: '2026-12-02T10:30' })).toEqual({ data: expect.anything(), error: null })
+    expect(database.builders.practice_settings.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      orientation: 'december',
+      orientation_year: 2026,
+      booking_opens_at: '2026-12-02T02:30:00.000Z',
+    }), { onConflict: 'orientation,orientation_year' })
+
+    await savePracticeOpeningAction({ opensAt: null })
+    expect(database.builders.practice_settings.upsert).toHaveBeenLastCalledWith(expect.objectContaining({ booking_opens_at: null }), { onConflict: 'orientation,orientation_year' })
+  })
+
+  it('validates optional performance media before updating a group', async () => {
+    const form = new FormData()
+    form.set('groupId', 'group-1')
+    form.set('performanceType', 'Dance')
+    form.set('description', 'Description')
+    form.set('leaderRosterMemberId', '')
+    form.set('performanceVideoUrl', 'https://example.com/not-youtube')
+    form.set('songSourceType', '')
+    form.set('songUrl', '')
+
+    expect(await savePracticeGroupDetailsAction(form)).toEqual({
+      data: null,
+      error: 'Enter a valid YouTube performance video link.',
+    })
+  })
+
+  it('uploads an MP3 and removes the replaced stored song only after the group update succeeds', async () => {
+    const database = databaseFixture()
+    database.builders.practice_groups.single
+      .mockResolvedValueOnce({ data: { id: 'group-1', song_storage_path: 'group-1/old.mp3' }, error: null })
+      .mockResolvedValue({ data: { id: 'group-1' }, error: null })
+    mocks.createClient.mockResolvedValue(database)
+    const form = new FormData()
+    form.set('groupId', 'group-1')
+    form.set('performanceType', '')
+    form.set('description', '')
+    form.set('leaderRosterMemberId', '')
+    form.set('performanceVideoUrl', '')
+    form.set('songSourceType', 'mp3')
+    form.set('songUrl', '')
+    form.set('songFile', new File(['audio'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    const result = await savePracticeGroupDetailsAction(form)
+
+    expect(result.error).toBeNull()
+    expect(database.bucket.upload).toHaveBeenCalledWith(expect.stringMatching(/^group-1\/.+\.mp3$/), expect.any(File), expect.objectContaining({ contentType: 'audio/mpeg' }))
+    expect(database.builders.practice_groups.update).toHaveBeenCalledWith(expect.objectContaining({
+      song_source_type: 'mp3',
+      song_url: null,
+      song_storage_path: expect.stringMatching(/^group-1\/.+\.mp3$/),
+    }))
+    expect(database.bucket.remove).toHaveBeenCalledWith(['group-1/old.mp3'])
   })
 
   it.each([

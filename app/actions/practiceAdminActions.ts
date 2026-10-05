@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { getCurrentProfile } from '@/lib/auth'
 import { normalizeStudentId } from '@/lib/practice-identity'
-import type { PracticeGroupStatus } from '@/lib/practice-types'
+import { getYouTubeVideoId, isSecureExternalUrl } from '@/lib/practice-media'
+import type { PracticeGroupStatus, PracticeSongType } from '@/lib/practice-types'
 import { createClient } from '@/lib/supabase/server'
 
 type ActionResult<T = unknown> = { data: T | null; error: string | null }
@@ -27,6 +28,132 @@ function mapDatabaseError(message: string): string {
 
 function refreshPracticeAdmin() {
   revalidatePath('/admin/practice')
+  revalidatePath('/practice')
+}
+
+const PRACTICE_AUDIO_BUCKET = 'practice-audio'
+const MAX_PRACTICE_AUDIO_BYTES = 20 * 1024 * 1024
+
+function formText(form: FormData, key: string) {
+  const value = form.get(key)
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+export async function savePracticeOpeningAction(input: { opensAt: string | null }): Promise<ActionResult> {
+  const auth = await requirePracticeAdmin()
+  if (auth.error) return { data: null, error: auth.error }
+  let bookingOpensAt: string | null = null
+  if (input.opensAt !== null) {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(input.opensAt)) {
+      return { data: null, error: 'Enter a valid opening date and time.' }
+    }
+    const parsed = new Date(`${input.opensAt}:00+08:00`)
+    if (Number.isNaN(parsed.getTime())) return { data: null, error: 'Enter a valid opening date and time.' }
+    bookingOpensAt = parsed.toISOString()
+  }
+
+  const database = await createClient()
+  const { data, error } = await database.from('practice_settings').upsert({
+    orientation: 'december',
+    orientation_year: 2026,
+    booking_opens_at: bookingOpensAt,
+    updated_by: auth.profile.id,
+  }, { onConflict: 'orientation,orientation_year' }).select('*').single()
+  if (error) return { data: null, error: mapDatabaseError(error.message) }
+  refreshPracticeAdmin()
+  return { data, error: null }
+}
+
+export async function savePracticeGroupDetailsAction(form: FormData): Promise<ActionResult> {
+  const auth = await requirePracticeAdmin()
+  if (auth.error) return { data: null, error: auth.error }
+  const groupId = formText(form, 'groupId')
+  const performanceType = formText(form, 'performanceType')
+  const description = formText(form, 'description')
+  const leaderRosterMemberId = formText(form, 'leaderRosterMemberId')
+  const performanceVideoUrl = formText(form, 'performanceVideoUrl')
+  const rawSongSource = formText(form, 'songSourceType')
+  const songSourceType = rawSongSource as PracticeSongType | ''
+  const songUrl = formText(form, 'songUrl')
+  const songFile = form.get('songFile')
+
+  if (!groupId) return { data: null, error: 'Practice group is required.' }
+  if (performanceType.length > 80) return { data: null, error: 'Performance type must be 80 characters or fewer.' }
+  if (description.length > 2000) return { data: null, error: 'Description must be 2,000 characters or fewer.' }
+  if (performanceVideoUrl && !getYouTubeVideoId(performanceVideoUrl)) {
+    return { data: null, error: 'Enter a valid YouTube performance video link.' }
+  }
+  if (songSourceType && !['youtube', 'mp3', 'external'].includes(songSourceType)) {
+    return { data: null, error: 'Choose a valid song source.' }
+  }
+  if (songSourceType === 'youtube' && !getYouTubeVideoId(songUrl)) {
+    return { data: null, error: 'Enter a valid YouTube song link.' }
+  }
+  if (songSourceType === 'external' && !isSecureExternalUrl(songUrl)) {
+    return { data: null, error: 'Enter a valid HTTPS audio link.' }
+  }
+
+  const database = await createClient()
+  const { data: existing, error: existingError } = await database
+    .from('practice_groups')
+    .select('id, song_storage_path')
+    .eq('id', groupId)
+    .single()
+  if (existingError || !existing) return { data: null, error: 'Practice group was not found.' }
+
+  if (leaderRosterMemberId) {
+    const { data: leader, error: leaderError } = await database
+      .from('committee_roster')
+      .select('id')
+      .eq('id', leaderRosterMemberId)
+      .eq('active', true)
+      .maybeSingle()
+    if (leaderError || !leader) return { data: null, error: 'Choose an active roster member as performance leader.' }
+  }
+
+  let nextStoragePath = songSourceType === 'mp3' ? existing.song_storage_path as string | null : null
+  let uploadedPath: string | null = null
+  if (songSourceType === 'mp3' && songFile instanceof File && songFile.size > 0) {
+    if (!['audio/mpeg', 'audio/mp3'].includes(songFile.type) || !songFile.name.toLowerCase().endsWith('.mp3')) {
+      return { data: null, error: 'Upload an MP3 audio file.' }
+    }
+    if (songFile.size > MAX_PRACTICE_AUDIO_BYTES) {
+      return { data: null, error: 'MP3 file must be 20 MB or smaller.' }
+    }
+    uploadedPath = `${groupId}/${crypto.randomUUID()}.mp3`
+    const { error: uploadError } = await database.storage.from(PRACTICE_AUDIO_BUCKET).upload(uploadedPath, songFile, {
+      cacheControl: '3600',
+      contentType: 'audio/mpeg',
+      upsert: false,
+    })
+    if (uploadError) return { data: null, error: 'The MP3 file could not be uploaded.' }
+    nextStoragePath = uploadedPath
+  }
+  if (songSourceType === 'mp3' && !nextStoragePath) {
+    return { data: null, error: 'Choose an MP3 file.' }
+  }
+
+  const payload = {
+    performance_type: performanceType || null,
+    description: description || null,
+    leader_roster_member_id: leaderRosterMemberId || null,
+    performance_video_url: performanceVideoUrl || null,
+    song_source_type: songSourceType || null,
+    song_url: songSourceType === 'youtube' || songSourceType === 'external' ? songUrl : null,
+    song_storage_path: nextStoragePath,
+  }
+  const { data, error } = await database.from('practice_groups').update(payload).eq('id', groupId).select('*').single()
+  if (error) {
+    if (uploadedPath) await database.storage.from(PRACTICE_AUDIO_BUCKET).remove([uploadedPath])
+    return { data: null, error: mapDatabaseError(error.message) }
+  }
+
+  const oldStoragePath = existing.song_storage_path as string | null
+  if (oldStoragePath && oldStoragePath !== nextStoragePath) {
+    await database.storage.from(PRACTICE_AUDIO_BUCKET).remove([oldStoragePath])
+  }
+  refreshPracticeAdmin()
+  return { data, error: null }
 }
 
 export async function saveRosterMemberAction(input: {

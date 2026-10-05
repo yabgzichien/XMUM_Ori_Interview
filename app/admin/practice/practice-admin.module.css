@@ -119,7 +119,23 @@
   font-size: 12px;
 }
 
-.workspace { margin-top: 20px; }
+.workspace { display: grid; gap: 22px; margin-top: 20px; }
+
+.releasePanel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(420px, 1.35fr);
+  gap: 22px;
+  align-items: end;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--practice-accent) 28%, var(--practice-border));
+  border-radius: 14px;
+  background: linear-gradient(110deg, color-mix(in srgb, var(--practice-accent) 7%, transparent), transparent 45%), var(--practice-surface);
+}
+.releaseCopy { display: flex; align-items: flex-start; gap: 12px; }
+.releaseCopy h2 { margin: 0 0 5px; font-size: 16px; }
+.releaseCopy p { margin: 0; color: var(--text-muted, #64748b); font-size: 13px; line-height: 1.5; }
+.releaseIcon { display: grid; flex: 0 0 auto; place-items: center; width: 39px; height: 39px; border-radius: 50%; background: linear-gradient(135deg, var(--practice-accent), var(--practice-violet)); color: #fff; }
+.releaseControls { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 10px; align-items: end; }
 
 .tabs {
   display: grid;
@@ -226,6 +242,7 @@
 
 .input,
 .select,
+.textarea,
 .fileInput {
   width: 100%;
   min-height: 42px;
@@ -238,6 +255,8 @@
   font: inherit;
   font-size: 14px;
 }
+
+.textarea { resize: vertical; min-height: 96px; }
 
 .input::placeholder { color: var(--text-faint, #94a3b8); }
 .input:focus-visible,
@@ -417,6 +436,14 @@
 .groupSection { padding-top: 18px; }
 .groupSectionHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .groupSectionHeader h4 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
+.optionalLabel { color: var(--text-muted, #64748b); font-size: 11px; font-weight: 750; }
+.detailsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.detailsWide { grid-column: 1 / -1; }
+.songPanel { margin-top: 14px; padding: 14px; border: 1px solid var(--practice-border); border-radius: 12px; background: var(--practice-surface-soft); }
+.songHeading { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+.songHeading strong { display: block; color: var(--text-primary, #0f172a); font-size: 13px; }
+.songHeading span { display: block; margin-top: 2px; color: var(--text-muted, #64748b); font-size: 11px; }
+.songGrid { display: grid; grid-template-columns: minmax(160px, .7fr) minmax(220px, 1fr) auto; gap: 10px; align-items: end; }
 .countPill { padding: 3px 7px; border-radius: 999px; background: var(--badge-neutral-bg); color: var(--btn-neutral-text, #475569); font-size: 11px; }
 .sessionList,
 .memberList { display: grid; gap: 8px; }
@@ -437,6 +464,8 @@
   .summaryItem:nth-child(2) { border-right: 0; }
   .summaryItem:nth-child(-n + 2) { border-bottom: 1px solid var(--practice-border); }
   .formGrid,
+  .releasePanel,
+  .releaseControls,
   .groupSettings,
   .sessionForm { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .formGrid .buttonRow,
@@ -459,6 +488,8 @@
   .tab { justify-content: flex-start; padding-inline: 13px; }
   .section { padding: 17px; }
   .formGrid,
+  .detailsGrid,
+  .songGrid,
   .createGrid,
   .groupSettings,
   .sessionForm,

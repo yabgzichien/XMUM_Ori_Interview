@@ -1,7 +1,9 @@
 import 'server-only'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { mapPracticeCatalog, mapPracticeLookup } from '@/lib/practice-catalog'
 import type {
+  PracticeCatalog,
   PracticeBookingInput,
   PracticeBookingResult,
   PracticeIdentityInput,
@@ -13,6 +15,7 @@ export type PracticeServiceError =
   | 'group_full'
   | 'group_unavailable'
   | 'already_booked'
+  | 'booking_not_open'
   | 'server_error'
 
 export type ServiceResult<T> =
@@ -24,7 +27,22 @@ function classifyError(message: string): PracticeServiceError {
   if (message.includes('group_full')) return 'group_full'
   if (message.includes('group_unavailable')) return 'group_unavailable'
   if (message.includes('already_booked')) return 'already_booked'
+  if (message.includes('booking_not_open')) return 'booking_not_open'
   return 'server_error'
+}
+
+function practiceAudioUrl(database: ReturnType<typeof createAdminClient>) {
+  return (path: string) => database.storage.from('practice-audio').getPublicUrl(path).data.publicUrl
+}
+
+export async function getPracticeCatalog(): Promise<ServiceResult<PracticeCatalog>> {
+  const database = createAdminClient()
+  const { data, error } = await database.rpc('public_practice_catalog')
+  if (error) return { data: null, error: classifyError(error.message) }
+  return {
+    data: mapPracticeCatalog(data as Parameters<typeof mapPracticeCatalog>[0], practiceAudioUrl(database)),
+    error: null,
+  }
 }
 
 export async function lookupPractice(
@@ -36,7 +54,10 @@ export async function lookupPractice(
     p_email: input.email,
   })
   if (error) return { data: null, error: classifyError(error.message) }
-  return { data: data as PracticeLookupResult, error: null }
+  return {
+    data: mapPracticeLookup(data as Parameters<typeof mapPracticeLookup>[0], practiceAudioUrl(database)),
+    error: null,
+  }
 }
 
 export async function createPracticeBooking(

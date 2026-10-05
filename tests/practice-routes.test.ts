@@ -113,6 +113,30 @@ describe('public practice routes', () => {
     expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
   })
 
+  it('rejects verification before the shared opening time with a clear conflict', async () => {
+    serviceMocks.lookupPractice.mockResolvedValue({ data: null, error: 'booking_not_open' })
+    const response = await verifyPOST(request('/api/practice/verify', {
+      studentId: 'DSC2344112',
+      email: 'dsc2344112@xmu.edu.my',
+    }))
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({ error: 'Booking has not opened yet.' })
+    expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
+  })
+
+  it('rejects booking before the shared opening time with a clear conflict', async () => {
+    serviceMocks.createPracticeBooking.mockResolvedValue({ data: null, error: 'booking_not_open' })
+    const response = await bookPOST(request('/api/practice/book', {
+      studentId: 'DSC2344112',
+      email: 'dsc2344112@xmu.edu.my',
+      groupId: 'f8a40f21-8788-4d7c-9597-9d8a197be1c1',
+    }))
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({ error: 'Booking has not opened yet.' })
+  })
+
   it('does not turn a committed booking into an error when reservation cleanup fails', async () => {
     serviceMocks.createPracticeBooking.mockResolvedValue({
       data: { id: 'booking-1', group_id: 'group-1', group_name: 'Group A', sessions: [] },

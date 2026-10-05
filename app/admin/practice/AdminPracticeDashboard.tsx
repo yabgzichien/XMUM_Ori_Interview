@@ -5,6 +5,7 @@ import type { AdminPracticeSnapshot } from '@/lib/practice-types'
 import { PracticeGroupManager } from './PracticeGroupManager'
 import { RosterImportPanel } from './RosterImportPanel'
 import { RosterManager } from './RosterManager'
+import { PracticeReleaseManager } from './PracticeReleaseManager'
 import { Layers3, Upload, UsersRound } from 'lucide-react'
 import styles from './practice-admin.module.css'
 
@@ -67,6 +68,8 @@ export function AdminPracticeDashboard({ snapshot }: { snapshot: AdminPracticeSn
           <div className={styles.summaryLabel}>{remainingSpaces === 1 ? '1 remaining space' : `${remainingSpaces} remaining spaces`}</div>
         </div>
       </div>
+
+      <PracticeReleaseManager opensAt={snapshot.booking_opens_at} />
 
       <nav className={styles.tabs} aria-label="Practice management sections" role="tablist">
         {tabs.map(({ id, label, count, icon: Icon }) => (

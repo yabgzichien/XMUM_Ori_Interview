@@ -24,6 +24,8 @@ vi.mock('@/app/actions/practiceAdminActions', () => ({
   assignPracticeMemberAction: vi.fn(),
   movePracticeMemberAction: vi.fn(),
   removePracticeBookingAction: vi.fn(),
+  savePracticeOpeningAction: vi.fn(),
+  savePracticeGroupDetailsAction: vi.fn(),
 }))
 
 const roster = [{
@@ -37,14 +39,21 @@ const roster = [{
   active: true, booking_id: null, group_id: null, group_name: null,
 }]
 
-const groups = [{ id: 'group-1', name: 'Group A', capacity: 3, status: 'open' as const, booking_count: 1, session_count: 1 }, {
+const groups = [{
+  id: 'group-1', name: 'Group A', capacity: 3, status: 'open' as const, booking_count: 1, session_count: 1,
+  performance_type: 'K-pop dance', description: 'High energy performance.', leader_roster_member_id: 'member-1', leader_name: 'Alice Tan',
+  performance_video_url: 'https://youtu.be/dQw4w9WgXcQ', song_source_type: 'youtube' as const,
+  song_url: 'https://youtu.be/5qap5aO4i9A', song_storage_path: null,
+}, {
   id: 'group-2', name: 'Group B', capacity: 4, status: 'closed' as const, booking_count: 0, session_count: 0,
+  performance_type: null, description: null, leader_roster_member_id: null, leader_name: null,
+  performance_video_url: null, song_source_type: null, song_url: null, song_storage_path: null,
 }]
 
 const bookings = [{ id: 'booking-1', group_id: 'group-1', roster_member_id: 'member-1', member_name: 'Alice Tan', student_id: 'DSC2344112', source: 'self_service' as const }]
 const sessions = [{ id: 'session-1', group_id: 'group-1', starts_at: '2026-12-05T02:00:00.000Z', ends_at: '2026-12-05T03:00:00.000Z', location: 'D5-101' }]
 const positions = [{ value: 'facilitator', label: 'Facilitator' }, { value: 'game_master', label: 'Game Master' }]
-const snapshot = { roster, groups, bookings, sessions, positions }
+const snapshot = { roster, groups, bookings, sessions, positions, booking_opens_at: '2026-12-01T01:00:00.000Z' }
 
 describe('admin practice management', () => {
   beforeEach(() => {
@@ -59,6 +68,21 @@ describe('admin practice management', () => {
     vi.mocked(actions.assignPracticeMemberAction).mockResolvedValue({ data: {}, error: null })
     vi.mocked(actions.movePracticeMemberAction).mockResolvedValue({ data: {}, error: null })
     vi.mocked(actions.removePracticeBookingAction).mockResolvedValue({ data: true, error: null })
+    vi.mocked(actions.savePracticeOpeningAction).mockResolvedValue({ data: {}, error: null })
+    vi.mocked(actions.savePracticeGroupDetailsAction).mockResolvedValue({ data: {}, error: null })
+  })
+
+  it('lets admins schedule or clear the shared booking opening time in Malaysia time', async () => {
+    render(<AdminPracticeDashboard snapshot={snapshot} />)
+    const opening = screen.getByLabelText(/booking opens at.*malaysia time/i)
+    expect((opening as HTMLInputElement).value).toBe('2026-12-01T09:00')
+
+    fireEvent.change(opening, { target: { value: '2026-12-02T10:30' } })
+    fireEvent.click(screen.getByRole('button', { name: /save opening time/i }))
+    await waitFor(() => expect(actions.savePracticeOpeningAction).toHaveBeenCalledWith({ opensAt: '2026-12-02T10:30' }))
+
+    fireEvent.click(screen.getByRole('button', { name: /clear opening time/i }))
+    await waitFor(() => expect(actions.savePracticeOpeningAction).toHaveBeenCalledWith({ opensAt: null }))
   })
 
   it('summarizes the operation and switches workspaces', () => {
@@ -189,6 +213,19 @@ describe('admin practice management', () => {
     await waitFor(() => expect(actions.movePracticeMemberAction).toHaveBeenCalledWith('booking-1', 'group-2'))
     fireEvent.click(screen.getByRole('button', { name: /remove DSC2344112/i }))
     await waitFor(() => expect(actions.removePracticeBookingAction).toHaveBeenCalledWith('booking-1'))
+  })
+
+  it('edits optional performance details and song source for each group', async () => {
+    render(<PracticeGroupManager groups={groups} roster={roster} bookings={bookings} sessions={sessions} />)
+
+    expect((screen.getByLabelText('Performance type for Group A') as HTMLInputElement).value).toBe('K-pop dance')
+    expect((screen.getByLabelText('Performance leader for Group A') as HTMLSelectElement).value).toBe('member-1')
+    fireEvent.change(screen.getByLabelText('Description for Group A'), { target: { value: 'Updated stage concept.' } })
+    fireEvent.change(screen.getByLabelText('Song source for Group A'), { target: { value: 'external' } })
+    fireEvent.change(screen.getByLabelText('Song link for Group A'), { target: { value: 'https://audio.example.test/song.mp3' } })
+    fireEvent.click(screen.getByRole('button', { name: /save performance details for Group A/i }))
+
+    expect(await screen.findByText(/performance details saved/i)).toBeDefined()
   })
 
   it('preserves the selected destination after a failed move', async () => {
