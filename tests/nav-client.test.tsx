@@ -24,11 +24,9 @@ describe('NavClient', () => {
     practiceLinks.forEach((link) => expect(link.getAttribute('href')).toBe('/practice'))
   })
 
-  it('links signed-out visitors directly to public practice verification', () => {
+  it('hides the Performance Practice link for signed-out visitors', () => {
     render(<NavClient profile={null} />)
-    const practice = screen.getAllByRole('link', { name: /performance practice/i })
-    expect(practice).toHaveLength(2)
-    practice.forEach((link) => expect(link.getAttribute('href')).toBe('/practice'))
+    expect(screen.queryByRole('link', { name: /performance practice/i })).toBeNull()
     expect(screen.getAllByRole('link', { name: /committee/i }).every((link) => link.getAttribute('href') === '/login')).toBe(true)
   })
 
