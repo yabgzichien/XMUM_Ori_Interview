@@ -15,7 +15,7 @@ import {
   type AuditAction,
   type AuditEntry,
 } from '@/lib/auditLog'
-import { fieldLabelStyle, fieldStyle } from '@/app/admin/AdminStaff'
+import { fieldLabelStyle, fieldStyle } from '@/app/admin/fieldStyles'
 
 const cardStyle: React.CSSProperties = {
   background: 'var(--bg-card, #fff)',

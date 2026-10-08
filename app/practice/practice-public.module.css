@@ -104,3 +104,8 @@
   .showcase *::before,
   .showcase *::after { scroll-behavior: auto !important; transition: none !important; }
 }
+
+.flowCard { position: relative; }
+.holdTimer { position: absolute; top: 20px; right: 22px; display: inline-flex; align-items: center; gap: 6px; color: #ef4444; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.leadLine { margin: 0 0 10px; color: var(--text-muted, #64748b); font-size: 14px; }
+.leadLine strong { color: var(--text-primary, inherit); }

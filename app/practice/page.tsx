@@ -24,9 +24,6 @@ export default async function PracticePage() {
         <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>
           December 2026 Performance Practice
         </h1>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>
-          Preview every performance, then verify your details when booking opens.
-        </p>
       </div>
       <PracticeClient initialCatalog={catalog} />
     </main>

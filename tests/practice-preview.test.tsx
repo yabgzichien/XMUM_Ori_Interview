@@ -21,7 +21,7 @@ const previewCatalog = {
     faci_gm_seats_left: 3,
     performance_type: 'K-pop dance',
     description: 'A high-energy dance performance for the orientation finale.',
-    leader: { id: 'member-1', name: 'Alice Tan', position: 'Facilitator' },
+    leaders: [{ id: 'member-1', name: 'Alice Tan', position: 'Facilitator' }, { id: 'member-9', name: 'Ben Ong', position: 'Game Master' }],
     performance_video_url: 'https://youtu.be/dQw4w9WgXcQ',
     song: { type: 'mp3' as const, url: 'https://example.test/neon-pulse.mp3' },
   }],
@@ -44,6 +44,8 @@ describe('performance-practice preview mode', () => {
     expect(screen.getByText('K-pop dance')).toBeDefined()
     expect(screen.getByText(/high-energy dance performance/i)).toBeDefined()
     expect(screen.getByText(/Alice Tan/)).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: /performance video/i }))
+    fireEvent.click(screen.getByRole('button', { name: /song preview/i }))
     expect(screen.getByTitle(/performance video for Neon Pulse/i).getAttribute('src')).toContain('youtube.com/embed/dQw4w9WgXcQ')
     expect(screen.getByLabelText(/song audio for Neon Pulse/i)).toBeDefined()
     expect(screen.getByText('2 Committee spaces')).toBeDefined()
@@ -80,6 +82,7 @@ describe('performance-practice preview mode', () => {
       }],
     }} />)
 
+    fireEvent.click(screen.getByRole('button', { name: /song preview/i }))
     expect(screen.getByTitle(/song for Neon Pulse/i).getAttribute('src')).toContain('youtube.com/embed/5qap5aO4i9A')
   })
 })

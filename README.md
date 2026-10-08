@@ -28,33 +28,32 @@ openssl rand -hex 32 | vercel env add PRACTICE_RATE_LIMIT_SECRET production
 | Role | Account? | Primary route | Key permissions | Scope |
 |---|---|---|---|---|
 | Interviewee | No account | `/book`, `/my-booking` | Book a slot; look up and cancel own booking by Student ID (to move slots: cancel, then book again) | Own booking only |
-| `head_facilitator` / `head_gm` | Login required | `/head` | Manage slots, booking window, bookings, interview status/notes, cancel bookings; bulk-invite approved interviewees onto the committee | Own track only (+ own orientation/year if set) |
-| `admin` | Login required | `/head`, `/admin` | Everything Heads can do, unscoped, plus invite Head/Admin accounts | Both tracks, all orientations |
+| `head_facilitator` / `head_gm` | Login required | `/head` | Manage slots, booking window, bookings, interview status/notes, cancel bookings | Own track only (+ own orientation/year if set) |
+| `admin` | Login required | `/head`, `/admin` | Everything Heads can do, unscoped, plus manage the committee roster and practice groups | Both tracks, all orientations |
 
 ### Performance practice
 
 | Role | Account? | Primary route | Key permissions | Scope |
 |---|---|---|---|---|
 | Rostered committee member | No account | `/practice` | Verify student ID + matching `studentID@xmu.edu.my`, book once, and re-verify to view the assigned group and sessions | Own booking only |
-| `head_facilitator` / `head_gm` | Not required for practice | `/practice` | Same account-free booking flow as any rostered committee member; their accounts still provide `/head` interview access | Own booking only |
-| `admin` | Login required | `/admin/practice` | Manage the roster, import files, groups, capacities, sessions, and member assignment/movement/removal | All December 2026 practice data |
+| `head_facilitator` / `head_gm` | Login required for interviews only | `/head` | Interview management. These accounts are not on the practice roster and do not book a group | Interview dashboard only |
+| `admin` | Login required | `/admin`, `/admin/practice` | Manage the roster and titles on `/admin`; manage groups, capacities, sessions, and member assignment on `/admin/practice` | All December 2026 practice data |
 
-Interviewees and practice participants do **not** need accounts. Practice identity is checked
-case-insensitively against the admin roster: `DSC2344112` must use
-`DSC2344112@xmu.edu.my`. A participant can book once and cannot change or remove the booking;
-an admin must move or remove it. HOF/HOG accounts continue to control interview management,
-but do not gain practice-management access.
+Interviewees and practice participants do **not** need accounts. The only logins are
+`admin@xmum.local`, `head.facilitator@xmum.local`, and `head.gm@xmum.local`, created by
+`npm run seed`. Practice identity is checked case-insensitively against the roster:
+`DSC2344112` must use `DSC2344112@xmu.edu.my`. A participant can book once and cannot
+change or remove the booking; an admin must move or remove it.
 
 ## Routes
 
 - `/book` — public, no login: track tabs → pick a slot → enter details → confirmation
 - `/my-booking` — public, no login: search active bookings by Student ID and cancel them if active
-- `/login` — committee sign-in (Heads/Admin)
-- `/register` — committee activation: a pre-invited committee member sets a password (email + invite code)
-- `/head` — Committee dashboard (admin/Heads)
-- `/admin` — admin-only: invite committee (name, student ID, email, role) and view invite codes/status
+- `/login` — sign-in for the three seed accounts (admin and the two heads)
+- `/head` — interview dashboard (admin/Heads)
+- `/admin` — admin-only committee roster, import, and titles
 - `/practice` — public, no login: verify roster identity, book once, or view an existing booking
-- `/admin/practice` — admin-only roster, import, group, session, and assignment management
+- `/admin/practice` — admin-only group, session, and assignment management
 
 ## Performance practice operations (December 2026)
 
@@ -65,13 +64,14 @@ Back up any old practice data before applying it if it must be retained.
 
 After applying migrations:
 
-1. Sign in as an admin and open `/admin/practice`.
+1. Sign in as an admin and open `/admin`.
 2. Add roster members manually or download the XLSX template from the Import roster tab.
 3. Import `.xlsx`, `.csv`, or `.json`. Every row must contain exactly the fields `name`,
-   `student_id`, and `position`; position values must already exist in Committee Management.
+   `student_id`, and `position`; position values must already exist as roster titles.
+   Head of Facilitator and Head of Game Master are not roster titles.
    Validation is all-or-nothing: no row is saved until the complete file passes and the admin
    selects **Apply import**. The limit is 5 MB and 5,000 rows.
-4. Create groups, set capacities/open status, add sessions, and optionally assign members.
+4. Open `/admin/practice`. Create groups, set capacities/open status, add sessions, and optionally assign members.
 5. Give committee members `/practice`; only group names and remaining spaces appear after
    successful identity verification.
 
@@ -80,15 +80,10 @@ tables begin empty, and there is no performance-lead role in this workflow.
 
 ## Staff onboarding
 
-Two ways to create staff accounts:
-
-1. **Seed** (initial admin + heads): `npm run seed` — see below.
-2. **In-app invites** (admin self-service): an admin goes to `/admin`, adds a staffer
-   (name, student ID, email, role) → the system generates an **invite code**. The admin
-   shares the email + code with the staffer, who activates their account at `/register` by
-   setting a password. The claim runs server-side (`app/api/staff/register`, service-role
-   key) and assigns the invited role. Invite codes guard against anyone claiming an account
-   they weren't invited to.
+`npm run seed` creates the only three logins: `admin@xmum.local`,
+`head.facilitator@xmum.local`, and `head.gm@xmum.local`. The app rejects every other
+sign-in. Committee members are roster rows, not accounts. `npm run seed:committee`
+adds demo roster rows and does not create logins.
 
 ## Local development
 

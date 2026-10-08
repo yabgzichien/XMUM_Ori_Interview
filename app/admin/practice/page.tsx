@@ -4,12 +4,13 @@ import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
 import { getAdminPracticeSnapshot } from '@/lib/practice-admin'
 import { AdminPracticeDashboard } from './AdminPracticeDashboard'
-import { ArrowLeft, CalendarDays } from 'lucide-react'
+import { ExportPracticeButton } from './ExportPracticeButton'
+import { ArrowLeft } from 'lucide-react'
 import styles from './practice-admin.module.css'
 
 export const metadata: Metadata = {
   title: 'Performance Practice Management',
-  description: 'Manage the December 2026 committee roster, practice groups, and sessions.',
+  description: 'Manage December 2026 practice groups and sessions.',
 }
 
 export default async function AdminPracticePage() {
@@ -19,16 +20,13 @@ export default async function AdminPracticePage() {
   const snapshot = await getAdminPracticeSnapshot()
   return (
     <main className={`scr ${styles.page}`}>
-      <Link className={styles.backLink} href="/admin"><ArrowLeft size={16} /> Committee management</Link>
-      <header className={styles.hero}>
-        <div className={styles.heroTop}>
-          <div>
-            <h1>Performance Practice</h1>
-            <p>Prepare the committee roster, organise practice groups, and keep every session ready for December orientation.</p>
-          </div>
-          <span className={styles.intakeBadge}><CalendarDays size={14} /> December 2026</span>
+      <div className={styles.pageHeader}>
+        <div>
+          <Link className={styles.backLink} href="/admin"><ArrowLeft size={16} /> Committee roster</Link>
+          <h1 style={{ margin: '8px 0 0' }}>Performance Practice</h1>
         </div>
-      </header>
+        <ExportPracticeButton hasGroups={snapshot.groups.length > 0} />
+      </div>
       <AdminPracticeDashboard snapshot={snapshot} />
     </main>
   )

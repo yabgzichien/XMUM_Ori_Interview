@@ -8,7 +8,7 @@ describe('practice capacity categories', () => {
     expect(getPracticeCapacityCategory(position)).toBe('faci_gm')
   })
 
-  it.each(['hof', 'hog', 'designer', 'treasurer', 'custom_committee_role'])(
+  it.each(['designer', 'treasurer', 'secretary', 'custom_committee_role'])(
     'classifies %s under committee capacity',
     (position) => {
       expect(getPracticeCapacityCategory(position)).toBe('committee')

@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isStaffLoginEmail } from '@/lib/staff-accounts'
 
 // Only account-management and interview staff areas require a login.
 // /practice is intentionally public: identity is verified against the roster.
@@ -40,6 +41,21 @@ export async function updateSession(request: NextRequest) {
   // writing refreshed cookies.
   const { data: claims } = await supabase.auth.getClaims()
   const user = claims?.claims.sub
+  const emailClaim = claims?.claims.email
+  const email = typeof emailClaim === 'string' ? emailClaim : null
+
+  if (user && !isStaffLoginEmail(email)) {
+    await supabase.auth.signOut()
+    if (!isProtectedPath(request.nextUrl.pathname)) return response
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/login'
+    redirectUrl.search = ''
+    const redirectResponse = NextResponse.redirect(redirectUrl)
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie)
+    })
+    return redirectResponse
+  }
 
   if (!user && isProtectedPath(request.nextUrl.pathname)) {
     const redirectUrl = request.nextUrl.clone()

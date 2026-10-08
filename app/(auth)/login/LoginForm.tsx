@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { isStaffLoginEmail } from '@/lib/staff-accounts'
 
 function LoginFormInner() {
   const router = useRouter()
@@ -18,8 +19,14 @@ function LoginFormInner() {
     setError(null)
     setLoading(true)
 
+    if (!isStaffLoginEmail(email)) {
+      setLoading(false)
+      setError('Only the admin and head accounts can sign in.')
+      return
+    }
+
     const supabase = createClient()
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -31,21 +38,7 @@ function LoginFormInner() {
     }
 
     const next = searchParams.get('next')
-    if (next) {
-      setLoading(false)
-      router.push(next)
-      router.refresh()
-      return
-    }
-
-    let destination = '/head'
-    const userId = signInData.user?.id
-    if (userId) {
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
-      if (profile?.role === 'committee' || profile?.role === 'performance_lead') {
-        destination = '/practice'
-      }
-    }
+    const destination = next && next.startsWith('/') && !next.startsWith('//') ? next : '/head'
     setLoading(false)
     router.push(destination)
     router.refresh()
@@ -81,7 +74,7 @@ function LoginFormInner() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '6px', display: 'block' }}>Email</label>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@xmu.edu.my" style={{ width: '100%', padding: '11px 13px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)', borderRadius: '10px', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }} />
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@xmum.local" style={{ width: '100%', padding: '11px 13px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-input, #fff)', color: 'var(--text-primary, #0F172A)', borderRadius: '10px', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }} />
             </div>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -96,7 +89,6 @@ function LoginFormInner() {
             </button>
           </form>
         </div>
-        <p style={{ textAlign: 'center', fontSize: '13.5px', color: 'var(--text-muted, #64748B)', marginTop: '18px' }}>Got an invite? <Link href="/register" style={{ border: 'none', background: 'none', color: 'var(--accent-text, #2563EB)', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', padding: 0 }}>Activate your account</Link></p>
       </div>
     </main>
   )

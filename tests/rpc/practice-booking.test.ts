@@ -115,17 +115,22 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
 
   it('publishes preview metadata but rejects booking before the shared opening time', async () => {
     const leader = await createRosterMember('PreviewLeader')
+    const coLeader = await createRosterMember('PreviewCoLeader')
     const visitor = await createRosterMember('PreviewVisitor')
     const group = await createGroup('Preview Group')
     const details = await service.from('practice_groups').update({
       performance_type: 'K-pop dance',
       description: 'Preview description',
-      leader_roster_member_id: leader.id,
       performance_video_url: 'https://youtu.be/dQw4w9WgXcQ',
       song_source_type: 'external',
       song_url: 'https://example.test/song.mp3',
     }).eq('id', group.id)
     expect(details.error).toBeNull()
+    const leaderLinks = await service.from('practice_group_leaders').insert([
+      { group_id: group.id, roster_member_id: leader.id },
+      { group_id: group.id, roster_member_id: coLeader.id },
+    ])
+    expect(leaderLinks.error).toBeNull()
 
     const future = await service.from('practice_settings').update({
       booking_opens_at: '2099-12-01T00:00:00.000Z',
@@ -139,7 +144,10 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
         expect.objectContaining({
           id: group.id,
           performance_type: 'K-pop dance',
-          leader: expect.objectContaining({ id: leader.id }),
+          leaders: expect.arrayContaining([
+            expect.objectContaining({ id: leader.id }),
+            expect.objectContaining({ id: coLeader.id }),
+          ]),
         }),
       ]))
 
@@ -170,9 +178,9 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
     ]))
   })
 
-  it('separates Committee and Faci/GM capacity while treating HOF and HOG as Committee', async () => {
-    const hof = await createRosterMember('SplitHof', true, 'hof')
-    const hog = await createRosterMember('SplitHog', true, 'hog')
+  it('separates Committee and Faci/GM capacity for non-Faci/GM positions', async () => {
+    const hof = await createRosterMember('SplitDesigner', true, 'designer')
+    const hog = await createRosterMember('SplitTreasurer', true, 'treasurer')
     const facilitator = await createRosterMember('SplitFaci', true, 'facilitator')
     const gameMaster = await createRosterMember('SplitGm', true, 'game_master')
     const facilitatorOverflow = await createRosterMember('SplitFaciOverflow', true, 'facilitator')
@@ -410,7 +418,7 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
   })
 
   it('prevents admins from lowering either category below its current bookings', async () => {
-    const committee = await createRosterMember('CapacityCommittee', true, 'hof')
+    const committee = await createRosterMember('CapacityCommittee', true, 'designer')
     const faciGm = await createRosterMember('CapacityFaciGm', true, 'game_master')
     const group = await createGroup('Capacity Guard', 2)
     expect((await adminClient.rpc('admin_assign_practice_member', {
@@ -436,7 +444,7 @@ describe.skipIf(!hasEnv)('account-free practice booking RPCs', () => {
   })
 
   it('prevents a roster position edit from moving a booked member into a full category', async () => {
-    const committee = await createRosterMember('PositionCommittee', true, 'hog')
+    const committee = await createRosterMember('PositionCommittee', true, 'treasurer')
     const faciGm = await createRosterMember('PositionFaciGm', true, 'facilitator')
     const group = await createGroup('Position Guard', 1)
     expect((await adminClient.rpc('admin_assign_practice_member', {

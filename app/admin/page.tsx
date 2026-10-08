@@ -1,15 +1,13 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
-import { AdminStaff } from '@/app/admin/AdminStaff'
-import { createClient } from '@/lib/supabase/server'
-import type { StaffInvite, CommitteeMember } from '@/lib/admin'
-import type { CommitteePositionOption } from '@/lib/practice'
+import { getAdminPracticeSnapshot } from '@/lib/practice-admin'
+import { CommitteeDashboard } from './CommitteeDashboard'
+import styles from './practice/practice-admin.module.css'
 
 export const metadata: Metadata = {
-  title: 'Committee Management',
-  description: 'Manage committee members, positions, and invitations.',
+  title: 'Committee',
+  description: 'Manage the December 2026 committee roster.',
 }
 
 export default async function AdminPage() {
@@ -22,46 +20,12 @@ export default async function AdminPage() {
     redirect('/head')
   }
 
-  // Pre-fetch all admin data in parallel on the server
-  const supabase = await createClient()
-  const [invitesRes, membersRes, positionsRes] = await Promise.all([
-    supabase.from('staff_invites').select('*').order('created_at', { ascending: false }),
-    supabase.from('profiles').select('id, name, email, student_id, role, position, orientation, orientation_year, avatar_url').in('role', ['committee', 'performance_lead', 'head_facilitator', 'head_gm']).order('name'),
-    supabase.from('committee_positions').select('value, label').order('label'),
-  ])
-
-  const initialInvites = (invitesRes.data as StaffInvite[] | null) ?? []
-  const initialMembers = (membersRes.data as CommitteeMember[] | null) ?? []
-  const initialPositions = (positionsRes.data as CommitteePositionOption[] | null) ?? []
+  const snapshot = await getAdminPracticeSnapshot()
 
   return (
-    <main className="scr" style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '32px 24px 48px', boxSizing: 'border-box' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>Committee Management</h1>
-          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>Invite and manage heads and administrators.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <Link
-            href="/admin/practice"
-            style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 600, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' }}
-          >
-            Performance Practice
-          </Link>
-          <Link
-            href="/admin/logs"
-            style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid var(--border-input, #E2E8F0)', background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1E293B)', fontWeight: 600, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' }}
-          >
-            🧾 Activity Log
-          </Link>
-        </div>
-      </div>
-
-      <AdminStaff
-        initialInvites={initialInvites}
-        initialMembers={initialMembers}
-        initialPositions={initialPositions}
-      />
+    <main className={`scr ${styles.page}`}>
+      <h1 style={{ margin: '0 0 20px' }}>Committee</h1>
+      <CommitteeDashboard roster={snapshot.roster} positions={snapshot.positions} />
     </main>
   )
 }

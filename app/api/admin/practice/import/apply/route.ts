@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCurrentProfile } from '@/lib/auth'
+import { isAssignableRosterPosition } from '@/lib/practice'
 import { parsePracticeRosterFile } from '@/lib/practice-import'
 import { createClient } from '@/lib/supabase/server'
 
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   const form = await request.formData()
   const file = form.get('file')
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'Choose an XLSX, CSV, or JSON file.' }, { status: 400 })
+    return NextResponse.json({ error: 'Paste roster JSON or choose a .json/.txt file.' }, { status: 400 })
   }
 
   const database = await createClient()
@@ -22,14 +23,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'The roster import could not be validated.' }, { status: 500 })
   }
 
-  const positions = new Set((positionRows ?? []).map((row: { value: string }) => row.value))
+  const positions = new Set(
+    (positionRows ?? [])
+      .map((row: { value: string }) => row.value)
+      .filter((value: string) => isAssignableRosterPosition(value)),
+  )
   const validation = await parsePracticeRosterFile(file, positions)
   if (validation.errors.length > 0) {
     return NextResponse.json({ data: validation, error: 'Fix every validation error before importing.' }, { status: 400 })
   }
 
   const { data, error } = await database.rpc('admin_apply_practice_roster', {
-    p_rows: validation.rows.map(({ name, student_id, position }) => ({ name, student_id, position })),
+    p_rows: validation.rows.map(({ name, student_id, position, contact_number }) => ({ name, student_id, position, contact_number: contact_number ?? null })),
   })
   if (error) {
     return NextResponse.json({ error: 'The roster import could not be applied.' }, { status: 500 })

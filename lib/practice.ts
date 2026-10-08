@@ -4,8 +4,6 @@
 import { createClient } from '@/lib/supabase/client'
 
 export type CommitteePosition =
-  | 'hof'
-  | 'hog'
   | 'game_master'
   | 'facilitator'
   | 'treasurer'
@@ -21,8 +19,6 @@ export type CommitteePosition =
   | 'general_affairs'
 
 export const POSITIONS: { value: CommitteePosition; label: string }[] = [
-  { value: 'hof', label: 'Head of Facilitator (HOF)' },
-  { value: 'hog', label: 'Head of Game Master (HOGM)' },
   { value: 'game_master', label: 'Game Master' },
   { value: 'facilitator', label: 'Facilitator' },
   { value: 'treasurer', label: 'Treasurer' },
@@ -57,9 +53,16 @@ function slugifyPosition(label: string): string {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
 }
 
+export function isAssignableRosterPosition(value: string): boolean {
+  return value !== 'hof' && value !== 'hog'
+}
+
 export async function addCommitteePosition(label: string) {
   const value = slugifyPosition(label)
   if (!value) return { data: null, error: { message: 'Enter a role name.' } as { message: string } }
+  if (!isAssignableRosterPosition(value)) {
+    return { data: null, error: { message: 'That title is reserved for the seed head accounts and is not a roster position.' } as { message: string } }
+  }
   const supabase = createClient()
   const { data, error } = await supabase
     .from('committee_positions')
@@ -70,16 +73,10 @@ export async function addCommitteePosition(label: string) {
 }
 
 export async function deleteCommitteePosition(value: string) {
+  if (!isAssignableRosterPosition(value)) {
+    return { error: { message: 'That title is reserved for the seed head accounts and is not a roster position.' } as { message: string } }
+  }
   const supabase = createClient()
   const { error } = await supabase.from('committee_positions').delete().eq('value', value)
   return { error }
-}
-
-export async function setCommitteePosition(profileId: string, position: string | null) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_set_committee_position', {
-    p_profile_id: profileId,
-    p_position: position,
-  })
-  return { data, error }
 }

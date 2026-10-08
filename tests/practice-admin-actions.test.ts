@@ -137,6 +137,7 @@ describe('practice admin actions', () => {
       name: 'Member',
       student_id: 'NEWID1',
       position: 'facilitator',
+      contact_number: null,
     })
     expect(database.builders.committee_roster.eq).toHaveBeenCalledWith('id', 'member-1')
   })
@@ -197,6 +198,20 @@ describe('practice admin actions', () => {
       data: null,
       error: 'Enter a valid YouTube performance video link.',
     })
+  })
+
+  it('saves songs string for a group', async () => {
+    const database = databaseFixture()
+    mocks.createClient.mockResolvedValue(database)
+    const form = new FormData()
+    form.set('groupId', 'group-1')
+    form.set('songs', 'Song 1 + Song 2 + Song 3')
+
+    const result = await savePracticeGroupDetailsAction(form)
+    expect(result.error).toBeNull()
+    expect(database.builders.practice_groups.update).toHaveBeenCalledWith(expect.objectContaining({
+      songs: 'Song 1 + Song 2 + Song 3',
+    }))
   })
 
   it('uploads an MP3 and removes the replaced stored song only after the group update succeeds', async () => {

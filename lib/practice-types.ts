@@ -8,6 +8,12 @@ export type PracticeIdentityInput = {
 
 export type PracticeBookingInput = PracticeIdentityInput & {
   groupId: string
+  holdToken?: string | null
+}
+
+export type PracticeHold = {
+  token: string
+  expires_at: string
 }
 
 export type PublicPracticeGroup = {
@@ -19,11 +25,12 @@ export type PublicPracticeGroup = {
   faci_gm_seats_left: number
   performance_type: string | null
   description: string | null
-  leader: {
+  songs?: string | null
+  leaders: Array<{
     id: string
     name: string
     position: string
-  } | null
+  }>
   performance_video_url: string | null
   song: {
     type: PracticeSongType
@@ -53,6 +60,7 @@ export type PublicPracticeBooking = {
   id: string
   group_id: string
   group_name: string
+  leader_names?: string[]
   sessions: PracticeSession[]
 }
 
@@ -73,6 +81,7 @@ export type AdminRosterMember = {
   name: string
   student_id: string
   position: string
+  contact_number?: string | null
   active: boolean
   booking_id: string | null
   group_id: string | null
@@ -92,8 +101,9 @@ export type AdminPracticeGroup = {
   session_count: number
   performance_type: string | null
   description: string | null
-  leader_roster_member_id: string | null
-  leader_name: string | null
+  songs: string | null
+  leader_roster_member_ids: string[]
+  leader_names: string[]
   performance_video_url: string | null
   song_source_type: PracticeSongType | null
   song_url: string | null
@@ -123,11 +133,12 @@ export type CanonicalRosterRow = {
   name: string
   student_id: string
   position: string
+  contact_number?: string
 }
 
 export type RosterImportError = {
   row: number | null
-  field: 'file' | 'name' | 'student_id' | 'position'
+  field: 'file' | 'name' | 'student_id' | 'position' | 'contact_number'
   message: string
 }
 

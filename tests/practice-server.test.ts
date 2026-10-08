@@ -10,7 +10,7 @@ const rawGroup = {
   faci_gm_seats_left: 2,
   performance_type: 'K-pop dance',
   description: 'High energy performance.',
-  leader: { id: 'member-1', name: 'Alice Tan', position: 'Facilitator' },
+  leaders: [{ id: 'member-1', name: 'Alice Tan', position: 'Facilitator' }, { id: 'member-9', name: 'Ben Ong', position: 'Game Master' }],
   performance_video_url: 'https://youtu.be/dQw4w9WgXcQ',
   song: { type: 'mp3' as const, storage_path: 'group-1/song.mp3' },
 }

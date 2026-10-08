@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default async function LoginPage() {
   const profile = await getCurrentProfile()
   if (profile) {
-    redirect(profile.role === 'committee' || profile.role === 'performance_lead' ? '/practice' : '/head')
+    redirect('/head')
   }
   return <LoginForm />
 }

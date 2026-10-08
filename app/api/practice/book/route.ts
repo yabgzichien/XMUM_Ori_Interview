@@ -13,6 +13,7 @@ const conflictMessages: Partial<Record<PracticeServiceError, string>> = {
   group_unavailable: 'That practice group is no longer available.',
   already_booked: 'You already have a performance-practice group booking.',
   booking_not_open: 'Booking has not opened yet.',
+  hold_expired: 'Your hold expired. Please choose your group again.',
 }
 
 export async function POST(request: Request) {
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400, headers: NO_STORE })
   }
-  const { studentId, email, groupId } = body as Record<string, unknown>
+  const { studentId, email, groupId, holdToken } = body as Record<string, unknown>
   if (
     typeof studentId !== 'string' || !studentId.trim()
     || typeof email !== 'string' || !email.trim()
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const result = await createPracticeBooking({ studentId, email, groupId })
+    const result = await createPracticeBooking({ studentId, email, groupId, holdToken: typeof holdToken === 'string' ? holdToken : null })
     if (result.error === 'identity_not_verified') {
       retainAttempt = true
       return NextResponse.json(

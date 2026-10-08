@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { isStaffLoginEmail } from '@/lib/staff-accounts'
 import { createClient } from '@/lib/supabase/server'
 
 /**
@@ -24,5 +25,6 @@ export const getCurrentProfile = cache(async () => {
     .select('id, role, name, email, position, orientation, orientation_year, avatar_url')
     .eq('id', userId)
     .single()
+  if (!data || !isStaffLoginEmail(data.email)) return null
   return data
 })

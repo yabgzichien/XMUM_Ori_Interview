@@ -30,6 +30,7 @@ function mapDatabaseError(message: string): string {
 }
 
 function refreshPracticeAdmin() {
+  revalidatePath('/admin')
   revalidatePath('/admin/practice')
   revalidatePath('/practice')
 }
@@ -71,9 +72,10 @@ export async function savePracticeGroupDetailsAction(form: FormData): Promise<Ac
   const auth = await requirePracticeAdmin()
   if (auth.error) return { data: null, error: auth.error }
   const groupId = formText(form, 'groupId')
+  const songs = formText(form, 'songs')
   const performanceType = formText(form, 'performanceType')
   const description = formText(form, 'description')
-  const leaderRosterMemberId = formText(form, 'leaderRosterMemberId')
+  const leaderIds = [...new Set(form.getAll('leaderRosterMemberId').map((value) => (typeof value === 'string' ? value.trim() : '')).filter(Boolean))]
   const performanceVideoUrl = formText(form, 'performanceVideoUrl')
   const rawSongSource = formText(form, 'songSourceType')
   const songSourceType = rawSongSource as PracticeSongType | ''
@@ -81,6 +83,7 @@ export async function savePracticeGroupDetailsAction(form: FormData): Promise<Ac
   const songFile = form.get('songFile')
 
   if (!groupId) return { data: null, error: 'Practice group is required.' }
+  if (songs.length > 2000) return { data: null, error: 'Songs must be 2,000 characters or fewer.' }
   if (performanceType.length > 80) return { data: null, error: 'Performance type must be 80 characters or fewer.' }
   if (description.length > 2000) return { data: null, error: 'Description must be 2,000 characters or fewer.' }
   if (performanceVideoUrl && !getYouTubeVideoId(performanceVideoUrl)) {
@@ -104,14 +107,15 @@ export async function savePracticeGroupDetailsAction(form: FormData): Promise<Ac
     .single()
   if (existingError || !existing) return { data: null, error: 'Practice group was not found.' }
 
-  if (leaderRosterMemberId) {
-    const { data: leader, error: leaderError } = await database
+  if (leaderIds.length > 0) {
+    const { data: leaders, error: leaderError } = await database
       .from('committee_roster')
       .select('id')
-      .eq('id', leaderRosterMemberId)
+      .in('id', leaderIds)
       .eq('active', true)
-      .maybeSingle()
-    if (leaderError || !leader) return { data: null, error: 'Choose an active roster member as performance leader.' }
+    if (leaderError || (leaders ?? []).length !== leaderIds.length) {
+      return { data: null, error: 'Choose active roster members as performance leaders.' }
+    }
   }
 
   let nextStoragePath = songSourceType === 'mp3' ? existing.song_storage_path as string | null : null
@@ -136,19 +140,32 @@ export async function savePracticeGroupDetailsAction(form: FormData): Promise<Ac
     return { data: null, error: 'Choose an MP3 file.' }
   }
 
-  const payload = {
-    performance_type: performanceType || null,
-    description: description || null,
-    leader_roster_member_id: leaderRosterMemberId || null,
+  const payload: Record<string, unknown> = {
+    songs: songs || null,
     performance_video_url: performanceVideoUrl || null,
     song_source_type: songSourceType || null,
     song_url: songSourceType === 'youtube' || songSourceType === 'external' ? songUrl : null,
     song_storage_path: nextStoragePath,
   }
+  if (form.has('performanceType')) {
+    payload.performance_type = performanceType || null
+  }
+  if (form.has('description')) {
+    payload.description = description || null
+  }
   const { data, error } = await database.from('practice_groups').update(payload).eq('id', groupId).select('*').single()
   if (error) {
     if (uploadedPath) await database.storage.from(PRACTICE_AUDIO_BUCKET).remove([uploadedPath])
     return { data: null, error: mapDatabaseError(error.message) }
+  }
+
+  const { error: clearLeadersError } = await database.from('practice_group_leaders').delete().eq('group_id', groupId)
+  if (clearLeadersError) return { data: null, error: mapDatabaseError(clearLeadersError.message) }
+  if (leaderIds.length > 0) {
+    const { error: leadersError } = await database
+      .from('practice_group_leaders')
+      .insert(leaderIds.map((rosterMemberId) => ({ group_id: groupId, roster_member_id: rosterMemberId })))
+    if (leadersError) return { data: null, error: mapDatabaseError(leadersError.message) }
   }
 
   const oldStoragePath = existing.song_storage_path as string | null
@@ -164,6 +181,7 @@ export async function saveRosterMemberAction(input: {
   name: string
   studentId: string
   position: string
+  contactNumber?: string
 }): Promise<ActionResult> {
   const auth = await requirePracticeAdmin()
   if (auth.error) return { data: null, error: auth.error }
@@ -171,7 +189,9 @@ export async function saveRosterMemberAction(input: {
   if (!name) return { data: null, error: 'Name is required.' }
   const studentId = normalizeStudentId(input.studentId)
   if (!studentId) return { data: null, error: 'Enter a valid student ID.' }
-  if (!input.position.trim()) return { data: null, error: 'Choose a valid committee position.' }
+  if (!input.position.trim() || input.position === 'hof' || input.position === 'hog') {
+    return { data: null, error: 'Choose a valid committee position.' }
+  }
 
   const database = await createClient()
   const { data: validPosition, error: positionError } = await database
@@ -181,7 +201,9 @@ export async function saveRosterMemberAction(input: {
     .maybeSingle()
   if (positionError || !validPosition) return { data: null, error: 'Choose a valid committee position.' }
 
-  const payload = { name, student_id: studentId, position: input.position }
+  const contactNumber = (input.contactNumber ?? '').trim()
+  if (contactNumber.length > 30) return { data: null, error: 'Contact number is too long.' }
+  const payload = { name, student_id: studentId, position: input.position, contact_number: contactNumber || null }
   const query = input.id
     ? database.from('committee_roster').update(payload).eq('id', input.id)
     : database.from('committee_roster').insert({ ...payload, active: true })

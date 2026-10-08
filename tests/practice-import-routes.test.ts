@@ -12,11 +12,10 @@ vi.mock('@/lib/practice-import', () => ({ parsePracticeRosterFile: mocks.parsePr
 
 import { POST as validatePOST } from '@/app/api/admin/practice/import/validate/route'
 import { POST as applyPOST } from '@/app/api/admin/practice/import/apply/route'
-import { GET as templateGET } from '@/app/api/admin/practice/import/template/route'
 
 function uploadRequest(path: string) {
   const form = new FormData()
-  form.set('file', new File(['name,student_id,position\nExample,DSC1,facilitator'], 'roster.csv'))
+  form.set('file', new File(['[{"name":"Example","student_id":"DSC1","position":"facilitator"}]'], 'roster.json'))
   return {
     url: `http://localhost${path}`,
     formData: vi.fn().mockResolvedValue(form),
@@ -54,6 +53,20 @@ describe('admin practice import routes', () => {
     expect(head.status).toBe(403)
   })
 
+  it('drops retired head titles before validating an import', async () => {
+    const database = databaseFixture()
+    database.from = vi.fn((table: string) => ({
+      select: vi.fn().mockResolvedValue(table === 'committee_positions'
+        ? { data: [{ value: 'facilitator' }, { value: 'hof' }, { value: 'hog' }], error: null }
+        : { data: [], error: null }),
+    }))
+    mocks.createClient.mockResolvedValue(database)
+    const response = await validatePOST(uploadRequest('/api/admin/practice/import/validate'))
+    expect(response.status).toBe(200)
+    const positions = mocks.parsePracticeRosterFile.mock.calls[0][1] as Set<string>
+    expect([...positions]).toEqual(['facilitator'])
+  })
+
   it('validates and reports insert/update counts without writing', async () => {
     const database = databaseFixture()
     database.from = vi.fn((table: string) => ({
@@ -76,7 +89,7 @@ describe('admin practice import routes', () => {
     expect(mocks.parsePracticeRosterFile).toHaveBeenCalledTimes(1)
     expect(database.rpc).toHaveBeenCalledTimes(1)
     expect(database.rpc).toHaveBeenCalledWith('admin_apply_practice_roster', {
-      p_rows: [{ name: 'Example', student_id: 'DSC1', position: 'facilitator' }],
+      p_rows: [{ name: 'Example', student_id: 'DSC1', position: 'facilitator', contact_number: null }],
     })
   })
 
@@ -99,13 +112,5 @@ describe('admin practice import routes', () => {
     const response = await applyPOST(uploadRequest('/api/admin/practice/import/apply'))
     expect(response.status).toBe(500)
     expect(await response.json()).toEqual({ error: 'The roster import could not be applied.' })
-  })
-
-  it('downloads an authenticated XLSX template with the required headers', async () => {
-    const response = await templateGET()
-    expect(response.status).toBe(200)
-    expect(response.headers.get('content-type')).toContain('spreadsheetml')
-    expect(response.headers.get('content-disposition')).toContain('practice-roster-template.xlsx')
-    expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(0)
   })
 })

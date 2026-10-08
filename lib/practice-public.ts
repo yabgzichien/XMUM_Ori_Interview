@@ -2,6 +2,7 @@ import type {
   PracticeApiResult,
   PracticeBookingInput,
   PracticeBookingResult,
+  PracticeHold,
   PracticeIdentityInput,
   PracticeLookupResult,
 } from '@/lib/practice-types'
@@ -31,4 +32,18 @@ export function verifyPracticeMember(input: PracticeIdentityInput) {
 
 export function bookPracticeGroup(input: PracticeBookingInput) {
   return postJson<PracticeBookingResult>('/api/practice/book', input)
+}
+
+export function reservePracticeGroup(input: PracticeBookingInput) {
+  return postJson<PracticeHold>('/api/practice/reserve', input)
+}
+
+export function releasePracticeHold(token: string) {
+  // Fire-and-forget; keepalive lets it finish while the page is leaving.
+  return fetch('/api/practice/release', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+    keepalive: true,
+  }).catch(() => undefined)
 }
