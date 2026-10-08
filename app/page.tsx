@@ -53,19 +53,18 @@ export default async function Home() {
           <h1 className="hero-title">
 
             <span className="hero-title-white">
-                <span className="nowrap">Facilitator &</span>{' '}
-                <span className="nowrap">Game Master</span>
+                <span className="nowrap">Performance Practice</span>
             </span>
 
             <span className="hero-title-gradient">
-              Interview
+              Group Booking
             </span>
 
           </h1>
 
 
           <p className="hero-description">
-            Click button below to reserve your interview slot.
+            Click button below to book performance group
           </p>
 
 
@@ -74,12 +73,12 @@ export default async function Home() {
               ================================================= */}
 
           <Link
-            href="/book"
+            href="/practice"
             className="book-button"
           >
 
             <span>
-              Reserve Interview Slot
+              Book Performance Group
             </span>
 
             <span className="book-arrow">
@@ -89,28 +88,7 @@ export default async function Home() {
           </Link>
 
 
-          {/* =================================================
-              CHECK BOOKING
-              ================================================= */}
-
-          <Link
-            href="/my-booking"
-            className="booking-search"
-          >
-
-            <span className="search-icon">
-              ⌕
-            </span>
-
-            <span className="search-placeholder">
-              Check your booking slot here
-            </span>
-
-            <span className="search-arrow">
-              →
-            </span>
-
-          </Link>
+          {/* Check-booking bar hidden (interview booking disabled on home). */}
 
         </div>
 

@@ -43,7 +43,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
       ? profile.name.trim().split(/\s+/).map((part: string) => part[0]).slice(0, 2).join('')
       : profile.email?.slice(0, 2) || 'SC'
     ).toUpperCase()
-    const isStaff = profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin'
     const practiceHref = profile.role === 'admin' ? '/admin/practice' : '/practice'
     const practiceLabel = profile.role === 'admin' ? 'Performance Practice Management' : 'Performance Practice'
     const isPracticeActive = pathname.startsWith(practiceHref)
@@ -57,11 +56,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
               <div style={{ fontWeight: 800, fontSize: '15px', whiteSpace: 'nowrap' }}>XMUM <span style={{ color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Committee</span></div>
             </Link>
             <nav className="nav-links flex gap-[4px]">
-              {isStaff && (
-                <Link href="/head" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname === '/head' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/head' ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
-                  Interview
-                </Link>
-              )}
               <Link href={practiceHref} style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: isPracticeActive ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: isPracticeActive ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
                 {practiceLabel}
               </Link>
@@ -127,11 +121,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
         </div>
         {/* Mobile dropdown */}
         <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
-          {isStaff && (
-            <Link href="/head" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname === '/head' ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname === '/head' ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
-              📊 Interview
-            </Link>
-          )}
           <Link href={practiceHref} onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: isPracticeActive ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: isPracticeActive ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
             🎭 {practiceLabel}
           </Link>
@@ -187,7 +176,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
           <div className="nav-guest-title">26/12 XMUM Foundation Orientation</div>
         </Link>
         <div className="nav-guest-links">
-          <Link href="/practice" style={guestLink}>Performance Practice</Link>
           <Link href="/login" style={guestLink}>Committee</Link>
         </div>
         <button
@@ -204,7 +192,6 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
         </button>
       </div>
       <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
-        <Link href="/practice" onClick={() => setMobileOpen(false)} style={guestMobileLink}>🎭 Performance Practice</Link>
         <Link href="/login" onClick={() => setMobileOpen(false)} style={guestMobileLink}>👥 Committee</Link>
       </div>
     </header>

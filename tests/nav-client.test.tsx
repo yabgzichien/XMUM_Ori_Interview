@@ -47,9 +47,9 @@ describe('NavClient', () => {
     links.forEach((link) => expect(link.getAttribute('href')).toBe('/admin/practice'))
   })
 
-  it.each(['head_facilitator', 'head_gm'])('keeps %s interview access without practice management', (role) => {
+  it.each(['head_facilitator', 'head_gm'])('hides the interview nav link for %s without practice management', (role) => {
     render(<NavClient profile={{ role, name: 'Head' }} />)
-    expect(screen.getAllByRole('link', { name: /interview/i })[0].getAttribute('href')).toBe('/head')
+    expect(screen.queryByRole('link', { name: /interview/i })).toBeNull()
     expect(screen.queryByRole('link', { name: /performance practice management/i })).toBeNull()
     expect(screen.getAllByRole('link', { name: /^performance practice$/i })[0].getAttribute('href')).toBe('/practice')
   })
