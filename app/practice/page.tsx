@@ -1,61 +1,31 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import { getCurrentProfile } from '@/lib/auth'
 import { PracticeClient } from '@/app/practice/PracticeClient'
-import { createClient } from '@/lib/supabase/server'
-import type { MyGroup, AvailableGroup } from '@/lib/practice'
+import { getPracticeCatalog } from '@/lib/practice-server'
+import type { PracticeCatalog } from '@/lib/practice-types'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Performance Practice',
-  description: 'Join a performance practice group for your orientation cycle and keep up with scheduled sessions.',
+  description: 'Verify your committee details and book a December 2026 performance-practice group.',
 }
 
 export default async function PracticePage() {
-  const profile = await getCurrentProfile()
-
-  if (!profile) {
-    redirect('/login?next=/practice')
+  const result = await getPracticeCatalog()
+  const catalog: PracticeCatalog = result.data ?? {
+    server_now: new Date().toISOString(),
+    booking_opens_at: null,
+    booking_open: false,
+    groups: [],
   }
-
-  if (profile.role === 'applicant') {
-    redirect('/book')
-  }
-
-  if (profile.role === 'admin') {
-    redirect('/head/practice')
-  }
-
-  const orientationLabel = profile.orientation
-    ? profile.orientation.charAt(0).toUpperCase() + profile.orientation.slice(1)
-    : 'December'
-  const orientationYear = profile.orientation_year || 2026
-
-  // Server-side parallel pre-fetch
-  const supabase = await createClient()
-  const [myGroupRes, availableGroupsRes] = await Promise.all([
-    supabase.rpc('my_practice_group'),
-    supabase.rpc('available_practice_groups'),
-  ])
-
-  const myGroupRows = (myGroupRes.data as MyGroup[] | null) ?? []
-  const initialMyGroup = myGroupRows && myGroupRows.length > 0 ? myGroupRows[0] : null
-  const initialAvailableGroups = (availableGroupsRes.data as AvailableGroup[] | null) ?? []
-
   return (
-    <main className="scr" style={{ width: '100%', maxWidth: '1000px', margin: '0 auto', padding: '32px 16px 48px', boxSizing: 'border-box' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>
-          {orientationLabel} {orientationYear} Practice Groups
+    <main className="scr" style={{ width: '100%', maxWidth: '1120px', margin: '0 auto', padding: '32px 16px 64px', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: '760px', margin: '0 auto 28px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.02em', margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>
+          December 2026 Performance Practice
         </h1>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0 }}>
-          Join a performance practice group for your orientation cycle and keep up with its scheduled sessions.
-        </p>
       </div>
-      <PracticeClient
-        currentUserId={profile.id}
-        initialMyGroup={initialMyGroup}
-        initialAvailableGroups={initialAvailableGroups}
-      />
+      <PracticeClient initialCatalog={catalog} />
     </main>
   )
 }

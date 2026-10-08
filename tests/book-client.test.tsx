@@ -38,6 +38,8 @@ const sampleSlots = {
 
 describe('BookClient history and hold release', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2026-09-30T10:00:00+08:00'))
     sessionStorage.clear()
     vi.clearAllMocks()
     vi.mocked(bookingsModule.getAvailableSlots).mockResolvedValue({
@@ -49,6 +51,10 @@ describe('BookClient history and hold release', () => {
       error: null,
     })
     vi.mocked(bookingsModule.releaseHold).mockResolvedValue({ error: null })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('pushes history state on continue and releases hold on browser popstate', async () => {
@@ -317,6 +323,7 @@ describe('BookClient history and hold release', () => {
   it('disables Game Master button, keeps track as GM with "Position Closed", and only switches to Facilitator when manually clicked', async () => {
     // 12:30 PM (GM closed, Facilitator open)
     const afterNoonTime = new Date('2026-09-30T12:30:00+08:00').getTime()
+    vi.setSystemTime(afterNoonTime)
 
     render(
       <BookClient
@@ -372,6 +379,7 @@ describe('BookClient history and hold release', () => {
   it('updates UI to closed state and blocks proceeding when deadline passes while user is on page', async () => {
     // Loaded at 11:55 AM (GM is still open)
     const beforeNoon = new Date('2026-09-30T11:55:00+08:00').getTime()
+    vi.setSystemTime(beforeNoon)
 
     render(
       <BookClient
@@ -388,7 +396,7 @@ describe('BookClient history and hold release', () => {
 
     // Time passes to 12:05 PM while user is on page
     const afterNoon = new Date('2026-09-30T12:05:00+08:00').getTime()
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(afterNoon)
+    vi.setSystemTime(afterNoon)
 
     // User attempts to click Continue to Select Slot
     await act(async () => {
@@ -399,13 +407,12 @@ describe('BookClient history and hold release', () => {
     expect(screen.queryByRole('heading', { name: /select an interview slot/i })).toBeNull()
     expect(screen.getByRole('button', { name: /position closed/i })).toBeDefined()
     expect(screen.getByText(/Game Master interview registration closed at 12:00 PM/i)).toBeDefined()
-
-    nowSpy.mockRestore()
   })
 
   it('disables all tracks and provides Check My Booking Slot link when all deadlines (6:00 PM) have passed', async () => {
     // 07:00 PM (Both closed)
     const afterEveningTime = new Date('2026-09-30T19:00:00+08:00').getTime()
+    vi.setSystemTime(afterEveningTime)
 
     render(
       <BookClient

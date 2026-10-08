@@ -1,6 +1,6 @@
 // Single source of truth for the orientation cycle the app defaults to.
 // Every route that has to pick a cycle when none is in the URL (the landing
-// page, /book, /head, /head/practice) reads these, so the counts advertised
+// page, /book, and /head) reads these, so the counts advertised
 // in one place always describe the slots another place actually shows.
 
 export type Orientation = 'february' | 'april' | 'december'

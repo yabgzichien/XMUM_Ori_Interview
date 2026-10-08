@@ -13,6 +13,14 @@ Next.js 16 (App Router, TypeScript) · Tailwind v4 + shadcn/ui · Supabase (Post
 Vitest. Booking concurrency is enforced in Postgres via a locking RPC (`book_slot`), so a
 slot can never be overbooked.
 
+Set `PRACTICE_RATE_LIMIT_SECRET` to a long random server-only value for the public
+performance-practice verification rate limit. Never give it a `NEXT_PUBLIC_` prefix or
+commit it. For example, this sends a generated value directly to Vercel without printing it:
+
+```bash
+openssl rand -hex 32 | vercel env add PRACTICE_RATE_LIMIT_SECRET production
+```
+
 ## Role-Based Access Control
 
 ### Interview booking
@@ -20,48 +28,62 @@ slot can never be overbooked.
 | Role | Account? | Primary route | Key permissions | Scope |
 |---|---|---|---|---|
 | Interviewee | No account | `/book`, `/my-booking` | Book a slot; look up and cancel own booking by Student ID (to move slots: cancel, then book again) | Own booking only |
-| `head_facilitator` / `head_gm` | Login required | `/head` | Manage slots, booking window, bookings, interview status/notes, cancel bookings; bulk-invite approved interviewees onto the committee | Own track only (+ own orientation/year if set) |
-| `admin` | Login required | `/head`, `/admin` | Everything Heads can do, unscoped, plus invite Head/Admin accounts | Both tracks, all orientations |
+| `head_facilitator` / `head_gm` | Login required | `/head` | Manage slots, booking window, bookings, interview status/notes, cancel bookings | Own track only (+ own orientation/year if set) |
+| `admin` | Login required | `/head`, `/admin` | Everything Heads can do, unscoped, plus manage the committee roster and practice groups | Both tracks, all orientations |
 
 ### Performance practice
 
 | Role | Account? | Primary route | Key permissions | Scope |
 |---|---|---|---|---|
-| `committee` | Login required | `/practice` | Join/leave a practice group; view own group's members and sessions | Own group only |
-| `performance_lead` | Login required | `/practice` | Everything `committee` can do, plus edit own group's name/capacity and create/edit/delete its practice sessions | Own group only |
-| `head_facilitator` / `head_gm` | Login required | `/practice` | Same as `committee` (or `performance_lead` if they lead a group) — HOF/HOG carries no extra practice privileges; no visibility into other groups or their members | Own group only |
-| `admin` | Login required | `/head/practice` | View all groups and their members; create/rename/delete groups, reassign leads, and assign committee positions (HOF/HOG etc.) | Both tracks, all orientations |
+| Rostered committee member | No account | `/practice` | Verify student ID + matching `studentID@xmu.edu.my`, book once, and re-verify to view the assigned group and sessions | Own booking only |
+| `head_facilitator` / `head_gm` | Login required for interviews only | `/head` | Interview management. These accounts are not on the practice roster and do not book a group | Interview dashboard only |
+| `admin` | Login required | `/admin`, `/admin/practice` | Manage the roster and titles on `/admin`; manage groups, capacities, sessions, and member assignment on `/admin/practice` | All December 2026 practice data |
 
-Interviewees do **not** log in — booking, lookup, and cancellation all run through public,
-Student-ID-scoped functions. Only committee/staff have accounts; new staff profiles start
-as a placeholder `applicant` role until a Head or Admin assigns their real role. At most one
-active booking per applicant per track. Practice group governance and cross-group visibility
-(view all groups or any group's members; create/rename/delete a group;
-reassign its lead) is admin-only. HOF/HOG grants real `/head` dashboard access for interview
-booking (see above) but, for the practice-group feature specifically, is purely a cosmetic
-committee position — a HOF/HOG account uses `/practice` exactly like any other committee
-member.
+Interviewees and practice participants do **not** need accounts. The only logins are
+`admin@xmum.local`, `head.facilitator@xmum.local`, and `head.gm@xmum.local`, created by
+`npm run seed`. Practice identity is checked case-insensitively against the roster:
+`DSC2344112` must use `DSC2344112@xmu.edu.my`. A participant can book once and cannot
+change or remove the booking; an admin must move or remove it.
 
 ## Routes
 
 - `/book` — public, no login: track tabs → pick a slot → enter details → confirmation
 - `/my-booking` — public, no login: search active bookings by Student ID and cancel them if active
-- `/login` — committee sign-in (Heads/Admin)
-- `/register` — committee activation: a pre-invited committee member sets a password (email + invite code)
-- `/head` — Committee dashboard (admin/Heads)
-- `/admin` — admin-only: invite committee (name, student ID, email, role) and view invite codes/status
+- `/login` — sign-in for the three seed accounts (admin and the two heads)
+- `/head` — interview dashboard (admin/Heads)
+- `/admin` — admin-only committee roster, import, and titles
+- `/practice` — public, no login: verify roster identity, book once, or view an existing booking
+- `/admin/practice` — admin-only group, session, and assignment management
+
+## Performance practice operations (December 2026)
+
+Migration `0041_account_free_practice_booking.sql` replaces the earlier account-based practice
+model. Applying it intentionally resets existing practice groups, sessions, memberships, and
+practice roster data to empty; interview bookings, profiles, and staff accounts are not reset.
+Back up any old practice data before applying it if it must be retained.
+
+After applying migrations:
+
+1. Sign in as an admin and open `/admin`.
+2. Add roster members manually or download the XLSX template from the Import roster tab.
+3. Import `.xlsx`, `.csv`, or `.json`. Every row must contain exactly the fields `name`,
+   `student_id`, and `position`; position values must already exist as roster titles.
+   Head of Facilitator and Head of Game Master are not roster titles.
+   Validation is all-or-nothing: no row is saved until the complete file passes and the admin
+   selects **Apply import**. The limit is 5 MB and 5,000 rows.
+4. Open `/admin/practice`. Create groups, set capacities/open status, add sessions, and optionally assign members.
+5. Give committee members `/practice`; only group names and remaining spaces appear after
+   successful identity verification.
+
+The current release is fixed to the **December 2026** orientation intake. The roster and group
+tables begin empty, and there is no performance-lead role in this workflow.
 
 ## Staff onboarding
 
-Two ways to create staff accounts:
-
-1. **Seed** (initial admin + heads): `npm run seed` — see below.
-2. **In-app invites** (admin self-service): an admin goes to `/admin`, adds a staffer
-   (name, student ID, email, role) → the system generates an **invite code**. The admin
-   shares the email + code with the staffer, who activates their account at `/register` by
-   setting a password. The claim runs server-side (`app/api/staff/register`, service-role
-   key) and assigns the invited role. Invite codes guard against anyone claiming an account
-   they weren't invited to.
+`npm run seed` creates the only three logins: `admin@xmum.local`,
+`head.facilitator@xmum.local`, and `head.gm@xmum.local`. The app rejects every other
+sign-in. Committee members are roster rows, not accounts. `npm run seed:committee`
+adds demo roster rows and does not create logins.
 
 ## Local development
 
@@ -81,6 +103,7 @@ npm run build:migrations           # regenerate supabase/all_migrations.sql from
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key # Keep secret, never expose to browser
+PRACTICE_RATE_LIMIT_SECRET=generate-a-long-random-server-only-value
 
 # Canonical site URL used to build links in outbound emails (invite
 # activation, etc). Without this, links fall back to whatever Host header
@@ -144,6 +167,9 @@ Live at **https://xmum-ori-interview.vercel.app**.
 - `bookings` — slot, applicant, track, status (booked/cancelled); partial unique index =
   one active booking per applicant per track
 - `track_settings` — per-track booking window + reschedule cutoff
+- `committee_roster` — account-free practice eligibility: name, student ID, position, active status
+- `practice_groups` / `practice_sessions` — December 2026 group capacity and schedule
+- `practice_group_bookings` — one immutable self-service booking per roster member; admin-managed moves/removals
 
 ### Key RPCs
 
@@ -200,35 +226,25 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Head["Head/Admin creates\npractice groups"] --> SetGroup["Set name, capacity,\nassign a performance lead"]
-    SetGroup --> Groups[("Practice groups\nopen for signup")]
-
-    Committee(["Committee member logs in"]) --> Practice["/practice page"]
-    Practice --> HasGroup{"Already in a group?"}
-
-    HasGroup -- "No" --> Browse["Browse open groups\n(name, lead, seats left)"]
-    Browse --> Join{"Seats available?"}
-    Join -- "No" --> Full["Show as Full"]
-    Join -- "Yes" --> JoinGroup["Join group"]
-    JoinGroup --> Groups
-
-    HasGroup -- "Yes" --> MyGroup["View my group:\nsessions + members"]
-    MyGroup --> LeaveChoice{"Leave group?"}
-    LeaveChoice -- "Yes" --> Leave["Leave group\n(seat freed up)"]
-    Leave --> Browse
-
-    MyGroup --> IsLead{"Is performance lead\nof this group?"}
-    IsLead -- "Yes" --> ManageSessions["Create / edit / delete\npractice sessions\n(date, time)"]
-    ManageSessions --> MyGroup
+    Admin["Admin loads roster and creates groups"] --> Groups[("Open practice groups")]
+    Committee(["Committee member opens /practice"]) --> Verify["Enter student ID and matching university email"]
+    Verify --> Valid{"Active roster match?"}
+    Valid -- "No" --> GenericError["Show generic verification error"]
+    Valid -- "Yes, no booking" --> Browse["Show group names and remaining spaces"]
+    Browse --> Confirm["Choose and confirm once"]
+    Confirm --> Groups
+    Valid -- "Yes, booked" --> MyGroup["Show assigned group and sessions"]
+    Admin --> Manage["Move/remove members and manage sessions"]
+    Manage --> Groups
 
     classDef head fill:#fef3c7,stroke:#d97706,color:#78350f
     classDef committee fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
     classDef decision fill:#f3f4f6,stroke:#6b7280,color:#111827
     classDef db fill:#dcfce7,stroke:#16a34a,color:#14532d
 
-    class Head,SetGroup head
-    class Practice,Browse,JoinGroup,MyGroup,Leave,ManageSessions committee
-    class HasGroup,Join,LeaveChoice,IsLead decision
+    class Admin,Manage head
+    class Verify,Browse,Confirm,MyGroup committee
+    class Valid decision
     class Groups db
 ```
 

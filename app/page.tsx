@@ -14,12 +14,7 @@ export default async function Home() {
       redirect('/book')
     }
 
-    redirect(
-      profile.role === 'committee' ||
-      profile.role === 'performance_lead'
-        ? '/practice'
-        : '/head'
-    )
+    redirect('/head')
   }
 
   return (

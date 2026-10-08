@@ -492,3 +492,318 @@ export async function generateInterviewBookingWorkbook({
 
   return workbook
 }
+
+export type PracticeExportMember = {
+  id: string
+  name: string
+  student_id?: string
+  position?: string
+}
+
+export type PracticeExportGroup = {
+  id: string
+  name: string
+  songs?: string | null
+  description?: string | null
+  performance_video_url?: string | null
+  song_url?: string | null
+  committee_capacity: number
+  faci_gm_capacity: number
+  leaders: Array<{ id: string; name: string; student_id?: string }>
+  committee_members: PracticeExportMember[]
+  faci_gm_members: PracticeExportMember[]
+}
+
+export type PracticeExportOptions = {
+  orientation: Orientation | string
+  orientationYear: number
+  groups: PracticeExportGroup[]
+}
+
+const ORIENTATION_MONTH_MAP: Record<string, string> = {
+  january: '01',
+  february: '02',
+  march: '03',
+  april: '04',
+  may: '05',
+  june: '06',
+  july: '07',
+  august: '08',
+  september: '09',
+  october: '10',
+  november: '11',
+  december: '12',
+}
+
+export function formatOrientationPrefix(orientation: string, year: number, separator = '/'): string {
+  const yr = String(year).slice(-2)
+  const mo = ORIENTATION_MONTH_MAP[orientation.toLowerCase()] ?? '12'
+  return `${yr}${separator}${mo}`
+}
+
+export function generatePracticeExportFilename({
+  orientation,
+  orientationYear,
+}: {
+  orientation: string
+  orientationYear: number
+}): string {
+  const prefix = formatOrientationPrefix(orientation, orientationYear, '_')
+  return `${prefix} Committees Facilitators Game Masters Performance.xlsx`
+}
+
+export async function generatePracticePerformanceWorkbook({
+  orientation,
+  orientationYear,
+  groups,
+}: PracticeExportOptions): Promise<ExcelJS.Workbook> {
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'XMUM Orientation Booking System'
+  workbook.created = new Date()
+
+  const ws = workbook.addWorksheet('Performance List')
+  ws.properties.defaultRowHeight = 15.75
+  ws.properties.defaultColWidth = 12.63
+  ws.views = [
+    {
+      state: 'normal',
+      showGridLines: true,
+      zoomScale: 100,
+      zoomScaleNormal: 100,
+    },
+  ]
+
+  // Column widths matching template
+  ws.getColumn(1).width = 18.63
+  ws.getColumn(2).width = 4.13
+  ws.getColumn(3).width = 28.75
+  groups.forEach((_, idx) => {
+    ws.getColumn(4 + idx).width = 28
+  })
+
+  // Row 1: Title Banner
+  const prefix = formatOrientationPrefix(orientation, orientationYear, '/')
+  const orientationCap = orientation.charAt(0).toUpperCase() + orientation.slice(1)
+  const title = `${prefix} ${orientationCap} Orientation Performance List`
+
+  const a1 = ws.getCell('A1')
+  a1.value = title
+  a1.font = { bold: true, size: 25, color: { theme: 1 }, name: 'Times New Roman' }
+  a1.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFFFFF00' },
+    bgColor: { argb: 'FFFFFF00' },
+  }
+  a1.alignment = { readingOrder: 'ltr' }
+
+  // Row 3: Blue header row (C3 blank blue, D3+ group names)
+  const c3 = ws.getCell('C3')
+  c3.value = null
+  c3.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF4A86E8' },
+    bgColor: { argb: 'FF4A86E8' },
+  }
+  c3.border = thinBorderAll
+
+  groups.forEach((group, gIdx) => {
+    const cell = ws.getCell(3, 4 + gIdx)
+    cell.value = group.name
+    cell.font = { size: 12, color: { theme: 1 }, name: 'Times New Roman' }
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4A86E8' },
+      bgColor: { argb: 'FF4A86E8' },
+    }
+    cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'ltr' }
+    cell.border = thinBorderAll
+  })
+
+  // Row 4: Songs
+  ws.getRow(4).height = 69
+  const c4 = ws.getCell('C4')
+  c4.value = 'Songs'
+  c4.font = { size: 12, color: { theme: 1 }, name: 'Times New Roman' }
+  c4.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'ltr' }
+  c4.border = thinBorderAll
+
+  groups.forEach((group, gIdx) => {
+    const cell = ws.getCell(4, 4 + gIdx)
+    cell.value = group.songs || group.description || ''
+    cell.font = { size: 12, color: { theme: 1 }, name: 'Times New Roman' }
+    cell.alignment = {
+      horizontal: 'center',
+      vertical: 'middle',
+      wrapText: true,
+      shrinkToFit: false,
+      readingOrder: 'ltr',
+    }
+    cell.border = thinBorderAll
+  })
+
+  // Row 5: Reference Link
+  const c5 = ws.getCell('C5')
+  c5.value = 'Reference Link'
+  c5.font = { size: 12, color: { theme: 1 }, name: 'Times New Roman' }
+  c5.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'ltr' }
+  c5.border = thinBorderAll
+
+  groups.forEach((group, gIdx) => {
+    const cell = ws.getCell(5, 4 + gIdx)
+    const linkUrl = group.performance_video_url || group.song_url || ''
+    if (linkUrl) {
+      cell.value = { text: linkUrl, hyperlink: linkUrl }
+      cell.font = {
+        underline: true,
+        size: 12,
+        color: { argb: 'FF0000FF' },
+        name: 'Times New Roman',
+      }
+    } else {
+      cell.value = ''
+      cell.font = { size: 12, color: { theme: 1 }, name: 'Times New Roman' }
+    }
+    cell.alignment = {
+      horizontal: 'center',
+      vertical: 'middle',
+      wrapText: true,
+      shrinkToFit: false,
+      readingOrder: 'ltr',
+    }
+    cell.border = thinBorderAll
+  })
+
+  if (groups.length === 0) {
+    return workbook
+  }
+
+  // Deduplicate members across the workbook so the same person appears only once.
+  // Note: some people may have the same name, so deduplication is strictly checked using student ID.
+  // Precedence order: Leaders -> Committees -> Facilitators & Game Masters.
+  const seenStudentIds = new Set<string>()
+
+  function getPersonKey(person: { id?: string; student_id?: string; name: string }): string {
+    const rawStudentId = person.student_id?.trim()
+    if (rawStudentId) {
+      return `sid:${rawStudentId.toUpperCase()}`
+    }
+    const rawId = person.id?.trim()
+    if (rawId) {
+      return `id:${rawId.toUpperCase()}`
+    }
+    return `name:${person.name.trim().toLowerCase()}`
+  }
+
+  // Filter groups' members so each person appears at most once in the entire sheet
+  const dedupedGroups: PracticeExportGroup[] = groups.map((g) => ({
+    ...g,
+    leaders: g.leaders.filter((leader) => {
+      const key = getPersonKey(leader)
+      if (seenStudentIds.has(key)) return false
+      seenStudentIds.add(key)
+      return true
+    }),
+    committee_members: [],
+    faci_gm_members: [],
+  }))
+
+  groups.forEach((g, gIdx) => {
+    dedupedGroups[gIdx].committee_members = g.committee_members.filter((member) => {
+      const key = getPersonKey(member)
+      if (seenStudentIds.has(key)) return false
+      seenStudentIds.add(key)
+      return true
+    })
+  })
+
+  groups.forEach((g, gIdx) => {
+    dedupedGroups[gIdx].faci_gm_members = g.faci_gm_members.filter((member) => {
+      const key = getPersonKey(member)
+      if (seenStudentIds.has(key)) return false
+      seenStudentIds.add(key)
+      return true
+    })
+  })
+
+  // Calculate section heights from deduped groups
+  const maxLeaders = Math.max(1, ...dedupedGroups.map((g) => g.leaders.length))
+  const maxCommittees = Math.max(
+    1,
+    ...dedupedGroups.map((g) => Math.max(g.committee_capacity, g.committee_members.length)),
+  )
+  const maxFaciGm = Math.max(
+    1,
+    ...dedupedGroups.map((g) => Math.max(g.faci_gm_capacity, g.faci_gm_members.length)),
+  )
+
+  let currSeqNumber = 1
+  let currRow = 6
+
+  // Helper to render a section
+  function renderSection(
+    sectionLabel: string,
+    sectionRowCount: number,
+    sectionFillColor: string,
+    getGroupMembers: (group: PracticeExportGroup) => Array<{ name: string }>,
+  ) {
+    const startRow = currRow
+    const endRow = startRow + sectionRowCount - 1
+
+    const sectionFill: ExcelJS.Fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: sectionFillColor },
+      bgColor: { argb: sectionFillColor },
+    }
+
+    // Sequential numbering in Column B
+    for (let r = startRow; r <= endRow; r++) {
+      const bCell = ws.getCell(r, 2)
+      bCell.value = currSeqNumber++
+      bCell.font = { size: 12, color: { theme: 1 }, name: 'Times New Roman' }
+      bCell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'ltr' }
+    }
+
+    // Merged Column C for section label
+    ws.mergeCells(startRow, 3, endRow, 3)
+    const cCell = ws.getCell(startRow, 3)
+    cCell.value = sectionLabel
+    cCell.font = { size: 12, color: { theme: 1 }, name: 'Times New Roman' }
+    cCell.fill = sectionFill
+    cCell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'ltr' }
+    applyBoxBorder(ws, startRow, 3, endRow, 3)
+
+    // Fill each group's column
+    dedupedGroups.forEach((group, gIdx) => {
+      const col = 4 + gIdx
+      const members = getGroupMembers(group)
+
+      for (let i = 0; i < sectionRowCount; i++) {
+        const r = startRow + i
+        const cell = ws.getCell(r, col)
+        cell.value = i < members.length ? members[i].name : '-'
+        cell.font = { size: 12, color: { theme: 1 }, name: 'Times New Roman' }
+        cell.fill = sectionFill
+        cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'ltr' }
+        cell.border = thinBorderAll
+      }
+    })
+
+    currRow = endRow + 1
+  }
+
+  // 1. Leaders
+  renderSection('Leaders', maxLeaders, 'FFC9DAF8', (g) => g.leaders)
+
+  // 2. Committees
+  renderSection('Committees', maxCommittees, 'FFF4CCCC', (g) => g.committee_members)
+
+  // 3. Facilitators & Game Masters
+  renderSection('Facilitators & Game Masters', maxFaciGm, 'FFFFF2CC', (g) => g.faci_gm_members)
+
+  return workbook
+}
+

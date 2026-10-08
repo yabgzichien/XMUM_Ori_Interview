@@ -1,17 +1,9 @@
-// Thin data-access functions for the performance practice group feature.
-// Each function constructs its own browser client at call time (never at
-// module load) so this file is safe to import even when env vars are unset
-// at build time. Mirrors the lib/head.ts / lib/bookings.ts pattern.
+// Committee-position helpers retained for the account-based admin/profile UI.
+// Practice booking itself is account-free and lives in practice-public.ts.
 
 import { createClient } from '@/lib/supabase/client'
 
-export type Track = 'facilitator' | 'game_master'
-export type Orientation = 'february' | 'april' | 'december'
-export type GroupStatus = 'open' | 'closed'
-
 export type CommitteePosition =
-  | 'hof'
-  | 'hog'
   | 'game_master'
   | 'facilitator'
   | 'treasurer'
@@ -26,13 +18,7 @@ export type CommitteePosition =
   | 'secretary'
   | 'general_affairs'
 
-// Seeded defaults — mirrors the rows `0028_committee_positions_table.sql`
-// inserts into `committee_positions`. Used as a synchronous fallback (e.g.
-// positionLabel) since the full, admin-editable list lives in the database;
-// see getCommitteePositions below for the live source of truth.
 export const POSITIONS: { value: CommitteePosition; label: string }[] = [
-  { value: 'hof', label: 'Head of Facilitator (HOF)' },
-  { value: 'hog', label: 'Head of Game Master (HOGM)' },
   { value: 'game_master', label: 'Game Master' },
   { value: 'facilitator', label: 'Facilitator' },
   { value: 'treasurer', label: 'Treasurer' },
@@ -50,40 +36,32 @@ export const POSITIONS: { value: CommitteePosition; label: string }[] = [
 
 export function positionLabel(position: string | null): string {
   if (!position) return 'No position set'
-  const known = POSITIONS.find((p) => p.value === position)
+  const known = POSITIONS.find((option) => option.value === position)
   if (known) return known.label
-  // An admin-added position not in the static fallback above — title-case
-  // the raw value (e.g. "marketing_lead" -> "Marketing Lead") rather than
-  // silently showing nothing.
-  return position.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  return position.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 }
 
 export type CommitteePositionOption = { value: string; label: string }
 
-// Live, admin-editable list backing every position picker in the app
-// (invite screen, head's committee-position assigner). Falls back to the
-// static POSITIONS above only if this fetch fails.
 export async function getCommitteePositions() {
   const supabase = createClient()
-  const { data, error } = await supabase
-    .from('committee_positions')
-    .select('value, label')
-    .order('label')
+  const { data, error } = await supabase.from('committee_positions').select('value, label').order('label')
   return { data: (data as CommitteePositionOption[] | null) ?? null, error }
 }
 
 function slugifyPosition(label: string): string {
-  return label
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
+  return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
+export function isAssignableRosterPosition(value: string): boolean {
+  return value !== 'hof' && value !== 'hog'
 }
 
 export async function addCommitteePosition(label: string) {
   const value = slugifyPosition(label)
-  if (!value) {
-    return { data: null, error: { message: 'Enter a role name.' } as { message: string } }
+  if (!value) return { data: null, error: { message: 'Enter a role name.' } as { message: string } }
+  if (!isAssignableRosterPosition(value)) {
+    return { data: null, error: { message: 'That title is reserved for the seed head accounts and is not a roster position.' } as { message: string } }
   }
   const supabase = createClient()
   const { data, error } = await supabase
@@ -95,274 +73,10 @@ export async function addCommitteePosition(label: string) {
 }
 
 export async function deleteCommitteePosition(value: string) {
+  if (!isAssignableRosterPosition(value)) {
+    return { error: { message: 'That title is reserved for the seed head accounts and is not a roster position.' } as { message: string } }
+  }
   const supabase = createClient()
   const { error } = await supabase.from('committee_positions').delete().eq('value', value)
   return { error }
-}
-
-export type AvailableGroup = {
-  id: string
-  name: string
-  lead_id: string
-  lead_name: string
-  capacity: number
-  member_count: number
-  seats_left: number
-  status: GroupStatus
-  session_count: number
-  member_names: string[]
-}
-
-export type MyGroup = {
-  group_id: string
-  name: string
-  lead_id: string
-  lead_name: string
-  capacity: number
-  member_count: number
-  status: GroupStatus
-  is_lead: boolean
-}
-
-export type PracticeSession = {
-  id: string
-  starts_at: string
-  ends_at: string
-  location: string
-}
-
-export type GroupMember = {
-  member_id: string
-  member_name: string
-  position: string | null
-  joined_at: string
-}
-
-export type EligibleMember = {
-  id: string
-  name: string
-  student_id: string | null
-  email: string
-}
-
-export type HeadPracticeGroup = {
-  id: string
-  name: string
-  lead_id: string
-  lead_name: string
-  lead_email: string
-  capacity: number
-  member_count: number
-  status: GroupStatus
-  session_count: number
-  created_at: string
-}
-
-export type CommitteeRosterEntry = {
-  id: string
-  name: string
-  email: string
-  track: Track | null
-  role: 'committee' | 'performance_lead' | 'head_facilitator' | 'head_gm'
-  position: string | null
-  leading_group_id: string | null
-}
-
-// ---------- Committee: browse, join, leave ----------
-
-export async function getAvailablePracticeGroups() {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('available_practice_groups')
-  return { data: (data as AvailableGroup[] | null) ?? null, error }
-}
-
-export async function getMyPracticeGroup() {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('my_practice_group')
-  const rows = (data as MyGroup[] | null) ?? null
-  return { data: rows && rows.length > 0 ? rows[0] : null, error }
-}
-
-export async function getMyPracticeGroupSessions() {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('my_practice_group_sessions')
-  return { data: (data as PracticeSession[] | null) ?? null, error }
-}
-
-export async function getMyPracticeGroupMembers() {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('my_practice_group_members')
-  return { data: (data as GroupMember[] | null) ?? null, error }
-}
-
-export async function joinPracticeGroup(groupId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('join_practice_group', { p_group: groupId })
-  return { data, error }
-}
-
-export async function leavePracticeGroup() {
-  const supabase = createClient()
-  const { error } = await supabase.rpc('leave_practice_group')
-  return { error }
-}
-
-// ---------- Performance lead: manage own group's sessions ----------
-
-export async function leadCreateSession(groupId: string, startsAt: string, endsAt: string, location: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('lead_create_session', {
-    p_group: groupId,
-    p_starts_at: startsAt,
-    p_ends_at: endsAt,
-    p_location: location,
-  })
-  return { data: (data as PracticeSession | null) ?? null, error }
-}
-
-export async function leadUpdateSession(sessionId: string, startsAt: string, endsAt: string, location: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('lead_update_session', {
-    p_session: sessionId,
-    p_starts_at: startsAt,
-    p_ends_at: endsAt,
-    p_location: location,
-  })
-  return { data: (data as PracticeSession | null) ?? null, error }
-}
-
-export async function leadDeleteSession(sessionId: string) {
-  const supabase = createClient()
-  const { error } = await supabase.rpc('lead_delete_session', { p_session: sessionId })
-  return { error }
-}
-
-export async function leadUpdateGroup(groupId: string, name: string, capacity: number) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('lead_update_practice_group', {
-    p_group: groupId,
-    p_name: name,
-    p_capacity: capacity,
-  })
-  return { data, error }
-}
-
-export async function getLeadEligibleMembers(groupId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('lead_eligible_members', { p_group: groupId })
-  return { data: (data as EligibleMember[] | null) ?? null, error }
-}
-
-export async function leadAddMember(groupId: string, memberId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('lead_add_member', { p_group: groupId, p_member_id: memberId })
-  return { data, error }
-}
-
-export async function leadRemoveMember(groupId: string, memberId: string) {
-  const supabase = createClient()
-  const { error } = await supabase.rpc('lead_remove_member', { p_group: groupId, p_member_id: memberId })
-  return { error }
-}
-
-// ---------- Head/admin: manage groups + leads ----------
-
-export async function getHeadPracticeGroups(orientation: Orientation, orientationYear: number = 2026) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_practice_groups', {
-    p_orientation: orientation,
-    p_year: orientationYear,
-  })
-  return { data: (data as HeadPracticeGroup[] | null) ?? null, error }
-}
-
-export async function getHeadCommitteeRoster(orientation: Orientation, orientationYear: number = 2026) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_committee_roster', {
-    p_orientation: orientation,
-    p_year: orientationYear,
-  })
-  return { data: (data as CommitteeRosterEntry[] | null) ?? null, error }
-}
-
-export async function createPracticeGroup(
-  name: string,
-  orientation: Orientation,
-  capacity: number,
-  leadProfileId: string,
-  orientationYear: number = 2026,
-) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_create_practice_group', {
-    p_name: name,
-    p_orientation: orientation,
-    p_capacity: capacity,
-    p_lead_profile_id: leadProfileId,
-    p_year: orientationYear,
-  })
-  return { data, error }
-}
-
-export async function updatePracticeGroup(
-  groupId: string,
-  name: string,
-  capacity: number,
-  status: GroupStatus,
-) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_update_practice_group', {
-    p_group: groupId,
-    p_name: name,
-    p_capacity: capacity,
-    p_status: status,
-  })
-  return { data, error }
-}
-
-export async function reassignPracticeLead(groupId: string, newLeadProfileId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_reassign_practice_lead', {
-    p_group: groupId,
-    p_new_lead_profile_id: newLeadProfileId,
-  })
-  return { data, error }
-}
-
-export async function deletePracticeGroup(groupId: string) {
-  const supabase = createClient()
-  const { error } = await supabase.rpc('head_delete_practice_group', { p_group: groupId })
-  return { error }
-}
-
-export async function setCommitteePosition(profileId: string, position: string | null) {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('head_set_committee_position', {
-    p_profile_id: profileId,
-    p_position: position,
-  })
-  return { data, error }
-}
-
-// Head/admin dashboard drill-down: plain table reads, covered by the
-// practice_*_select_head_or_admin RLS policies (same pattern as
-// getTrackSettings in lib/head.ts).
-
-export async function getGroupSessions(groupId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('practice_sessions')
-    .select('id, starts_at, ends_at, location')
-    .eq('group_id', groupId)
-    .order('starts_at')
-  return { data: (data as PracticeSession[] | null) ?? null, error }
-}
-
-export async function getGroupMembers(groupId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('practice_group_members')
-    .select('member_id, joined_at, profiles(name, email)')
-    .eq('group_id', groupId)
-    .order('joined_at')
-  return { data, error }
 }

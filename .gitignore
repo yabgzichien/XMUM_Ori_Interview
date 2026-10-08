@@ -20,6 +20,8 @@ supabase/.temp/
 # Misc
 .DS_Store
 *.log
+load-tests/.state.json
+load-tests/results/
 
 # Next.js generated (from create-next-app)
 /.pnp
@@ -56,4 +58,3 @@ demo_accounts.md
 
 # Flowchart source/renders — embedded directly in README.md instead
 docs/diagrams/
-

@@ -44,6 +44,9 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
       : profile.email?.slice(0, 2) || 'SC'
     ).toUpperCase()
     const isStaff = profile.role === 'head_facilitator' || profile.role === 'head_gm' || profile.role === 'admin'
+    const practiceHref = profile.role === 'admin' ? '/admin/practice' : '/practice'
+    const practiceLabel = profile.role === 'admin' ? 'Performance Practice Management' : 'Performance Practice'
+    const isPracticeActive = pathname.startsWith(practiceHref)
     return (
       <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="nav-container">
@@ -59,6 +62,9 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
                   Interview
                 </Link>
               )}
+              <Link href={practiceHref} style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: isPracticeActive ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: isPracticeActive ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
+                {practiceLabel}
+              </Link>
               {profile.role === 'admin' && (
                 <Link href="/admin/logs" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/admin/logs') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/admin/logs') ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
                   Activity Log
@@ -126,6 +132,9 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
               📊 Interview
             </Link>
           )}
+          <Link href={practiceHref} onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: isPracticeActive ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: isPracticeActive ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
+            🎭 {practiceLabel}
+          </Link>
           {profile.role === 'admin' && (
             <Link href="/admin/logs" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/admin/logs') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/admin/logs') ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
               🧾 Activity Log
@@ -166,22 +175,37 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
     )
   }
 
+  const guestLink: React.CSSProperties = { padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)', color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }
+  const guestMobileLink: React.CSSProperties = { padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', color: 'var(--text-secondary, #334155)' }
+
   return (
     <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'sticky', top: 0, zIndex: 100 }}>
       <div className="nav-container">
-        <Link href="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '72px', height: '72px', objectFit: 'contain', flexShrink: 0 }} />
-          <div className="nav-brand-title" style={{ lineHeight: 1.15, whiteSpace: 'nowrap' }}>
-            <div style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em', color: 'rgba(255,255,255,0.92)' }}>26/12 XMUM Foundation Orientation</div>
-          </div>
+          <img className="nav-logo" src="/vortexalogo.png" alt="Vortexa Logo" style={{ width: '72px', height: '72px', objectFit: 'contain', flexShrink: 0 }} />
+          <div className="nav-guest-title">26/12 XMUM Foundation Orientation</div>
         </Link>
-        {/* Committee link — always visible, matching the homepage navbar's single button */}
-        <div className="flex items-center gap-[8px]">
-          <Link href="/login" style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)', color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            Committee
-          </Link>
+        <div className="nav-guest-links">
+          <Link href="/practice" style={guestLink}>Performance Practice</Link>
+          <Link href="/login" style={guestLink}>Committee</Link>
         </div>
+        <button
+          type="button"
+          className="nav-mobile-toggle"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          style={{ background: 'none', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '8px', padding: '9px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
+        >
+          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
+          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.2s' }} />
+          <span style={{ width: '18px', height: '2px', background: 'rgba(255,255,255,0.85)', borderRadius: '1px', display: 'block', transition: 'transform 0.2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
+        </button>
+      </div>
+      <div className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
+        <Link href="/practice" onClick={() => setMobileOpen(false)} style={guestMobileLink}>🎭 Performance Practice</Link>
+        <Link href="/login" onClick={() => setMobileOpen(false)} style={guestMobileLink}>👥 Committee</Link>
       </div>
     </header>
   )

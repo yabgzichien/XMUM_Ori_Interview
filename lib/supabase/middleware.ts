@@ -1,8 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isStaffLoginEmail } from '@/lib/staff-accounts'
 
-// Only staff/committee areas require a login. /book is public (no-login interviewees).
-const PROTECTED = ['/head', '/practice', '/admin', '/profile']
+// Only account-management and interview staff areas require a login.
+// /practice is intentionally public: identity is verified against the roster.
+const PROTECTED = ['/head', '/admin', '/profile']
+
+export function isProtectedPath(pathname: string) {
+  return PROTECTED.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+}
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -35,8 +41,23 @@ export async function updateSession(request: NextRequest) {
   // writing refreshed cookies.
   const { data: claims } = await supabase.auth.getClaims()
   const user = claims?.claims.sub
+  const emailClaim = claims?.claims.email
+  const email = typeof emailClaim === 'string' ? emailClaim : null
 
-  if (!user && PROTECTED.some((p) => request.nextUrl.pathname.startsWith(p))) {
+  if (user && !isStaffLoginEmail(email)) {
+    await supabase.auth.signOut()
+    if (!isProtectedPath(request.nextUrl.pathname)) return response
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/login'
+    redirectUrl.search = ''
+    const redirectResponse = NextResponse.redirect(redirectUrl)
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie)
+    })
+    return redirectResponse
+  }
+
+  if (!user && isProtectedPath(request.nextUrl.pathname)) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
     redirectUrl.searchParams.set('next', request.nextUrl.pathname)
