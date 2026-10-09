@@ -13,9 +13,15 @@ export function normalizeUniversityEmail(value: unknown): string | null {
   return normalized
 }
 
-export function matchesDerivedUniversityEmail(studentId: unknown, email: unknown): boolean {
+export function derivedUniversityEmail(studentId: unknown): string | null {
   const normalizedId = normalizeStudentId(studentId)
+  if (!normalizedId) return null
+  return `${normalizedId.toLowerCase()}@xmu.edu.my`
+}
+
+export function matchesDerivedUniversityEmail(studentId: unknown, email: unknown): boolean {
+  const derived = derivedUniversityEmail(studentId)
   const normalizedEmail = normalizeUniversityEmail(email)
-  if (!normalizedId || !normalizedEmail) return false
-  return normalizedEmail === `${normalizedId.toLowerCase()}@xmu.edu.my`
+  if (!derived || !normalizedEmail) return false
+  return normalizedEmail === derived
 }

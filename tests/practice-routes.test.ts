@@ -41,7 +41,6 @@ describe('public practice routes', () => {
     })
     const response = await verifyPOST(request('/api/practice/verify', {
       studentId: 'DSC2344112',
-      email: 'dsc2344112@xmu.edu.my',
     }, { 'x-vercel-forwarded-for': '203.0.113.7' }))
 
     expect(response.status).toBe(200)
@@ -59,21 +58,19 @@ describe('public practice routes', () => {
 
     const wrongTypes = await verifyPOST(request('/api/practice/verify', {
       studentId: 123,
-      email: false,
     }))
     expect(wrongTypes.status).toBe(400)
-    expect(await wrongTypes.json()).toEqual({ error: 'Student ID and university email are required.' })
+    expect(await wrongTypes.json()).toEqual({ error: 'Student ID is required.' })
   })
 
   it('uses one generic identity error and records the failed attempt', async () => {
     serviceMocks.lookupPractice.mockResolvedValue({ data: null, error: 'identity_not_verified' })
     const response = await verifyPOST(request('/api/practice/verify', {
       studentId: 'UNKNOWN',
-      email: 'unknown@xmu.edu.my',
     }))
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({
-      error: 'Student ID or university email could not be verified.',
+      error: 'Student ID could not be verified.',
     })
     expect(rateLimitMocks.releaseVerificationAttempt).not.toHaveBeenCalled()
   })
@@ -82,7 +79,6 @@ describe('public practice routes', () => {
     rateLimitMocks.reserveVerificationAttempt.mockResolvedValue(null)
     const response = await verifyPOST(request('/api/practice/verify', {
       studentId: 'UNKNOWN',
-      email: 'unknown@xmu.edu.my',
     }))
     expect(response.status).toBe(429)
     expect(await response.json()).toEqual({ error: 'Too many verification attempts. Try again later.' })
@@ -95,7 +91,6 @@ describe('public practice routes', () => {
     })
     const response = await verifyPOST(request('/api/practice/verify', {
       studentId: 'DSC2344112',
-      email: 'dsc2344112@xmu.edu.my',
     }))
     expect(response.status).toBe(500)
     expect(await response.json()).toEqual({ error: 'Practice verification is temporarily unavailable.' })
@@ -105,7 +100,6 @@ describe('public practice routes', () => {
     serviceMocks.createPracticeBooking.mockResolvedValue({ data: null, error: 'group_full' })
     const response = await bookPOST(request('/api/practice/book', {
       studentId: 'DSC2344112',
-      email: 'dsc2344112@xmu.edu.my',
       groupId: 'f8a40f21-8788-4d7c-9597-9d8a197be1c1',
     }))
     expect(response.status).toBe(409)
@@ -117,7 +111,6 @@ describe('public practice routes', () => {
     serviceMocks.lookupPractice.mockResolvedValue({ data: null, error: 'booking_not_open' })
     const response = await verifyPOST(request('/api/practice/verify', {
       studentId: 'DSC2344112',
-      email: 'dsc2344112@xmu.edu.my',
     }))
 
     expect(response.status).toBe(409)
@@ -129,7 +122,6 @@ describe('public practice routes', () => {
     serviceMocks.createPracticeBooking.mockResolvedValue({ data: null, error: 'booking_not_open' })
     const response = await bookPOST(request('/api/practice/book', {
       studentId: 'DSC2344112',
-      email: 'dsc2344112@xmu.edu.my',
       groupId: 'f8a40f21-8788-4d7c-9597-9d8a197be1c1',
     }))
 
@@ -144,7 +136,7 @@ describe('public practice routes', () => {
     })
     rateLimitMocks.releaseVerificationAttempt.mockRejectedValue(new Error('cleanup failed'))
     const response = await bookPOST(request('/api/practice/book', {
-      studentId: 'DSC2344112', email: 'DSC2344112@xmu.edu.my', groupId: 'group-1',
+      studentId: 'DSC2344112', groupId: 'group-1',
     }))
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ data: { id: 'booking-1' } })
@@ -153,7 +145,7 @@ describe('public practice routes', () => {
   it('releases a reservation when the booking service throws', async () => {
     serviceMocks.createPracticeBooking.mockRejectedValue(new Error('backend unavailable'))
     const response = await bookPOST(request('/api/practice/book', {
-      studentId: 'DSC2344112', email: 'DSC2344112@xmu.edu.my', groupId: 'group-1',
+      studentId: 'DSC2344112', groupId: 'group-1',
     }))
     expect(response.status).toBe(500)
     expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)

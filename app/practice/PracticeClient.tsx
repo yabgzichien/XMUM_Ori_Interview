@@ -127,7 +127,6 @@ function MediaEmbed({ group }: { group: PublicPracticeGroup }) {
 
 export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatalog?: PracticeCatalog }) {
   const [studentId, setStudentId] = useState('')
-  const [email, setEmail] = useState('')
   const [screen, setScreen] = useState<Screen>({ kind: 'showcase' })
   const [groups, setGroups] = useState(initialCatalog.groups)
   const [busy, setBusy] = useState(false)
@@ -167,8 +166,7 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
     holdTokenRef.current = saved.token
     /* eslint-disable react-hooks/set-state-in-effect -- sessionStorage is only readable after hydration */
     setStudentId(saved.identity.studentId)
-    setEmail(saved.identity.email)
-    setScreen({ kind: 'confirm', identity: saved.identity, group, hold: { token: saved.token, expiresAt: saved.expiresAt } })
+    setScreen({ kind: 'confirm', identity: { studentId: saved.identity.studentId }, group, hold: { token: saved.token, expiresAt: saved.expiresAt } })
     /* eslint-enable react-hooks/set-state-in-effect */
     // Mount only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,7 +210,6 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
 
   function clearIdentity() {
     setStudentId('')
-    setEmail('')
   }
 
   function chooseGroup(group: PublicPracticeGroup) {
@@ -227,7 +224,7 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
     submittingRef.current = true
     setBusy(true)
     setError(null)
-    const identity = { studentId: studentId.trim(), email: email.trim() }
+    const identity = { studentId: studentId.trim() }
     const result = await verifyPracticeMember(identity)
     if (result.error || !result.data) {
       setBusy(false)
@@ -319,10 +316,9 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
         <div className={styles.flowEyebrow}><ShieldCheck size={15} /> Booking {screen.group.name}</div>
         <p className={styles.leadLine}>{leadLabel(screen.group.leaders.length)}: <strong>{leadersText(screen.group.leaders.map((leader) => leader.name))}</strong></p>
         <h2>Verify your details</h2>
-        <p>Use your student ID and its matching <strong>@xmu.edu.my</strong> email.</p>
+        <p>Enter the student ID on the performance roster.</p>
         <form className={styles.verifyForm} onSubmit={handleVerify}>
           <label>Student ID<input value={studentId} onChange={(event) => setStudentId(event.target.value)} required autoComplete="username" /></label>
-          <label>University email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" /></label>
           {error && <div className={styles.error} role="alert">{error}</div>}
           <button className={styles.primaryButton} type="submit" disabled={busy}>{busy ? 'Verifying…' : 'Verify and continue'}</button>
         </form>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  derivedUniversityEmail,
   matchesDerivedUniversityEmail,
   normalizeStudentId,
   normalizeUniversityEmail,
@@ -16,6 +17,12 @@ describe('practice identity normalization', () => {
     expect(normalizeStudentId(null)).toBeNull()
     expect(normalizeStudentId('DSC 2344112')).toBeNull()
     expect(normalizeStudentId('ＤＳＣ2344112')).toBeNull()
+  })
+
+  it('derives the campus email from a valid student ID', () => {
+    expect(derivedUniversityEmail(' dsc2344112 ')).toBe('dsc2344112@xmu.edu.my')
+    expect(derivedUniversityEmail('DSC 2344112')).toBeNull()
+    expect(derivedUniversityEmail(null)).toBeNull()
   })
 
   it('accepts only the exact case-insensitive email derived from the ID', () => {

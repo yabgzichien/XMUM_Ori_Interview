@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { derivedUniversityEmail, normalizeStudentId } from '@/lib/practice-identity'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { mapPracticeCatalog, mapPracticeLookup } from '@/lib/practice-catalog'
 import type {
@@ -34,6 +35,13 @@ function classifyError(message: string): PracticeServiceError {
   return 'server_error'
 }
 
+function rosterIdentity(studentId: string): { studentId: string; email: string } | null {
+  const normalizedId = normalizeStudentId(studentId)
+  const email = derivedUniversityEmail(normalizedId)
+  if (!normalizedId || !email) return null
+  return { studentId: normalizedId, email }
+}
+
 function practiceAudioUrl(database: ReturnType<typeof createAdminClient>) {
   return (path: string) => database.storage.from('practice-audio').getPublicUrl(path).data.publicUrl
 }
@@ -59,10 +67,12 @@ export async function getPracticeCatalog(): Promise<ServiceResult<PracticeCatalo
 export async function lookupPractice(
   input: PracticeIdentityInput,
 ): Promise<ServiceResult<PracticeLookupResult>> {
+  const identity = rosterIdentity(input.studentId)
+  if (!identity) return { data: null, error: 'identity_not_verified' }
   const database = createAdminClient()
   const { data, error } = await database.rpc('public_practice_lookup', {
-    p_student_id: input.studentId,
-    p_email: input.email,
+    p_student_id: identity.studentId,
+    p_email: identity.email,
   })
   if (error) return { data: null, error: classifyError(error.message) }
   const lookup = mapPracticeLookup(data as Parameters<typeof mapPracticeLookup>[0], practiceAudioUrl(database))
@@ -75,10 +85,12 @@ export async function lookupPractice(
 export async function createPracticeBooking(
   input: PracticeBookingInput,
 ): Promise<ServiceResult<PracticeBookingResult>> {
+  const identity = rosterIdentity(input.studentId)
+  if (!identity) return { data: null, error: 'identity_not_verified' }
   const database = createAdminClient()
   const { data, error } = await database.rpc('public_book_practice_group', {
-    p_student_id: input.studentId,
-    p_email: input.email,
+    p_student_id: identity.studentId,
+    p_email: identity.email,
     p_group: input.groupId,
     p_token: input.holdToken ?? null,
   })
@@ -90,10 +102,12 @@ export async function createPracticeBooking(
 export async function reservePracticeGroup(
   input: PracticeBookingInput,
 ): Promise<ServiceResult<PracticeHold>> {
+  const identity = rosterIdentity(input.studentId)
+  if (!identity) return { data: null, error: 'identity_not_verified' }
   const database = createAdminClient()
   const { data, error } = await database.rpc('public_reserve_practice_group', {
-    p_student_id: input.studentId,
-    p_email: input.email,
+    p_student_id: identity.studentId,
+    p_email: identity.email,
     p_group: input.groupId,
   })
   if (error) return { data: null, error: classifyError(error.message) }

@@ -25,14 +25,13 @@ export async function POST(request: Request) {
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400, headers: NO_STORE })
   }
-  const { studentId, email, groupId } = body as Record<string, unknown>
+  const { studentId, groupId } = body as Record<string, unknown>
   if (
     typeof studentId !== 'string' || !studentId.trim()
-    || typeof email !== 'string' || !email.trim()
     || typeof groupId !== 'string' || !groupId.trim()
   ) {
     return NextResponse.json(
-      { error: 'Student ID, university email, and group are required.' },
+      { error: 'Student ID and group are required.' },
       { status: 400, headers: NO_STORE },
     )
   }
@@ -49,11 +48,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const result = await reservePracticeGroup({ studentId, email, groupId })
+    const result = await reservePracticeGroup({ studentId, groupId })
     if (result.error === 'identity_not_verified') {
       retainAttempt = true
       return NextResponse.json(
-        { error: 'Student ID or university email could not be verified.' },
+        { error: 'Student ID could not be verified.' },
         { status: 400, headers: NO_STORE },
       )
     }

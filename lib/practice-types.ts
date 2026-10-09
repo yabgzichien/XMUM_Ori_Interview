@@ -3,7 +3,6 @@ export type PracticeSongType = 'youtube' | 'mp3' | 'external'
 
 export type PracticeIdentityInput = {
   studentId: string
-  email: string
 }
 
 export type PracticeBookingInput = PracticeIdentityInput & {

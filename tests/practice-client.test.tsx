@@ -33,12 +33,10 @@ vi.mock('@/lib/practice-public', () => ({
 
 const identity = {
   studentId: 'DSC2344112',
-  email: 'dsc2344112@xmu.edu.my',
 }
 
 function fillIdentity() {
   fireEvent.change(screen.getByLabelText(/student id/i), { target: { value: identity.studentId } })
-  fireEvent.change(screen.getByLabelText(/university email/i), { target: { value: identity.email } })
 }
 
 function beginVerification() {
@@ -74,6 +72,7 @@ describe('account-free practice booking', () => {
     expect(screen.getByText('Group A')).toBeDefined()
     expect(screen.queryByLabelText(/student id/i)).toBeNull()
     beginVerification()
+    expect(screen.queryByLabelText(/email/i)).toBeNull()
     fillIdentity()
     await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
     expect(await screen.findByRole('heading', { name: /confirm your group/i })).toBeDefined()
@@ -82,7 +81,7 @@ describe('account-free practice booking', () => {
   it('shows the generic verification message without revealing roster membership', async () => {
     vi.mocked(publicPractice.verifyPracticeMember).mockResolvedValue({
       data: null,
-      error: 'Student ID or university email could not be verified.',
+      error: 'Student ID could not be verified.',
       status: 400,
     })
     render(<PracticeClient initialCatalog={openCatalog} />)
