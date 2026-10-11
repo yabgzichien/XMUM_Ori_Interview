@@ -163,6 +163,9 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
     )
   }
 
+  // The home page draws its own slim bar over the hero photos.
+  if (pathname === '/') return null
+
   const guestLink: React.CSSProperties = { padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)', color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }
   const guestMobileLink: React.CSSProperties = { padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', color: 'var(--text-secondary, #334155)' }
 
