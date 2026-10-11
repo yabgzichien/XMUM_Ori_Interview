@@ -379,6 +379,22 @@
 .memberName { display: block; color: var(--text-primary, #0f172a); font-size: 14px; }
 .studentId { display: block; margin-top: 4px; color: var(--text-muted, #64748b); font-size: 12px; font-variant-numeric: tabular-nums; }
 .actions { display: flex; justify-content: flex-end; gap: 7px; }
+.selectCell { width: 44px; }
+.table th.selectCell, .table td.selectCell { padding-right: 0; }
+.checkbox { width: 17px; height: 17px; accent-color: var(--practice-accent-strong); cursor: pointer; }
+.bulkBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--practice-border);
+  border-radius: 12px;
+  background: var(--practice-surface-soft);
+}
+.bulkCount { color: var(--text-primary, #0f172a); font-size: 13px; font-weight: 700; }
 .iconButton { min-height: 36px; padding: 7px 10px; }
 
 .statusBadge { padding: 4px 8px; border-color: var(--badge-success-border); background: var(--badge-success-bg); color: var(--badge-success-text); }
@@ -832,6 +848,9 @@
   .table td::before { content: attr(data-label); color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; text-align: left; }
   .table td:first-child { display: block; padding-top: 0; text-align: left; }
   .table td:first-child::before { display: none; }
+  .table td.selectCell { padding-bottom: 4px; }
+  .table td.selectCell + td { display: block; text-align: left; }
+  .table td.selectCell + td::before { display: none; }
   .actions { justify-content: flex-end; }
   .capacityPair { width: 100%; }
   .sessionItem,

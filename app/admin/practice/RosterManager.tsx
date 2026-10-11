@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { saveRosterMemberAction, setRosterMemberActiveAction } from '@/app/actions/practiceAdminActions'
+import { deleteRosterMembersAction, saveRosterMemberAction, setRosterMemberActiveAction, setRosterMembersActiveAction } from '@/app/actions/practiceAdminActions'
 import type { AdminRosterMember } from '@/lib/practice-types'
 import { AdminModal } from './AdminModal'
 import { RosterImportPanel } from './RosterImportPanel'
 import { SearchSelect } from './SearchSelect'
 import { positionToneClass } from './position-tone'
-import { AlertCircle, CheckCircle2, Pencil, Search, Upload, UserPlus, UserRoundCheck, UserRoundX } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Pencil, Search, Trash2, Upload, UserPlus, UserRoundCheck, UserRoundX } from 'lucide-react'
 import styles from './practice-admin.module.css'
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
 }
 
 export function RosterManager({ roster, positions }: Props) {
-  const [modal, setModal] = useState<'member' | 'import' | null>(null)
+  const [modal, setModal] = useState<'member' | 'import' | 'delete' | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [studentId, setStudentId] = useState('')
@@ -27,6 +27,7 @@ export function RosterManager({ roster, positions }: Props) {
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
 
   function resetForm() {
     setEditingId(null)
@@ -87,6 +88,49 @@ export function RosterManager({ roster, positions }: Props) {
     setMessage(result.error ?? (active ? 'Member reactivated.' : 'Member deactivated.'))
   }
 
+  async function setSelectedActive(active: boolean) {
+    setBusy(true)
+    setMessage(null)
+    setMessageKind(null)
+    const result = await setRosterMembersActiveAction(selectedMembers.map((member) => member.id), active)
+    setBusy(false)
+    setMessageKind(result.error ? 'error' : 'success')
+    if (result.error) return setMessage(result.error)
+    setMessage(`${result.data} member${result.data === 1 ? '' : 's'} ${active ? 'reactivated' : 'deactivated'}.`)
+    setSelectedIds(new Set())
+  }
+
+  async function deleteSelected() {
+    setBusy(true)
+    setMessage(null)
+    setMessageKind(null)
+    const result = await deleteRosterMembersAction(selectedMembers.map((member) => member.id))
+    setBusy(false)
+    setModal(null)
+    setMessageKind(result.error ? 'error' : 'success')
+    if (result.error) return setMessage(result.error)
+    setMessage(`${result.data} member${result.data === 1 ? '' : 's'} permanently deleted.`)
+    setSelectedIds(new Set())
+  }
+
+  function toggleMember(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleVisible() {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (allVisibleSelected) visibleRoster.forEach((member) => next.delete(member.id))
+      else visibleRoster.forEach((member) => next.add(member.id))
+      return next
+    })
+  }
+
   const normalizedQuery = query.trim().toLowerCase()
   const visibleRoster = normalizedQuery
     ? roster.filter((member) => {
@@ -95,6 +139,11 @@ export function RosterManager({ roster, positions }: Props) {
         .some((value) => value.toLowerCase().includes(normalizedQuery))
     })
     : roster
+  // Members removed by a refresh drop out of the selection automatically.
+  const selectedMembers = roster.filter((member) => selectedIds.has(member.id))
+  const selectedBookedCount = selectedMembers.filter((member) => member.group_name).length
+  const allVisibleSelected = visibleRoster.length > 0 && visibleRoster.every((member) => selectedIds.has(member.id))
+  const someVisibleSelected = visibleRoster.some((member) => selectedIds.has(member.id))
 
   return (
     <section className={styles.section} aria-labelledby="roster-heading">
@@ -132,6 +181,23 @@ export function RosterManager({ roster, positions }: Props) {
           <RosterImportPanel positions={positions} onDone={() => { setModal(null); setMessageKind('success'); setMessage('Import complete.') }} />
         </AdminModal>
       )}
+      {modal === 'delete' && (
+        <AdminModal title="Delete roster members" onClose={() => setModal(null)}>
+          <div className={styles.modalForm}>
+            <div className={`${styles.notice} ${styles.noticeError}`} role="alert">
+              <AlertCircle size={17} />
+              <span>
+                Permanently delete {selectedMembers.length} member{selectedMembers.length === 1 ? '' : 's'}? This cannot be undone.
+                {selectedBookedCount > 0 && ` ${selectedBookedCount} of them ${selectedBookedCount === 1 ? 'has' : 'have'} a practice booking that will also be removed.`}
+              </span>
+            </div>
+            <div className={styles.buttonRow}>
+              <button className={`${styles.button} ${styles.secondaryButton}`} type="button" onClick={() => setModal(null)}>Cancel</button>
+              <button className={`${styles.button} ${styles.dangerButton}`} type="button" disabled={busy} onClick={deleteSelected}><Trash2 size={15} /> Delete permanently</button>
+            </div>
+          </div>
+        </AdminModal>
+      )}
       {message && <div className={`${styles.notice} ${messageKind === 'error' ? styles.noticeError : ''}`} role={messageKind === 'error' ? 'alert' : 'status'}>
         {messageKind === 'error' ? <AlertCircle size={17} /> : <CheckCircle2 size={17} />}<span>{message}</span>
       </div>}
@@ -144,14 +210,27 @@ export function RosterManager({ roster, positions }: Props) {
         <span className={styles.resultCount}>{visibleRoster.length} of {roster.length} members</span>
       </div>
 
+      {selectedMembers.length > 0 && (
+        <div className={styles.bulkBar} role="region" aria-label="Selected members">
+          <span className={styles.bulkCount}>{selectedMembers.length} selected</span>
+          <div className={styles.buttonRow}>
+            <button className={`${styles.iconButton} ${styles.successButton}`} type="button" disabled={busy} onClick={() => setSelectedActive(true)}><UserRoundCheck size={14} /> Reactivate selected</button>
+            <button className={`${styles.iconButton} ${styles.secondaryButton}`} type="button" disabled={busy} onClick={() => setSelectedActive(false)}><UserRoundX size={14} /> Deactivate selected</button>
+            <button className={`${styles.iconButton} ${styles.dangerButton}`} type="button" disabled={busy} onClick={() => setModal('delete')}><Trash2 size={14} /> Delete selected</button>
+            <button className={`${styles.iconButton} ${styles.secondaryButton}`} type="button" onClick={() => setSelectedIds(new Set())}>Clear</button>
+          </div>
+        </div>
+      )}
+
       {roster.length === 0 ? <div className={styles.emptyState}><UserPlus size={24} /><strong>No roster members yet</strong><span>Use Add member or Import above.</span></div> : visibleRoster.length === 0 ? (
         <div className={styles.emptyState}><Search size={24} /><strong>No matching members</strong><span>Try a different name, student ID, position, or group.</span></div>
       ) : (
         <div className={styles.tableWrap}>
           <table className={styles.table}>
-            <thead><tr><th>Member</th><th>Contact</th><th>Position</th><th>Practice group</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead>
+            <thead><tr><th className={styles.selectCell}><input type="checkbox" className={styles.checkbox} aria-label="Select all shown members" checked={allVisibleSelected} ref={(input) => { if (input) input.indeterminate = someVisibleSelected && !allVisibleSelected }} onChange={toggleVisible} /></th><th>Member</th><th>Contact</th><th>Position</th><th>Practice group</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>{visibleRoster.map((member) => (
               <tr key={member.id}>
+                <td className={styles.selectCell}><input type="checkbox" className={styles.checkbox} aria-label={`Select ${member.student_id}`} checked={selectedIds.has(member.id)} onChange={() => toggleMember(member.id)} /></td>
                 <td><strong className={styles.memberName}>{member.name}</strong><span className={styles.studentId}>{member.student_id}</span></td>
                 <td data-label="Contact">{member.contact_number || <span className={styles.studentId}>—</span>}</td>
                 <td data-label="Position"><span className={`${styles.positionBadge} ${styles[positionToneClass(member.position)]}`}>{positions.find((option) => option.value === member.position)?.label ?? member.position}</span></td>

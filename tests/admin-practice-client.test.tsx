@@ -17,6 +17,8 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/app/actions/practiceAdminActions', () => ({
   saveRosterMemberAction: vi.fn(),
   setRosterMemberActiveAction: vi.fn(),
+  setRosterMembersActiveAction: vi.fn(),
+  deleteRosterMembersAction: vi.fn(),
   createPracticeGroupAction: vi.fn(),
   updatePracticeGroupAction: vi.fn(),
   deletePracticeGroupAction: vi.fn(),
@@ -63,6 +65,8 @@ describe('admin practice management', () => {
     vi.clearAllMocks()
     vi.mocked(actions.saveRosterMemberAction).mockResolvedValue({ data: {}, error: null })
     vi.mocked(actions.setRosterMemberActiveAction).mockResolvedValue({ data: {}, error: null })
+    vi.mocked(actions.setRosterMembersActiveAction).mockResolvedValue({ data: 2, error: null })
+    vi.mocked(actions.deleteRosterMembersAction).mockResolvedValue({ data: 2, error: null })
     vi.mocked(actions.createPracticeGroupAction).mockResolvedValue({ data: { id: 'group-new' }, error: null })
     vi.mocked(actions.updatePracticeGroupAction).mockResolvedValue({ data: {}, error: null })
     vi.mocked(actions.deletePracticeGroupAction).mockResolvedValue({ data: true, error: null })
@@ -146,6 +150,33 @@ describe('admin practice management', () => {
     await waitFor(() => expect(actions.setRosterMemberActiveAction).toHaveBeenCalledWith('member-1', false))
     fireEvent.click(screen.getByRole('button', { name: /reactivate DSC2344113/i }))
     await waitFor(() => expect(actions.setRosterMemberActiveAction).toHaveBeenCalledWith('member-2', true))
+  })
+
+  it('bulk deactivates, reactivates, and permanently deletes selected roster members', async () => {
+    render(<RosterManager roster={roster} positions={positions} />)
+    expect(screen.queryByRole('region', { name: /selected members/i })).toBeNull()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /select DSC2344112/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /select DSC2344114/i }))
+    const bar = screen.getByRole('region', { name: /selected members/i })
+    expect(bar.textContent).toContain('2 selected')
+
+    fireEvent.click(within(bar).getByRole('button', { name: /deactivate selected/i }))
+    await waitFor(() => expect(actions.setRosterMembersActiveAction).toHaveBeenCalledWith(['member-1', 'member-3'], false))
+    expect(await screen.findByText('2 members deactivated.')).toBeDefined()
+    expect(screen.queryByRole('region', { name: /selected members/i })).toBeNull()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /select all shown members/i }))
+    fireEvent.click(within(screen.getByRole('region', { name: /selected members/i })).getByRole('button', { name: /reactivate selected/i }))
+    await waitFor(() => expect(actions.setRosterMembersActiveAction).toHaveBeenCalledWith(['member-1', 'member-2', 'member-3'], true))
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /select DSC2344112/i }))
+    fireEvent.click(within(screen.getByRole('region', { name: /selected members/i })).getByRole('button', { name: /delete selected/i }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByRole('alert').textContent).toContain('1 of them has a practice booking')
+    expect(actions.deleteRosterMembersAction).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: /delete permanently/i }))
+    await waitFor(() => expect(actions.deleteRosterMembersAction).toHaveBeenCalledWith(['member-1']))
   })
 
   it('announces roster action errors as alerts', async () => {
