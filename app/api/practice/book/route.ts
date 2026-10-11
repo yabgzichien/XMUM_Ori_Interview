@@ -70,7 +70,8 @@ export async function POST(request: Request) {
       )
     }
     return NextResponse.json({ data: result.data }, { status: 200, headers: NO_STORE })
-  } catch {
+  } catch (error) {
+    console.error('[practice/book] request failed', error)
     return NextResponse.json(
       { error: 'The booking could not be completed.' },
       { status: 500, headers: NO_STORE },

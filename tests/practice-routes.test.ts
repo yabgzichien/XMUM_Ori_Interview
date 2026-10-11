@@ -96,6 +96,19 @@ describe('public practice routes', () => {
     expect(await response.json()).toEqual({ error: 'Practice verification is temporarily unavailable.' })
   })
 
+  it('logs the underlying error server-side when the route fails', async () => {
+    const failure = new Error('PRACTICE_RATE_LIMIT_SECRET is not configured')
+    rateLimitMocks.getVerificationFingerprint.mockImplementation(() => { throw failure })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    await verifyPOST(request('/api/practice/verify', { studentId: 'DSC2344112' }))
+    await bookPOST(request('/api/practice/book', { studentId: 'DSC2344112', groupId: 'group-1' }))
+
+    expect(log).toHaveBeenCalledWith('[practice/verify] request failed', failure)
+    expect(log).toHaveBeenCalledWith('[practice/book] request failed', failure)
+    log.mockRestore()
+  })
+
   it('maps booking conflicts without recording them as identity failures', async () => {
     serviceMocks.createPracticeBooking.mockResolvedValue({ data: null, error: 'group_full' })
     const response = await bookPOST(request('/api/practice/book', {

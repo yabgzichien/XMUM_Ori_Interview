@@ -60,7 +60,8 @@ export async function POST(request: Request) {
       )
     }
     return NextResponse.json({ data: result.data }, { status: 200, headers: NO_STORE })
-  } catch {
+  } catch (error) {
+    console.error('[practice/verify] request failed', error)
     return NextResponse.json(
       { error: 'Practice verification is temporarily unavailable.' },
       { status: 500, headers: NO_STORE },
