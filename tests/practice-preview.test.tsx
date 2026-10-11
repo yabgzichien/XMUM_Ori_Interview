@@ -2,6 +2,7 @@ import React from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PracticeClient } from '@/app/practice/PracticeClient'
+import * as publicPractice from '@/lib/practice-public'
 
 vi.mock('@/lib/practice-public', () => ({
   verifyPracticeMember: vi.fn(),
@@ -31,10 +32,13 @@ describe('performance-practice preview mode', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-11-30T00:00:00.000Z'))
+    sessionStorage.setItem('xmumori-practice-identity', JSON.stringify({ studentId: 'DSC2344112' }))
+    vi.mocked(publicPractice.verifyPracticeMember).mockResolvedValue({ data: null, error: 'Unavailable.', status: 500 })
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    sessionStorage.clear()
   })
 
   it('shows optional performance information publicly before booking opens', () => {
@@ -67,9 +71,8 @@ describe('performance-practice preview mode', () => {
     const choose = screen.getByRole('button', { name: /choose Neon Pulse/i })
     expect(choose).toHaveProperty('disabled', false)
     fireEvent.click(choose)
-    expect(screen.getByRole('heading', { name: /verify your details/i })).toBeDefined()
-    expect(screen.getByLabelText(/student id/i)).toBeDefined()
-    expect(screen.getByText(/Neon Pulse/)).toBeDefined()
+    expect(screen.queryByLabelText(/student id/i)).toBeNull()
+    expect(publicPractice.verifyPracticeMember).toHaveBeenLastCalledWith({ studentId: 'DSC2344112' })
   })
 
   it('renders YouTube song sources as an embedded player', () => {

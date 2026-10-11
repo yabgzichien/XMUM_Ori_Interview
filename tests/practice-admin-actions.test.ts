@@ -14,11 +14,13 @@ import {
   assignPracticeMemberAction,
   createPracticeGroupAction,
   deletePracticeGroupAction,
+  deleteRosterMembersAction,
   movePracticeMemberAction,
   savePracticeGroupDetailsAction,
   savePracticeOpeningAction,
   savePracticeSessionAction,
   saveRosterMemberAction,
+  setRosterMembersActiveAction,
   updatePracticeGroupAction,
 } from '@/app/actions/practiceAdminActions'
 
@@ -38,6 +40,7 @@ function databaseFixture() {
   const builders: Record<string, ReturnType<typeof queryBuilder>> = {
     committee_positions: queryBuilder({ data: { value: 'facilitator' }, error: null }),
     committee_roster: queryBuilder({ data: { id: 'member-1' }, error: null }),
+    practice_group_bookings: queryBuilder({ data: null, error: null }),
     practice_groups: queryBuilder({ data: { id: 'group-1' }, error: null }),
     practice_sessions: queryBuilder({ data: { id: 'session-1' }, error: null }),
     practice_settings: queryBuilder({ data: { id: 'settings-1' }, error: null }),
@@ -140,6 +143,42 @@ describe('practice admin actions', () => {
       contact_number: null,
     })
     expect(database.builders.committee_roster.eq).toHaveBeenCalledWith('id', 'member-1')
+  })
+
+  it('bulk updates roster status for the selected IDs only', async () => {
+    const database = databaseFixture()
+    database.builders.committee_roster.then.mockImplementation((resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ data: [{ id: 'member-1' }, { id: 'member-2' }], error: null }).then(resolve))
+    mocks.createClient.mockResolvedValue(database)
+
+    expect(await setRosterMembersActiveAction(['member-1', 'member-2', 'member-1'], false)).toEqual({ data: 2, error: null })
+    expect(database.builders.committee_roster.update).toHaveBeenCalledWith({ active: false })
+    expect(database.builders.committee_roster.in).toHaveBeenCalledWith('id', ['member-1', 'member-2'])
+    expect(await setRosterMembersActiveAction([], true)).toEqual({ data: null, error: 'Select at least one roster member.' })
+  })
+
+  it('removes bookings before permanently deleting roster members', async () => {
+    const database = databaseFixture()
+    database.builders.committee_roster.then.mockImplementation((resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ data: [{ id: 'member-1' }], error: null }).then(resolve))
+    mocks.createClient.mockResolvedValue(database)
+
+    expect(await deleteRosterMembersAction(['member-1'])).toEqual({ data: 1, error: null })
+    expect(database.builders.practice_group_bookings.delete).toHaveBeenCalled()
+    expect(database.builders.practice_group_bookings.in).toHaveBeenCalledWith('roster_member_id', ['member-1'])
+    expect(database.builders.committee_roster.delete).toHaveBeenCalled()
+    expect(database.builders.committee_roster.in).toHaveBeenCalledWith('id', ['member-1'])
+    expect(database.from.mock.calls.map(([table]) => table)).toEqual(['practice_group_bookings', 'committee_roster'])
+  })
+
+  it('stops before deleting roster members when booking removal fails', async () => {
+    const database = databaseFixture()
+    database.builders.practice_group_bookings.then.mockImplementation((resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ data: null, error: { message: 'boom' } }).then(resolve))
+    mocks.createClient.mockResolvedValue(database)
+
+    expect(await deleteRosterMembersAction(['member-1'])).toEqual({ data: null, error: 'The selected bookings could not be removed.' })
+    expect(database.builders.committee_roster.delete).not.toHaveBeenCalled()
   })
 
   it('explains when a booked member cannot move into a full capacity category', async () => {

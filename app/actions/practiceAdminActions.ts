@@ -229,6 +229,48 @@ export async function setRosterMemberActiveAction(id: string, active: boolean): 
   return { data, error: null }
 }
 
+function uniqueIds(ids: string[]) {
+  return [...new Set(ids.filter((id) => typeof id === 'string' && id))]
+}
+
+export async function setRosterMembersActiveAction(ids: string[], active: boolean): Promise<ActionResult<number>> {
+  const auth = await requirePracticeAdmin()
+  if (auth.error) return { data: null, error: auth.error }
+  const memberIds = uniqueIds(ids)
+  if (memberIds.length === 0) return { data: null, error: 'Select at least one roster member.' }
+  const database = await createClient()
+  const { data, error } = await database
+    .from('committee_roster')
+    .update({ active })
+    .in('id', memberIds)
+    .select('id')
+  if (error) return { data: null, error: mapDatabaseError(error.message) }
+  refreshPracticeAdmin()
+  return { data: data?.length ?? 0, error: null }
+}
+
+/** Permanently removes roster members. Their bookings go first because that foreign key does not cascade. */
+export async function deleteRosterMembersAction(ids: string[]): Promise<ActionResult<number>> {
+  const auth = await requirePracticeAdmin()
+  if (auth.error) return { data: null, error: auth.error }
+  const memberIds = uniqueIds(ids)
+  if (memberIds.length === 0) return { data: null, error: 'Select at least one roster member.' }
+  const database = await createClient()
+  const { error: bookingError } = await database
+    .from('practice_group_bookings')
+    .delete()
+    .in('roster_member_id', memberIds)
+  if (bookingError) return { data: null, error: 'The selected bookings could not be removed.' }
+  const { data, error } = await database
+    .from('committee_roster')
+    .delete()
+    .in('id', memberIds)
+    .select('id')
+  if (error) return { data: null, error: 'The selected roster members could not be deleted.' }
+  refreshPracticeAdmin()
+  return { data: data?.length ?? 0, error: null }
+}
+
 function validateCategoryCapacities(committeeCapacity: number, faciGmCapacity: number) {
   if (!Number.isInteger(committeeCapacity) || !Number.isInteger(faciGmCapacity) || committeeCapacity < 0 || faciGmCapacity < 0) {
     return 'Each category capacity must be 0 or more.'

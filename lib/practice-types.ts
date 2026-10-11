@@ -63,9 +63,17 @@ export type PublicPracticeBooking = {
   sessions: PracticeSession[]
 }
 
-export type PracticeLookupResult =
+/** Shown back to the student so they can confirm the roster entry is theirs. */
+export type PracticeMemberSummary = {
+  name: string
+  student_id: string
+  position_label: string
+}
+
+export type PracticeLookupResult = (
   | { state: 'available'; groups: PublicPracticeGroup[] }
   | { state: 'booked'; booking: PublicPracticeBooking }
+) & { member?: PracticeMemberSummary }
 
 export type PracticeBookingResult = PublicPracticeBooking
 

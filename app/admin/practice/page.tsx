@@ -5,7 +5,7 @@ import { getCurrentProfile } from '@/lib/auth'
 import { getAdminPracticeSnapshot } from '@/lib/practice-admin'
 import { AdminPracticeDashboard } from './AdminPracticeDashboard'
 import { ExportPracticeButton } from './ExportPracticeButton'
-import { ArrowLeft } from 'lucide-react'
+import { Users } from 'lucide-react'
 import styles from './practice-admin.module.css'
 
 export const metadata: Metadata = {
@@ -21,11 +21,11 @@ export default async function AdminPracticePage() {
   return (
     <main className={`scr ${styles.page}`}>
       <div className={styles.pageHeader}>
-        <div>
-          <Link className={styles.backLink} href="/admin"><ArrowLeft size={16} /> Committee roster</Link>
-          <h1 style={{ margin: '8px 0 0' }}>Performance Practice</h1>
+        <h1 style={{ margin: 0 }}>Performance Practice</h1>
+        <div className={styles.buttonRow}>
+          <Link className={`${styles.button} ${styles.primaryButton}`} href="/admin"><Users size={16} /> Committee roster</Link>
+          <ExportPracticeButton hasGroups={snapshot.groups.length > 0} />
         </div>
-        <ExportPracticeButton hasGroups={snapshot.groups.length > 0} />
       </div>
       <AdminPracticeDashboard snapshot={snapshot} />
     </main>

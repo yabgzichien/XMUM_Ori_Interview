@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { CalendarClock, CheckCircle2, ChevronDown, Clock3, Headphones, Play, ShieldCheck, Sparkles, UserRound } from 'lucide-react'
+import { clearVerifiedIdentity, readVerifiedIdentity, saveVerifiedIdentity, type VerifiedIdentity } from '@/lib/practice-verified-identity'
 import { bookPracticeGroup, releasePracticeHold, reservePracticeGroup, verifyPracticeMember } from '@/lib/practice-public'
 import { getYouTubeEmbedUrl } from '@/lib/practice-media'
-import type { PracticeCatalog, PracticeIdentityInput, PublicPracticeBooking, PublicPracticeGroup } from '@/lib/practice-types'
+import type { PracticeCatalog, PracticeIdentityInput, PracticeLookupResult, PublicPracticeBooking, PublicPracticeGroup } from '@/lib/practice-types'
+import { StudentIdDialog } from './StudentIdDialog'
 import styles from './practice-public.module.css'
 
 type Screen =
   | { kind: 'showcase' }
-  | { kind: 'verify'; group: PublicPracticeGroup }
   | { kind: 'confirm'; identity: PracticeIdentityInput; group: PublicPracticeGroup; hold: { token: string; expiresAt: number } }
   | { kind: 'booked'; booking: PublicPracticeBooking; newlyCreated: boolean }
 
@@ -126,7 +127,10 @@ function MediaEmbed({ group }: { group: PublicPracticeGroup }) {
 }
 
 export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatalog?: PracticeCatalog }) {
-  const [studentId, setStudentId] = useState('')
+  const [identity, setIdentity] = useState<VerifiedIdentity | null>(null)
+  const [identityReady, setIdentityReady] = useState(false)
+  const [confirmId, setConfirmId] = useState('')
+  const [pendingGroupId, setPendingGroupId] = useState<string | null>(null)
   const [screen, setScreen] = useState<Screen>({ kind: 'showcase' })
   const [groups, setGroups] = useState(initialCatalog.groups)
   const [busy, setBusy] = useState(false)
@@ -153,24 +157,76 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
     return () => window.clearInterval(timer)
   }, [bookingOpen, opensAt])
 
-  // Restore an unexpired hold after a refresh.
-  useEffect(() => {
-    const saved = readSavedHold()
-    if (!saved) return
-    const group = initialCatalog.groups.find((g) => g.id === saved.groupId)
-    if (!group || saved.expiresAt <= Date.now()) {
-      releasePracticeHold(saved.token)
-      clearSavedHold()
+  function forgetIdentity() {
+    clearVerifiedIdentity()
+    setIdentity(null)
+  }
+
+  function rememberMember(verified: VerifiedIdentity, lookup: PracticeLookupResult) {
+    if (!lookup.member) return
+    const next = { studentId: verified.studentId, member: lookup.member }
+    setIdentity(next)
+    saveVerifiedIdentity(next)
+  }
+
+  async function refreshForIdentity(verified: VerifiedIdentity) {
+    const result = await verifyPracticeMember({ studentId: verified.studentId })
+    if (result.status === 400) {
+      forgetIdentity()
       return
     }
-    holdTokenRef.current = saved.token
-    /* eslint-disable react-hooks/set-state-in-effect -- sessionStorage is only readable after hydration */
-    setStudentId(saved.identity.studentId)
-    setScreen({ kind: 'confirm', identity: { studentId: saved.identity.studentId }, group, hold: { token: saved.token, expiresAt: saved.expiresAt } })
+    if (result.data) rememberMember(verified, result.data)
+    if (result.data?.state === 'booked') {
+      clearVerifiedIdentity()
+      setScreen({ kind: 'booked', booking: result.data.booking, newlyCreated: false })
+    } else if (result.data?.state === 'available') {
+      setGroups(result.data.groups)
+    }
+  }
+
+  // Restore an unexpired hold after a refresh, otherwise the student ID verified earlier in this tab.
+  useEffect(() => {
+    const saved = readSavedHold()
+    if (saved) {
+      const group = initialCatalog.groups.find((g) => g.id === saved.groupId)
+      if (group && saved.expiresAt > Date.now()) {
+        holdTokenRef.current = saved.token
+        /* eslint-disable react-hooks/set-state-in-effect -- sessionStorage is only readable after hydration */
+        setIdentity(readVerifiedIdentity() ?? { studentId: saved.identity.studentId })
+        setIdentityReady(true)
+        setScreen({ kind: 'confirm', identity: { studentId: saved.identity.studentId }, group, hold: { token: saved.token, expiresAt: saved.expiresAt } })
+        return
+      }
+      releasePracticeHold(saved.token)
+      clearSavedHold()
+    }
+    const verified = readVerifiedIdentity()
+    setIdentityReady(true)
+    if (!verified) return
+    setIdentity(verified)
     /* eslint-enable react-hooks/set-state-in-effect */
+    void refreshForIdentity(verified)
     // Mount only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function dropHold() {
+    const token = holdTokenRef.current
+    holdTokenRef.current = null
+    clearSavedHold()
+    if (token) releasePracticeHold(token)
+  }
+
+  async function expireHold() {
+    const identity = screen.kind === 'confirm' ? screen.identity : null
+    dropHold()
+    setError('Your 1-minute hold expired. Please choose your group again.')
+    setScreen({ kind: 'showcase' })
+    if (identity) {
+      const refreshed = await verifyPracticeMember(identity)
+      if (refreshed.data?.state === 'available') setGroups(refreshed.data.groups)
+    }
+  }
 
   // Count down the hold on the confirm step; send the user back when it runs out.
   const confirmExpiresAt = screen.kind === 'confirm' ? screen.hold.expiresAt : null
@@ -189,71 +245,63 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmExpiresAt])
 
-  function dropHold() {
-    const token = holdTokenRef.current
-    holdTokenRef.current = null
-    clearSavedHold()
-    if (token) releasePracticeHold(token)
-  }
-
-  async function expireHold() {
-    const identity = screen.kind === 'confirm' ? screen.identity : null
-    dropHold()
-    clearIdentity()
-    setError('Your 1-minute hold expired. Please choose your group again.')
-    setScreen({ kind: 'showcase' })
-    if (identity) {
-      const refreshed = await verifyPracticeMember(identity)
-      if (refreshed.data?.state === 'available') setGroups(refreshed.data.groups)
-    }
-  }
-
-  function clearIdentity() {
-    setStudentId('')
-  }
-
   function chooseGroup(group: PublicPracticeGroup) {
-    if (!bookingOpen || group.status !== 'open' || group.seats_left < 1) return
+    if (!bookingOpen || group.status !== 'open' || group.seats_left < 1 || submittingRef.current) return
     setError(null)
-    setScreen({ kind: 'verify', group })
+    if (identity) void startBooking(group, { studentId: identity.studentId })
   }
 
-  async function handleVerify(event: React.FormEvent) {
-    event.preventDefault()
-    if (screen.kind !== 'verify' || submittingRef.current) return
+  function handleDialogVerified(verified: VerifiedIdentity, lookup: PracticeLookupResult) {
+    setError(null)
+    if (lookup.state === 'booked') {
+      setScreen({ kind: 'booked', booking: lookup.booking, newlyCreated: false })
+      return
+    }
+    setIdentity(verified)
+    saveVerifiedIdentity(verified)
+    setGroups(lookup.groups)
+  }
+
+  function finishStart() {
+    setBusy(false)
+    setPendingGroupId(null)
+    submittingRef.current = false
+  }
+
+  // Re-checks the roster for fresh seat counts, then holds a seat for the confirm step.
+  async function startBooking(group: PublicPracticeGroup, identity: PracticeIdentityInput) {
+    if (submittingRef.current) return
     submittingRef.current = true
     setBusy(true)
+    setPendingGroupId(group.id)
     setError(null)
-    const identity = { studentId: studentId.trim() }
     const result = await verifyPracticeMember(identity)
     if (result.error || !result.data) {
-      setBusy(false)
-      submittingRef.current = false
+      if (result.status === 400) forgetIdentity()
       setError(result.error ?? 'Practice verification is temporarily unavailable.')
+      finishStart()
       return
     }
-    if (result.data.state === 'booked') {
-      setBusy(false)
-      submittingRef.current = false
-      clearIdentity()
-      setScreen({ kind: 'booked', booking: result.data.booking, newlyCreated: false })
+    const current = result.data
+    if (current.state === 'booked') {
+      clearVerifiedIdentity()
+      setScreen({ kind: 'booked', booking: current.booking, newlyCreated: false })
+      finishStart()
       return
     }
-    setGroups(result.data.groups)
-    const selected = result.data.groups.find((group) => group.id === screen.group.id)
+    setGroups(current.groups)
+    const selected = current.groups.find((candidate) => candidate.id === group.id)
     if (!selected || selected.status !== 'open' || selected.seats_left < 1) {
-      setBusy(false)
-      submittingRef.current = false
       setError('That practice group is no longer available.')
       setScreen({ kind: 'showcase' })
+      finishStart()
       return
     }
     const reserved = await reservePracticeGroup({ ...identity, groupId: selected.id })
     if (!reserved.data) {
       setError(reserved.error ?? 'The seat could not be held.')
-      if (reserved.status === 409) setScreen({ kind: 'showcase' })
-      setBusy(false)
-      submittingRef.current = false
+      setScreen({ kind: 'showcase' })
+      finishStart()
       return
     }
     const expiresAt = Date.now() + HOLD_TTL_MS
@@ -262,13 +310,19 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
       sessionStorage.setItem(HOLD_STORAGE_KEY, JSON.stringify({ token: reserved.data.token, expiresAt, groupId: selected.id, identity } satisfies SavedHold))
     } catch { /* storage unavailable; hold still works without refresh restore */ }
     setHoldRemainingMs(HOLD_TTL_MS)
-    setBusy(false)
-    submittingRef.current = false
+    setConfirmId('')
+    finishStart()
     setScreen({ kind: 'confirm', identity, group: selected, hold: { token: reserved.data.token, expiresAt } })
   }
 
-  async function handleConfirm() {
+  async function handleConfirm(event: React.FormEvent) {
+    event.preventDefault()
     if (screen.kind !== 'confirm' || submittingRef.current) return
+    // Typing the ID again is the student's explicit sign-off on this booking.
+    if (confirmId.trim().toUpperCase() !== screen.identity.studentId.trim().toUpperCase()) {
+      setError('That student ID does not match. Enter the same student ID you verified.')
+      return
+    }
     submittingRef.current = true
     setBusy(true)
     setError(null)
@@ -277,7 +331,7 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
     if (result.data) {
       holdTokenRef.current = null
       clearSavedHold()
-      clearIdentity()
+      clearVerifiedIdentity()
       setScreen({ kind: 'booked', booking: result.data, newlyCreated: true })
       setBusy(false)
       submittingRef.current = false
@@ -287,7 +341,7 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
       dropHold()
       const refreshed = await verifyPracticeMember(identity)
       if (refreshed.data?.state === 'booked') {
-        clearIdentity()
+        clearVerifiedIdentity()
         setScreen({ kind: 'booked', booking: refreshed.data.booking, newlyCreated: false })
       } else if (refreshed.data?.state === 'available') {
         setGroups(refreshed.data.groups)
@@ -309,23 +363,6 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
     )
   }
 
-  if (screen.kind === 'verify') {
-    return (
-      <section className={styles.flowCard}>
-        <button className={styles.backButton} type="button" onClick={() => setScreen({ kind: 'showcase' })}>← Back to performances</button>
-        <div className={styles.flowEyebrow}><ShieldCheck size={15} /> Booking {screen.group.name}</div>
-        <p className={styles.leadLine}>{leadLabel(screen.group.leaders.length)}: <strong>{leadersText(screen.group.leaders.map((leader) => leader.name))}</strong></p>
-        <h2>Verify your details</h2>
-        <p>Enter the student ID on the performance roster.</p>
-        <form className={styles.verifyForm} onSubmit={handleVerify}>
-          <label>Student ID<input value={studentId} onChange={(event) => setStudentId(event.target.value)} required autoComplete="username" /></label>
-          {error && <div className={styles.error} role="alert">{error}</div>}
-          <button className={styles.primaryButton} type="submit" disabled={busy}>{busy ? 'Verifying…' : 'Verify and continue'}</button>
-        </form>
-      </section>
-    )
-  }
-
   if (screen.kind === 'confirm') {
     return (
       <section className={styles.flowCard}>
@@ -337,12 +374,25 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
         </div>
         <p>Your group name: <strong>{screen.group.name}</strong></p>
         <p className={styles.leadLine}>{leadLabel(screen.group.leaders.length)}: <strong>{leadersText(screen.group.leaders.map((leader) => leader.name))}</strong></p>
-        {error && <div className={styles.error} role="alert">{error}</div>}
-        <div className={styles.flowActions}>
-          <button className={styles.secondaryButton} type="button" disabled={busy} onClick={() => { dropHold(); setScreen({ kind: 'verify', group: screen.group }) }}>Back</button>
-          <button className={styles.primaryButton} type="button" disabled={busy} onClick={handleConfirm}>{busy ? 'Booking…' : 'Confirm booking'}</button>
-        </div>
+        <form className={styles.verifyForm} onSubmit={handleConfirm}>
+          <label>Re-enter your student ID to confirm<input value={confirmId} onChange={(event) => { setConfirmId(event.target.value); setError(null) }} required autoFocus autoComplete="off" placeholder="ABC1234567" /></label>
+          {error && <div className={styles.error} role="alert">{error}</div>}
+          <div className={styles.flowActions}>
+            <button className={styles.secondaryButton} type="button" disabled={busy} onClick={() => { dropHold(); setScreen({ kind: 'showcase' }) }}>Back</button>
+            <button className={styles.primaryButton} type="submit" disabled={busy || !confirmId.trim()}>{busy ? 'Booking…' : 'Confirm booking'}</button>
+          </div>
+        </form>
       </section>
+    )
+  }
+
+  // The group list is only shown after a student confirms their roster entry in this tab.
+  if (!identityReady) return <div className={styles.showcase} aria-busy="true" />
+  if (!identity) {
+    return (
+      <div className={styles.showcase}>
+        <StudentIdDialog onClose={() => window.location.assign('/')} onVerified={handleDialogVerified} />
+      </div>
     )
   }
 
@@ -358,6 +408,13 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
         </div>
       </section>}
 
+      <div className={styles.identityBar}>
+        <span>
+          <ShieldCheck size={16} /> Verified as <strong>{identity.member?.name ?? identity.studentId.toUpperCase()}</strong>
+          {identity.member && <small>{identity.member.student_id} · {identity.member.position_label}</small>}
+        </span>
+        <button className={styles.backButton} type="button" disabled={busy} onClick={forgetIdentity}>Not you? Change</button>
+      </div>
       {error && <div className={styles.error} role="alert">{error}</div>}
       {groups.length === 0 ? <div className={styles.emptyState}>Performance groups will appear here once the committee publishes them.</div> : (
         <div className={styles.groupGrid}>
@@ -383,11 +440,11 @@ export function PracticeClient({ initialCatalog = emptyCatalog }: { initialCatal
                   <button
                     className={styles.primaryButton}
                     type="button"
-                    disabled={!available}
+                    disabled={!available || busy}
                     aria-label={available ? `Choose ${group.name}` : undefined}
                     onClick={() => chooseGroup(group)}
                   >
-                    {!bookingOpen ? 'Available when booking opens' : group.status === 'closed' ? 'Not available' : group.seats_left < 1 ? 'Full' : 'Choose this group'}
+                    {!bookingOpen ? 'Available when booking opens' : group.status === 'closed' ? 'Not available' : group.seats_left < 1 ? 'Full' : pendingGroupId === group.id ? 'Holding seat…' : 'Choose this group'}
                   </button>
                 </footer>
               </article>

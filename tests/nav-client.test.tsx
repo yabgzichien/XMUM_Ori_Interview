@@ -3,8 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { NavClient } from '@/app/NavClient'
 
+const navigation = vi.hoisted(() => ({ pathname: '/practice' }))
+
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => navigation.pathname,
 }))
 
 vi.mock('next/link', () => ({
@@ -14,7 +16,16 @@ vi.mock('next/link', () => ({
 }))
 
 describe('NavClient', () => {
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    navigation.pathname = '/practice'
+  })
+
+  it('leaves the home page to draw its own bar for signed-out visitors', () => {
+    navigation.pathname = '/'
+    const { container } = render(<NavClient profile={null} />)
+    expect(container.querySelector('header')).toBeNull()
+  })
 
   it('surfaces Performance Practice in both navigation menus for committee members', () => {
     render(<NavClient profile={{ role: 'committee', name: 'Aisyah' }} />)

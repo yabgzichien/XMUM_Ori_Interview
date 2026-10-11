@@ -46,6 +46,7 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
     const practiceHref = profile.role === 'admin' ? '/admin/practice' : '/practice'
     const practiceLabel = profile.role === 'admin' ? 'Performance Practice Management' : 'Performance Practice'
     const isPracticeActive = pathname.startsWith(practiceHref)
+    const isCommitteeActive = pathname === '/admin'
     return (
       <header style={{ background: '#063A65', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: 'none', boxShadow: 'none', position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="nav-container">
@@ -60,15 +61,14 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
                 {practiceLabel}
               </Link>
               {profile.role === 'admin' && (
-                <Link href="/admin/logs" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/admin/logs') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/admin/logs') ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
-                  Activity Log
+                <Link href="/admin" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: isCommitteeActive ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: isCommitteeActive ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
+                  CMT &amp; FACI/GM Namelist
                 </Link>
               )}
               {profile.role === 'admin' && (
-                /* Committee tab temporarily disabled — not clickable */
-                <span aria-disabled="true" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', color: 'var(--text-muted, #94A3B8)', opacity: 0.5, cursor: 'not-allowed' }}>
-                  Committee
-                </span>
+                <Link href="/admin/logs" style={{ padding: '8px 13px', borderRadius: '9px', fontWeight: 600, fontSize: '14px', background: pathname.startsWith('/admin/logs') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/admin/logs') ? 'var(--accent-text, #2563EB)' : 'var(--text-muted, #64748B)' }}>
+                  Activity Log
+                </Link>
               )}
             </nav>
           </div>
@@ -125,15 +125,14 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
             🎭 {practiceLabel}
           </Link>
           {profile.role === 'admin' && (
-            <Link href="/admin/logs" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/admin/logs') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/admin/logs') ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
-              🧾 Activity Log
+            <Link href="/admin" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: isCommitteeActive ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: isCommitteeActive ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
+              👥 CMT &amp; FACI/GM Namelist
             </Link>
           )}
           {profile.role === 'admin' && (
-            /* Committee tab temporarily disabled — not clickable */
-            <span aria-disabled="true" style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', color: 'var(--text-muted, #94A3B8)', opacity: 0.5, cursor: 'not-allowed', display: 'block' }}>
-              👥 Committee
-            </span>
+            <Link href="/admin/logs" onClick={() => setMobileOpen(false)} style={{ padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', background: pathname.startsWith('/admin/logs') ? 'var(--accent-subtle, #EFF4FF)' : 'transparent', color: pathname.startsWith('/admin/logs') ? 'var(--accent-text, #2563EB)' : 'var(--text-secondary, #334155)' }}>
+              🧾 Activity Log
+            </Link>
           )}
           <Link href="/profile" onClick={() => setMobileOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1px solid var(--border-card, #EAEEF4)', marginTop: '4px', paddingTop: '10px', padding: '10px 12px 4px', color: 'inherit', textDecoration: 'none' }}>
             {profile.avatar_url ? (
@@ -163,6 +162,9 @@ export function NavClient({ profile }: { profile: NavProfile | null }) {
       </header>
     )
   }
+
+  // The home page draws its own slim bar over the hero photos.
+  if (pathname === '/') return null
 
   const guestLink: React.CSSProperties = { padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)', color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }
   const guestMobileLink: React.CSSProperties = { padding: '10px 12px', borderRadius: '9px', fontWeight: 600, fontSize: '14.5px', color: 'var(--text-secondary, #334155)' }
