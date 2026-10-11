@@ -109,3 +109,21 @@
 .holdTimer { position: absolute; top: 20px; right: 22px; display: inline-flex; align-items: center; gap: 6px; color: #ef4444; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .leadLine { margin: 0 0 10px; color: var(--text-muted, #64748b); font-size: 14px; }
 .leadLine strong { color: var(--text-primary, inherit); }
+
+.dialogBackdrop { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; background: rgba(2, 6, 23, .62); backdrop-filter: blur(4px); }
+.dialogPanel { position: relative; width: min(100%, 440px); box-sizing: border-box; padding: 26px; border: 1px solid var(--border-card, #e2e8f0); border-radius: 20px; background: var(--bg-card, #fff); color: var(--text-primary, #0f172a); box-shadow: 0 24px 60px rgba(2, 6, 23, .35); text-align: left; }
+.dialogPanel h2 { margin: 10px 0 6px; font-size: 24px; letter-spacing: -.02em; }
+.dialogPanel .flowEyebrow { margin-top: 0; }
+.dialogText { margin: 0; color: var(--text-muted, #64748b); line-height: 1.55; }
+.dialogClose { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--text-muted, #64748b); cursor: pointer; }
+.dialogClose:hover:not(:disabled) { background: var(--bg-card-subtle, #f1f5f9); }
+.identityBar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border: 1px solid var(--border-card, #e2e8f0); border-radius: 14px; background: var(--bg-card, #fff); color: var(--text-secondary, #334155); font-size: 14px; }
+.identityBar span { display: inline-flex; align-items: center; gap: 7px; }
+.dialogBackdrop,
+.flowCard,
+.bookingCard { --stage-cyan: #22d3ee; --stage-blue: #2563eb; --stage-violet: #8b5cf6; }
+.memberSummary { display: grid; gap: 1px; margin: 18px 0 0; overflow: hidden; border: 1px solid var(--border-card, #e2e8f0); border-radius: 12px; background: var(--border-card, #e2e8f0); }
+.memberSummary div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 14px; background: var(--bg-card-subtle, #f8fafc); }
+.memberSummary dt { color: var(--text-muted, #64748b); font-size: 13px; font-weight: 750; }
+.memberSummary dd { margin: 0; color: var(--text-primary, #0f172a); font-weight: 800; text-align: right; overflow-wrap: anywhere; }
+.identityBar small { margin-left: 4px; color: var(--text-muted, #64748b); font-size: 12px; }

@@ -39,8 +39,20 @@ function fillIdentity() {
   fireEvent.change(screen.getByLabelText(/student id/i), { target: { value: identity.studentId } })
 }
 
-function beginVerification() {
-  fireEvent.click(screen.getByRole('button', { name: /choose group a/i }))
+const member = { name: 'Alice Tan', student_id: 'DSC2344112', position_label: 'Facilitator' }
+
+async function verifyIdentity() {
+  fillIdentity()
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: /^verify$/i })))
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: /yes, continue/i })))
+}
+
+function reenterIdentity(value = identity.studentId) {
+  fireEvent.change(screen.getByLabelText(/re-enter your student id/i), { target: { value } })
+}
+
+async function beginVerification() {
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: /choose group a/i })))
 }
 
 describe('account-free practice booking', () => {
@@ -62,20 +74,63 @@ describe('account-free practice booking', () => {
     expect(headingContainer?.style.maxWidth).toBe('760px')
   })
 
-  it('shows groups before verification and asks for identity only after a group is chosen', async () => {
+  it('asks for the student ID and a name check before showing any group', async () => {
+    vi.mocked(publicPractice.verifyPracticeMember).mockResolvedValue({
+      data: { state: 'available', groups: [groupA()], member },
+      error: null,
+      status: 200,
+    })
+    render(<PracticeClient initialCatalog={openCatalog} />)
+    expect(screen.queryByText('Group A')).toBeNull()
+    expect(screen.getByText('Enter the student ID')).toBeDefined()
+    expect(screen.getByLabelText(/student id/i).getAttribute('placeholder')).toBe('ABC1234567')
+    expect(screen.queryByText(/just browse/i)).toBeNull()
+
+    fillIdentity()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /^verify$/i })))
+    expect(screen.getByRole('heading', { name: /is this you/i })).toBeDefined()
+    expect(screen.getByText('Alice Tan')).toBeDefined()
+    expect(screen.getByText('DSC2344112')).toBeDefined()
+    expect(screen.getByText('Facilitator')).toBeDefined()
+    expect(screen.queryByText('Group A')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /no, re-enter/i }))
+    expect(screen.getByLabelText(/student id/i)).toBeDefined()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /^verify$/i })))
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /yes, continue/i })))
+    expect(screen.getByText('Group A')).toBeDefined()
+    expect(JSON.parse(sessionStorage.getItem('xmumori-practice-identity')!)).toEqual({ ...identity, member })
+
+    await beginVerification()
+    expect(screen.queryByLabelText(/^student id$/i)).toBeNull()
+    expect(await screen.findByRole('heading', { name: /confirm your group/i })).toBeDefined()
+  })
+
+  it('skips the student ID prompt when this tab already verified one', async () => {
+    sessionStorage.setItem('xmumori-practice-identity', JSON.stringify(identity))
     vi.mocked(publicPractice.verifyPracticeMember).mockResolvedValue({
       data: { state: 'available', groups: [groupA()] },
       error: null,
       status: 200,
     })
     render(<PracticeClient initialCatalog={openCatalog} />)
-    expect(screen.getByText('Group A')).toBeDefined()
-    expect(screen.queryByLabelText(/student id/i)).toBeNull()
-    beginVerification()
-    expect(screen.queryByLabelText(/email/i)).toBeNull()
-    fillIdentity()
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
+    expect(await screen.findByText(/verified as/i)).toBeDefined()
+    await beginVerification()
+    expect(screen.queryByLabelText(/^student id$/i)).toBeNull()
     expect(await screen.findByRole('heading', { name: /confirm your group/i })).toBeDefined()
+    expect(publicPractice.reservePracticeGroup).toHaveBeenCalledWith({ ...identity, groupId: 'group-1' })
+  })
+
+  it('forgets a stored student ID that no longer verifies', async () => {
+    sessionStorage.setItem('xmumori-practice-identity', JSON.stringify(identity))
+    vi.mocked(publicPractice.verifyPracticeMember).mockResolvedValue({
+      data: null,
+      error: 'Student ID could not be verified.',
+      status: 400,
+    })
+    render(<PracticeClient initialCatalog={openCatalog} />)
+    await waitFor(() => expect(sessionStorage.getItem('xmumori-practice-identity')).toBeNull())
+    expect(screen.queryByText(/verified as/i)).toBeNull()
   })
 
   it('shows the generic verification message without revealing roster membership', async () => {
@@ -85,10 +140,10 @@ describe('account-free practice booking', () => {
       status: 400,
     })
     render(<PracticeClient initialCatalog={openCatalog} />)
-    beginVerification()
     fillIdentity()
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /^verify$/i })))
     expect(screen.getByRole('alert').textContent).toContain('could not be verified')
+    expect(screen.queryByText('Group A')).toBeNull()
   })
 
   it('requires confirmation, books once, and does not persist credentials', async () => {
@@ -103,11 +158,11 @@ describe('account-free practice booking', () => {
       status: 200,
     })
     render(<PracticeClient initialCatalog={openCatalog} />)
-    beginVerification()
-    fillIdentity()
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
+    await verifyIdentity()
+    await beginVerification()
     expect(screen.getByRole('heading', { name: /confirm your group/i })).toBeDefined()
     expect(publicPractice.bookPracticeGroup).not.toHaveBeenCalled()
+    reenterIdentity()
     await act(async () => fireEvent.click(screen.getByRole('button', { name: /^confirm booking$/i })))
     expect(await screen.findByText(/booking confirmed/i)).toBeDefined()
     expect(publicPractice.bookPracticeGroup).toHaveBeenCalledWith({ ...identity, groupId: 'group-1', holdToken: 'hold-token' })
@@ -124,6 +179,11 @@ describe('account-free practice booking', () => {
         status: 200,
       })
       .mockResolvedValueOnce({
+        data: { state: 'available', groups: [groupA(1)] },
+        error: null,
+        status: 200,
+      })
+      .mockResolvedValueOnce({
         data: { state: 'available', groups: [groupA(0)] },
         error: null,
         status: 200,
@@ -134,9 +194,9 @@ describe('account-free practice booking', () => {
       status: 409,
     })
     render(<PracticeClient initialCatalog={{ ...openCatalog, groups: [groupA(1)] }} />)
-    beginVerification()
-    fillIdentity()
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
+    await verifyIdentity()
+    await beginVerification()
+    reenterIdentity()
     await act(async () => fireEvent.click(screen.getByRole('button', { name: /^confirm booking$/i })))
     expect(screen.getByRole('alert').textContent).toContain('full')
     expect(screen.getByText('0 Committee spaces')).toBeDefined()
@@ -164,13 +224,39 @@ describe('account-free practice booking', () => {
       status: 200,
     })
     render(<PracticeClient initialCatalog={openCatalog} />)
-    beginVerification()
-    fillIdentity()
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
+    await verifyIdentity()
     expect(await screen.findByRole('heading', { name: 'Group A' })).toBeDefined()
     expect(screen.getByText(/performance lead/i)).toBeDefined()
     expect(screen.queryByText('D5-101')).toBeNull()
     expect(screen.queryByRole('button', { name: /move|cancel|leave/i })).toBeNull()
+  })
+
+  it('only books after the same student ID is typed again on the confirm step', async () => {
+    vi.mocked(publicPractice.verifyPracticeMember).mockResolvedValue({
+      data: { state: 'available', groups: [groupA()] },
+      error: null,
+      status: 200,
+    })
+    vi.mocked(publicPractice.bookPracticeGroup).mockResolvedValue({
+      data: { id: 'booking-1', group_id: 'group-1', group_name: 'Group A', sessions: [] },
+      error: null,
+      status: 200,
+    })
+    render(<PracticeClient initialCatalog={openCatalog} />)
+    await verifyIdentity()
+    await beginVerification()
+    const confirm = screen.getByRole('button', { name: /^confirm booking$/i }) as HTMLButtonElement
+    expect(confirm.disabled).toBe(true)
+
+    reenterIdentity('DSC0000000')
+    await act(async () => fireEvent.click(confirm))
+    expect(screen.getByRole('alert').textContent).toContain('does not match')
+    expect(publicPractice.bookPracticeGroup).not.toHaveBeenCalled()
+
+    reenterIdentity(' dsc2344112 ')
+    await act(async () => fireEvent.click(confirm))
+    expect(await screen.findByText(/booking confirmed/i)).toBeDefined()
+    expect(publicPractice.bookPracticeGroup).toHaveBeenCalledTimes(1)
   })
 
   it('prevents duplicate confirmation while the booking request is pending', async () => {
@@ -184,9 +270,9 @@ describe('account-free practice booking', () => {
       resolveBooking = resolve
     }))
     render(<PracticeClient initialCatalog={{ ...openCatalog, groups: [groupA(1)] }} />)
-    beginVerification()
-    fillIdentity()
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
+    await verifyIdentity()
+    await beginVerification()
+    reenterIdentity()
     const confirm = screen.getByRole('button', { name: /^confirm booking$/i })
     fireEvent.click(confirm)
     fireEvent.click(confirm)
@@ -207,9 +293,8 @@ describe('account-free practice booking', () => {
         status: 200,
       })
       render(<PracticeClient initialCatalog={openCatalog} />)
-      beginVerification()
-      fillIdentity()
-      await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
+      await verifyIdentity()
+      await beginVerification()
       expect(await screen.findByRole('heading', { name: /confirm your group/i })).toBeDefined()
     }
 
@@ -245,9 +330,8 @@ describe('account-free practice booking', () => {
         data: { state: 'available', groups: [groupA()] }, error: null, status: 200,
       })
       render(<PracticeClient initialCatalog={openCatalog} />)
-      beginVerification()
-      fillIdentity()
-      await act(async () => fireEvent.click(screen.getByRole('button', { name: /verify/i })))
+      await verifyIdentity()
+      await beginVerification()
       expect(await screen.findByText(/group is full/i)).toBeDefined()
       expect(screen.queryByRole('heading', { name: /confirm your group/i })).toBeNull()
     })

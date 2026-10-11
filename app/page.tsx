@@ -1,6 +1,6 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/auth'
+import { PracticeEntryButton } from './PracticeEntryButton'
 
 export default async function Home() {
   const profile = await getCurrentProfile()
@@ -72,20 +72,7 @@ export default async function Home() {
               PRIMARY CTA
               ================================================= */}
 
-          <Link
-            href="/practice"
-            className="book-button"
-          >
-
-            <span>
-              Book Performance Group
-            </span>
-
-            <span className="book-arrow">
-              →
-            </span>
-
-          </Link>
+          <PracticeEntryButton />
 
 
           {/* Check-booking bar hidden (interview booking disabled on home). */}
@@ -718,6 +705,16 @@ export default async function Home() {
               rgba(32,191,255,0.38);
           }
 
+        }
+
+
+        button.book-button {
+
+          border: 0;
+
+          cursor: pointer;
+
+          font-family: inherit;
         }
 
 

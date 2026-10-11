@@ -10,6 +10,7 @@ import type {
   PracticeHold,
   PracticeIdentityInput,
   PracticeLookupResult,
+  PracticeMemberSummary,
 } from '@/lib/practice-types'
 
 export type PracticeServiceError =
@@ -54,6 +55,19 @@ async function leaderNamesFor(database: ReturnType<typeof createAdminClient>, gr
   return (leaders ?? []).map((leader: { name: string }) => leader.name)
 }
 
+async function memberSummaryFor(database: ReturnType<typeof createAdminClient>, studentId: string): Promise<PracticeMemberSummary | null> {
+  const { data } = await database
+    .from('committee_roster')
+    .select('name, student_id, position, committee_positions(label)')
+    .eq('student_id', studentId)
+    .eq('active', true)
+    .maybeSingle()
+  if (!data) return null
+  const row = data as unknown as { name: string; student_id: string; position: string; committee_positions: { label: string } | { label: string }[] | null }
+  const title = Array.isArray(row.committee_positions) ? row.committee_positions[0] : row.committee_positions
+  return { name: row.name, student_id: row.student_id, position_label: title?.label ?? row.position }
+}
+
 export async function getPracticeCatalog(): Promise<ServiceResult<PracticeCatalog>> {
   const database = createAdminClient()
   const { data, error } = await database.rpc('public_practice_catalog')
@@ -79,7 +93,8 @@ export async function lookupPractice(
   if (lookup.state === 'booked') {
     lookup.booking = { ...lookup.booking, leader_names: await leaderNamesFor(database, lookup.booking.group_id) }
   }
-  return { data: lookup, error: null }
+  const member = await memberSummaryFor(database, identity.studentId)
+  return { data: member ? { ...lookup, member } : lookup, error: null }
 }
 
 export async function createPracticeBooking(
