@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer'
 import { formatDateHeading, formatTimeRange, toLocalDateIso } from './booking-helpers'
 import { errorMessage } from './utils'
 import { positionLabel } from './practice'
+import { trackLabel } from './tracks'
 
 type BookingDetails = {
   id: string
@@ -14,12 +15,6 @@ type BookingDetails = {
   venue?: string
 }
 
-function formatTrack(track: string | undefined | null): string {
-  if (!track) return '-'
-  if (track === 'game_master') return 'Game Master'
-  if (track === 'facilitator') return 'Facilitator'
-  return track.charAt(0).toUpperCase() + track.slice(1)
-}
 
 let cachedTransporter: nodemailer.Transporter | null = null
 let cachedTransporterKey = ''
@@ -86,7 +81,7 @@ async function getTransporter(): Promise<{
 export function buildBookingConfirmationHtml(details: BookingDetails): string {
   const dateStr = formatDateHeading(toLocalDateIso(details.starts_at))
   const timeStr = formatTimeRange(details.starts_at, details.ends_at)
-  const trackStr = formatTrack(details.track)
+  const trackStr = trackLabel(details.track)
 
   return `
 <!DOCTYPE html>
@@ -180,7 +175,7 @@ export async function sendBookingConfirmation(
   if (!transporter) {
     return { success: false, error: error || 'Email service unavailable.' }
   }
-  const trackStr = formatTrack(details.track)
+  const trackStr = trackLabel(details.track)
 
   try {
     const info = await transporter.sendMail({
@@ -242,7 +237,7 @@ export async function sendWelcomeEmail(
     return { success: false, error: error || 'Email service unavailable.' }
   }
 
-  const trackStr = formatTrack(details.track)
+  const trackStr = trackLabel(details.track)
 
   const rawSubject = details.customSubject || `[XMUM Orientation] Welcome to the Committee! - {track}`
   const subject = rawSubject
@@ -437,7 +432,7 @@ export async function sendCancellationRequestToAdmin(details: {
   const to = process.env.SMTP_USER || 'xmumorientation@gmail.com'
   const dateStr = formatDateHeading(toLocalDateIso(details.starts_at))
   const timeStr = formatTimeRange(details.starts_at, details.ends_at)
-  const trackStr = formatTrack(details.track)
+  const trackStr = trackLabel(details.track)
   const reasonText = details.reason?.trim() || 'No reason provided.'
 
   try {

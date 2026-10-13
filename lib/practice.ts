@@ -5,7 +5,8 @@
 
 import { createClient } from '@/lib/supabase/client'
 
-export type Track = 'facilitator' | 'game_master'
+export type { Track } from '@/lib/tracks'
+import type { Track } from '@/lib/tracks'
 export type Orientation = 'february' | 'april' | 'december'
 export type GroupStatus = 'open' | 'closed'
 

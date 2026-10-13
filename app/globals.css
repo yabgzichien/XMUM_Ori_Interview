@@ -129,6 +129,9 @@
   --badge-gm-bg: #F3F0FF;
   --badge-gm-text: #7C3AED;
   --badge-gm-border: #DDD6FE;
+  --badge-action-bg: #FFF7ED;
+  --badge-action-text: #C2410C;
+  --badge-action-border: #FED7AA;
 
   /* Action & Selection Buttons */
   --btn-active-bg: #EFF4FF;
@@ -220,6 +223,9 @@
   --badge-gm-bg: rgba(139, 92, 246, 0.2);
   --badge-gm-text: #C084FC;
   --badge-gm-border: rgba(192, 132, 252, 0.3);
+  --badge-action-bg: rgba(234, 88, 12, 0.2);
+  --badge-action-text: #FB923C;
+  --badge-action-border: rgba(251, 146, 60, 0.3);
 
   /* Action & Selection Buttons */
   --btn-active-bg: rgba(37, 99, 235, 0.25);
@@ -847,8 +853,11 @@ html.dark body {
   color: var(--text-primary) !important;
 }
 
+/* html.dark sets color-scheme: dark, so the browser already draws a light
+   picker icon. An extra invert() flipped it back to dark-on-dark. */
 .dark input::-webkit-calendar-picker-indicator {
-  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.9;
 }
 
 /* ─── Default Headings in Dark Mode ─── */

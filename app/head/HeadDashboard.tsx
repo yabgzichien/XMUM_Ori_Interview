@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BulkCreateForm } from '@/app/head/BulkCreateForm'
 import { SlotsTable } from '@/app/head/SlotsTable'
 import { BookingsTable } from '@/app/head/BookingsTable'
+import { BookingWindowPanel } from '@/app/head/BookingWindowPanel'
+import type { BookingWindow } from '@/lib/booking-window'
 import { getHeadSlots, getHeadBookings, type HeadBooking, type HeadSlot, type Track, type Orientation } from '@/lib/head'
 
 type Props = {
@@ -14,6 +16,7 @@ type Props = {
   isAdmin: boolean
   initialSlots?: HeadSlot[]
   initialBookings?: HeadBooking[]
+  initialWindow?: BookingWindow | null
 }
 
 export function HeadDashboard({
@@ -21,8 +24,10 @@ export function HeadDashboard({
   orientation,
   orientationYear = 2026,
   profileId,
+  isAdmin,
   initialSlots = [],
   initialBookings = [],
+  initialWindow = null,
 }: Props) {
   const [slots, setSlots] = useState<HeadSlot[]>(initialSlots)
   const [slotsLoading, setSlotsLoading] = useState(false)
@@ -104,6 +109,18 @@ export function HeadDashboard({
 
   return (
     <>
+      {isAdmin && (
+        <div style={{ marginBottom: '20px' }}>
+          <BookingWindowPanel
+            key={`${track}-${orientation}-${orientationYear}`}
+            track={track}
+            orientation={orientation}
+            orientationYear={orientationYear}
+            initialWindow={initialWindow}
+          />
+        </div>
+      )}
+
       <div style={{ marginBottom: '20px' }}>
         <BulkCreateForm track={track} orientation={orientation} orientationYear={orientationYear} profileId={profileId} existingSlots={slots} onCreated={refreshSlots} />
       </div>
@@ -168,7 +185,7 @@ export function HeadDashboard({
             <SlotsTable slots={slots} loading={slotsLoading} error={slotsError} onChanged={refreshSlots} />
           )}
           {activeTab === 'bookings' && (
-            <BookingsTable bookings={bookings} loading={bookingsLoading} error={bookingsError} track={track} orientation={orientation} orientationYear={orientationYear} onChanged={refreshBookings} />
+            <BookingsTable isAdmin={isAdmin} bookings={bookings} loading={bookingsLoading} error={bookingsError} track={track} orientation={orientation} orientationYear={orientationYear} onChanged={refreshBookings} />
           )}
         </div>
       </div>

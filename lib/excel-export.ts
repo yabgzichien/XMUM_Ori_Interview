@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import type { HeadBooking, HeadSlot, Orientation, Track } from '@/lib/head'
+import { TRACK_LABELS } from '@/lib/tracks'
 
 export type ExportExcelOptions = {
   track: Track
@@ -109,7 +110,7 @@ export function generateExportFilename({
   timestampDate?: Date
   timeZone?: string
 }): string {
-  const trackLabel = track === 'game_master' ? 'GM' : 'Facilitator'
+  const trackLabel = track === 'game_master' ? 'GM' : TRACK_LABELS[track]
   const timestamp = formatExportTimestamp(timestampDate, timeZone)
   const orientationLabel = orientation.charAt(0).toUpperCase() + orientation.slice(1)
 

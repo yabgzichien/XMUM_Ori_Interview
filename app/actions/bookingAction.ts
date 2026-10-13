@@ -3,21 +3,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { sendBookingConfirmation } from '@/lib/email'
 import type { PublicBookingInput, PublicBooking } from '@/lib/bookings'
-import { isTrackClosed } from '@/lib/deadlines'
 
+// The booking window lives in track_settings; confirm_reservation refuses
+// bookings outside it, so there is no separate deadline check here.
 export async function confirmReservationAction(
   token: string,
   input: PublicBookingInput
 ): Promise<{ data: PublicBooking | null; error: string | null }> {
-  if (input.track && isTrackClosed(input.track)) {
-    return {
-      data: null,
-      error: input.track === 'game_master'
-        ? 'Game Master interview registration closed at 12:00 PM.'
-        : 'Interview registration has closed for this position.',
-    }
-  }
-
   const email = input.email?.trim() || ''
   if (!/^[^\s@]+@xmu\.edu\.my$/i.test(email)) {
     return { data: null, error: 'Only @xmu.edu.my email addresses are accepted.' }

@@ -58,8 +58,7 @@ export default async function Home() {
           <h1 className="hero-title">
 
             <span className="hero-title-white">
-                <span className="nowrap">Facilitator &</span>{' '}
-                <span className="nowrap">Game Master</span>
+                <span className="nowrap">Action Team</span>
             </span>
 
             <span className="hero-title-gradient">
@@ -212,7 +211,7 @@ export default async function Home() {
           z-index: 0;
 
           background-image:
-            url('/campus-bg.jpg');
+            url('/action-team-bg.jpg');
 
           background-size: cover;
 

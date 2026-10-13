@@ -7,23 +7,22 @@ import { confirmReservationAction } from '@/app/actions/bookingAction'
 import { formatCountdown, formatDateHeading, formatTimeRange, toLocalDateIso, type AvailableSlot } from '@/lib/booking-helpers'
 import {
   DEFAULT_ORIENTATION,
+  DEFAULT_ORIENTATION_YEAR,
   Orientation,
   isOrientation,
+  orientationLabel,
 } from '@/lib/orientation'
 import Link from 'next/link'
-import { TRACK_DEADLINES, isTrackClosed } from '@/lib/deadlines'
+import { BOOKABLE_TRACK, TRACK_ICONS, TRACK_LABELS } from '@/lib/tracks'
+import { formatWindowTime, isWindowClosed, type BookingWindow } from '@/lib/booking-window'
 
 const HOLD_STORAGE_KEY = 'xmumori-book-hold'
 const HOLD_TTL_MS = 10 * 60 * 1000
 
-const TRACKS: { key: Track; title: string; icon: string }[] = [
-  { key: 'facilitator', title: 'Facilitator', icon: '🎯' },
-  { key: 'game_master', title: 'Game Master', icon: '🎮' },
-]
-
-function isTrack(value: string | null): value is Track {
-  return value === 'facilitator' || value === 'game_master'
-}
+const track: Track = BOOKABLE_TRACK
+const TRACK_TITLE = TRACK_LABELS[BOOKABLE_TRACK]
+const TRACK_ICON = TRACK_ICONS[BOOKABLE_TRACK]
+const CLOSED_MESSAGE = `${TRACK_TITLE} interview registration is closed.`
 
 function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
@@ -82,44 +81,34 @@ function FieldError({ message }: { message: string }) {
 }
 
 type BookClientProps = {
-  initialSlotsByTrack?: Record<Track, AvailableSlot[]>
+  initialSlots?: AvailableSlot[]
   initialOrientation?: Orientation
-  initialTrack?: Track
+  // From track_settings via the booking_window RPC; null means no row (closed).
+  bookingWindow?: BookingWindow | null
   serverTime?: number
 }
 
 export function BookClient({
-  initialSlotsByTrack,
+  initialSlots,
   initialOrientation,
-  initialTrack,
+  bookingWindow = null,
   serverTime,
 }: BookClientProps = {}) {
   const searchParams = useSearchParams()
   const [now, setNow] = useState<number>(() => serverTime ?? Date.now())
 
-  const isGmClosed = isTrackClosed('game_master', now)
-  const isFaciClosed = isTrackClosed('facilitator', now)
-  const allTracksClosed = isGmClosed && isFaciClosed
-
-  const initTrack: Track = initialTrack ?? (isTrack(searchParams.get('track')) ? (searchParams.get('track') as Track) : 'facilitator')
+  const isClosedAt = (ms: number) => isWindowClosed(bookingWindow, ms)
+  const closed = isClosedAt(now)
 
   const initOrientation: Orientation = initialOrientation ?? (isOrientation(searchParams.get('orientation'))
     ? (searchParams.get('orientation') as Orientation)
     : DEFAULT_ORIENTATION)
 
-  const [orientation, setOrientation] = useState<Orientation>(initOrientation)
-  const [track, setTrack] = useState<Track>(initTrack)
+  const [orientation] = useState<Orientation>(initOrientation)
   const [step, setStep] = useState(1)
 
-  // Both tracks are loaded together so each tab can show a truthful count
-  // before you click it.
-  const [slotsByTrack, setSlotsByTrack] = useState<Record<Track, AvailableSlot[]>>(
-    initialSlotsByTrack ?? {
-      facilitator: [],
-      game_master: [],
-    }
-  )
-  const [loading, setLoading] = useState(!initialSlotsByTrack)
+  const [slots, setSlots] = useState<AvailableSlot[]>(initialSlots ?? [])
+  const [loading, setLoading] = useState(!initialSlots)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -148,8 +137,6 @@ export function BookClient({
     stepRef.current = step
   }, [step])
 
-  const slots = slotsByTrack[track]
-
   const [reloadToken, setReloadToken] = useState(0)
   const loadSlots = useCallback(() => setReloadToken((n) => n + 1), [])
 
@@ -171,7 +158,8 @@ export function BookClient({
         track: Track
         orientation: Orientation
       }
-      if (saved.expiresAt <= Date.now()) {
+      if (saved.expiresAt <= Date.now() || saved.track !== track) {
+        if (saved.track !== track) releaseHold(saved.token)
         sessionStorage.removeItem(HOLD_STORAGE_KEY)
         if (typeof window !== 'undefined' && !window.history.state?.bookStep) {
           window.history.replaceState({ bookStep: 1 }, '')
@@ -195,7 +183,6 @@ export function BookClient({
       holdTokenRef.current = saved.token
       setHoldToken(saved.token)
       setHoldExpiresAt(saved.expiresAt)
-      setTrack(saved.track)
       setSelectedId(saved.slotId)
       setStep(3)
       if (typeof window !== 'undefined') {
@@ -283,8 +270,7 @@ export function BookClient({
       step === 3 &&
       !loading &&
       selectedId &&
-      !slotsByTrack.facilitator.some((s) => s.id === selectedId) &&
-      !slotsByTrack.game_master.some((s) => s.id === selectedId)
+      !slots.some((s) => s.id === selectedId)
     ) {
       const token = holdTokenRef.current || holdToken
       if (token) releaseHold(token)
@@ -292,7 +278,7 @@ export function BookClient({
       setStep(2)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, loading, slotsByTrack, selectedId, holdToken])
+  }, [step, loading, slots, selectedId, holdToken])
 
   const holdExpired = remainingMs !== null && remainingMs <= 0
   const holdLocked = holdExpired || holdDead
@@ -309,7 +295,7 @@ export function BookClient({
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
-      if (initialSlotsByTrack && (initialSlotsByTrack.facilitator.length > 0 || initialSlotsByTrack.game_master.length > 0)) {
+      if (initialSlots && initialSlots.length > 0) {
         return
       }
     }
@@ -318,18 +304,12 @@ export function BookClient({
 
     async function run() {
       setLoading(true)
-      const [fac, gm] = await Promise.all([
-        getAvailableSlots('facilitator', orientation),
-        getAvailableSlots('game_master', orientation),
-      ])
+      const { data, error } = await getAvailableSlots(track, orientation)
       if (!active) return
-      setSlotsByTrack({ facilitator: fac.data ?? [], game_master: gm.data ?? [] })
-      setLoadError(fac.error?.message ?? gm.error?.message ?? null)
-      setSelectedId((prev) => {
-        if (!prev) return null
-        const allSlots = [...(fac.data ?? []), ...(gm.data ?? [])]
-        return allSlots.some((s) => s.id === prev) ? prev : null
-      })
+      const fresh = data ?? []
+      setSlots(fresh)
+      setLoadError(error?.message ?? null)
+      setSelectedId((prev) => (prev && fresh.some((s) => s.id === prev) ? prev : null))
       setLoading(false)
     }
 
@@ -392,13 +372,9 @@ export function BookClient({
     if (formInvalid) return
 
     const currentNow = Date.now()
-    if (isTrackClosed(track, currentNow)) {
+    if (isClosedAt(currentNow)) {
       setNow(currentNow)
-      setSubmitError(
-        track === 'game_master'
-          ? 'Game Master interview registration closed at 12:00 PM.'
-          : 'Interview registration has closed for this position.'
-      )
+      setSubmitError(CLOSED_MESSAGE)
       return
     }
 
@@ -464,7 +440,7 @@ export function BookClient({
 
   function proceedToStep2() {
     const currentNow = Date.now()
-    if (isTrackClosed(track, currentNow)) {
+    if (isClosedAt(currentNow)) {
       setNow(currentNow)
       return
     }
@@ -503,7 +479,7 @@ export function BookClient({
   async function handleStepClick(targetStep: number) {
     if (targetStep === step) return
     const currentNow = Date.now()
-    if ((targetStep === 2 || targetStep === 3) && isTrackClosed(track, currentNow)) {
+    if ((targetStep === 2 || targetStep === 3) && isClosedAt(currentNow)) {
       setNow(currentNow)
       return
     }
@@ -552,9 +528,9 @@ export function BookClient({
   async function reserveAndContinue() {
     if (!selectedSlot) return
     const currentNow = Date.now()
-    if (isTrackClosed(track, currentNow)) {
+    if (isClosedAt(currentNow)) {
       setNow(currentNow)
-      setReserveError(`Registration for ${track === 'game_master' ? 'Game Master' : 'Facilitator'} is now closed.`)
+      setReserveError(CLOSED_MESSAGE)
       return
     }
     setReserving(true)
@@ -563,7 +539,13 @@ export function BookClient({
     setReserving(false)
 
     if (!data) {
-      setReserveError(error?.message ?? 'That slot was just taken — pick another.')
+      // An admin can close the window while this page is open; the DB is the
+      // source of truth, so surface its refusal in plain words.
+      setReserveError(
+        error?.message?.includes('booking window is closed')
+          ? CLOSED_MESSAGE
+          : error?.message ?? 'That slot was just taken — pick another.',
+      )
       loadSlots()
       return
     }
@@ -677,6 +659,27 @@ export function BookClient({
           display: block;
         }
         @media (max-width: 640px) {
+          /* Keep the stepper on one line: numbers for every step, a label only for the current one. */
+          .book-stepper {
+            flex-wrap: nowrap !important;
+            gap: 4px !important;
+          }
+          .book-stepper .stepper-label-inactive {
+            display: none;
+          }
+          .book-stepper .stepper-divider {
+            width: 14px !important;
+          }
+          /* Primary action on top, both buttons full width. */
+          .book-step1-actions {
+            flex-direction: column-reverse;
+            align-items: stretch !important;
+          }
+          .book-step1-actions > * {
+            justify-content: center;
+            width: 100%;
+            box-sizing: border-box;
+          }
           .book-orientations {
             gap: 6px;
             margin-bottom: 10px;
@@ -764,7 +767,7 @@ export function BookClient({
       </div>
 
       {/* Stepper */}
-      <nav aria-label="Booking steps" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
+      <nav aria-label="Booking steps" className="book-stepper" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
         {[1, 2, 3, 4].map((n) => {
           const labels: Record<number, string> = { 1: 'Choose position', 2: 'Choose Slot', 3: 'Your Details', 4: 'Confirmed' }
           const done = step > n
@@ -773,8 +776,8 @@ export function BookClient({
             !active &&
             step !== 4 &&
             (n === 1 ||
-              (n === 2 && !isTrackClosed(track, now)) ||
-              (n === 3 && Boolean(selectedSlot) && !isTrackClosed(track, now)))
+              (n === 2 && !closed) ||
+              (n === 3 && Boolean(selectedSlot) && !closed))
 
           return (
             <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -809,7 +812,7 @@ export function BookClient({
                   {done ? '✓' : n}
                 </div>
                 <span
-                  className="stepper-label"
+                  className={`stepper-label ${active ? '' : 'stepper-label-inactive'}`}
                   style={{
                     fontSize: '13.5px',
                     fontWeight: active ? 700 : 600,
@@ -838,11 +841,11 @@ export function BookClient({
               Select Your Desired Position
             </h2>
             <p className="font-subtitle" style={{ fontSize: '16px', color: 'var(--text-secondary, #475569)', margin: 0 }}>
-              Choose whether you are applying as an Orientation Facilitator or a Game Master.
+              You are applying to join the Orientation Action Team.
             </p>
           </div>
 
-          {allTracksClosed && (
+          {closed && (
             <div
               style={{
                 padding: '16px 20px',
@@ -861,180 +864,97 @@ export function BookClient({
                   Interview Registrations Closed
                 </div>
                 <div style={{ fontSize: '13.5px', color: 'var(--text-secondary, #475569)' }}>
-                  All interview slots for December 2026 Orientation have concluded. If you already booked a slot, you can check your details below.
+                  Registration for {orientationLabel(orientation)} {DEFAULT_ORIENTATION_YEAR} Orientation is not open right now. If you already booked a slot, you can check your details below.
                 </div>
               </div>
-            </div>
-          )}
-
-          {!allTracksClosed && isGmClosed && (
-            <div
-              style={{
-                padding: '14px 18px',
-                borderRadius: '12px',
-                background: 'var(--badge-danger-bg, #FEF2F2)',
-                border: '1px solid var(--btn-danger-border, #FECACA)',
-                marginBottom: '18px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '18px' }}>ℹ️</span>
-                <div style={{ fontSize: '13.5px', color: 'var(--badge-danger-text, #991B1B)', fontWeight: 600 }}>
-                  Game Master interview registration closed at 12:00 PM. Facilitator registration remains open until 6:00 PM.
-                </div>
-              </div>
-              <Link
-                href="/"
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: 'var(--badge-danger-text, #991B1B)',
-                  textDecoration: 'underline',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Return to Home →
-              </Link>
             </div>
           )}
 
           <div className="book-tracks" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            {TRACKS.map((t) => {
-              const active = track === t.key
-              const closed = isTrackClosed(t.key, now)
-              const deadlineInfo = TRACK_DEADLINES[t.key]
-
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  disabled={closed}
-                  onClick={() => {
-                    const currentNow = Date.now()
-                    if (isTrackClosed(t.key, currentNow)) {
-                      setNow(currentNow)
-                      return
-                    }
-                    if (track !== t.key) {
-                      setTrack(t.key)
-                      setSelectedId(null)
-                      setFilterDate('')
-                    }
-                  }}
-                  className={`book-track-btn ${closed ? 'book-track-btn-disabled' : ''}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '18px 20px',
-                    borderRadius: '16px',
-                    cursor: closed ? 'not-allowed' : 'pointer',
-                    textAlign: 'left',
-                    transition: 'all .15s ease',
-                    opacity: closed ? 0.65 : 1,
-                    border: `2px solid ${
-                      closed
-                        ? 'var(--border-card, #E2E8F0)'
-                        : active
-                        ? 'var(--btn-active-border, #2563EB)'
-                        : 'var(--border-card, #EAEEF4)'
-                    }`,
-                    background: closed
-                      ? 'var(--bg-card-subtle, #F8FAFC)'
-                      : active
-                      ? 'var(--btn-active-bg, #EFF4FF)'
-                      : 'var(--bg-card, #fff)',
-                    boxShadow: !closed && active ? '0 10px 25px -8px rgba(37,99,235,.25)' : 'none',
-                  }}
+            <div
+              className={`book-track-btn ${closed ? 'book-track-btn-disabled' : ''}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '18px 20px',
+                borderRadius: '16px',
+                textAlign: 'left',
+                opacity: closed ? 0.65 : 1,
+                border: `2px solid ${closed ? 'var(--border-card, #E2E8F0)' : 'var(--btn-active-border, #2563EB)'}`,
+                background: closed ? 'var(--bg-card-subtle, #F8FAFC)' : 'var(--btn-active-bg, #EFF4FF)',
+                boxShadow: closed ? 'none' : '0 10px 25px -8px rgba(37,99,235,.25)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span
+                  className="book-track-icon"
+                  style={{ fontSize: '26px', lineHeight: 1, filter: closed ? 'grayscale(80%)' : 'none' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {TRACK_ICON}
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span
-                      className="book-track-icon"
+                      className="book-track-title"
                       style={{
-                        fontSize: '26px',
-                        lineHeight: 1,
-                        filter: closed ? 'grayscale(80%)' : 'none',
+                        fontWeight: 800,
+                        fontSize: '18px',
+                        color: closed ? 'var(--text-muted, #94A3B8)' : 'var(--btn-active-text, #2563EB)',
                       }}
                     >
-                      {t.icon}
+                      {TRACK_TITLE}
                     </span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span
-                          className="book-track-title"
-                          style={{
-                            fontWeight: 800,
-                            fontSize: '18px',
-                            color: closed
-                              ? 'var(--text-muted, #94A3B8)'
-                              : active
-                              ? 'var(--btn-active-text, #2563EB)'
-                              : 'var(--text-primary, #0F172A)',
-                          }}
-                        >
-                          {t.title}
-                        </span>
-                        {closed && (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              background: 'var(--badge-danger-bg, #FEE2E2)',
-                              color: 'var(--badge-danger-text, #B91C1C)',
-                              border: '1px solid var(--btn-danger-border, #FECACA)',
-                              letterSpacing: '0.02em',
-                              textTransform: 'uppercase',
-                            }}
-                          >
-                            Closed ({deadlineInfo.label})
-                          </span>
-                        )}
-                      </div>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary, #64748B)' }}>
-                        {closed
-                          ? `Registrations ended at ${deadlineInfo.label}`
-                          : `Closes today at ${deadlineInfo.label}`}
+                    {closed && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: 'var(--badge-danger-bg, #FEE2E2)',
+                          color: 'var(--badge-danger-text, #B91C1C)',
+                          border: '1px solid var(--btn-danger-border, #FECACA)',
+                          letterSpacing: '0.02em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        Closed
                       </span>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '50%',
-                      border: `2px solid ${
-                        closed
-                          ? 'var(--border-input, #CBD5E1)'
-                          : active
-                          ? '#2563EB'
-                          : 'var(--border-input, #CBD5E1)'
-                      }`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: !closed && active ? '#2563EB' : 'transparent',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {!closed && active && (
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff' }} />
                     )}
                   </div>
-                </button>
-              )
-            })}
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary, #64748B)' }}>
+                    {closed
+                      ? 'Registration is closed'
+                      : bookingWindow?.window_close
+                      ? `Registration closes ${formatWindowTime(bookingWindow.window_close)}`
+                      : 'Registration is open'}
+                  </span>
+                </div>
+              </div>
+              {!closed && (
+                <div
+                  style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    border: '2px solid #2563EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#2563EB',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff' }} />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <div className="book-step1-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <Link
               href="/"
               style={{
@@ -1053,7 +973,7 @@ export function BookClient({
               ← Return to Home
             </Link>
 
-            {allTracksClosed ? (
+            {closed ? (
               <Link
                 href="/my-booking"
                 style={{
@@ -1072,43 +992,6 @@ export function BookClient({
               >
                 Check My Booking Slot →
               </Link>
-            ) : isTrackClosed(track, now) ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Link
-                  href="/"
-                  style={{
-                    padding: '14px 22px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-input, #E2E8F0)',
-                    background: 'var(--bg-card, #fff)',
-                    color: 'var(--text-primary, #0F172A)',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  Return to Home
-                </Link>
-                <button
-                  type="button"
-                  disabled={true}
-                  style={{
-                    padding: '14px 24px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    background: 'var(--btn-neutral-bg, #CBD5E1)',
-                    cursor: 'not-allowed',
-                    opacity: 0.65,
-                  }}
-                >
-                  Position Closed
-                </button>
-              </div>
             ) : (
               <button
                 type="button"
@@ -1144,7 +1027,7 @@ export function BookClient({
             </p>
           </div>
 
-          {isTrackClosed(track, now) && (
+          {closed && (
             <div
               style={{
                 padding: '14px 18px',
@@ -1161,47 +1044,27 @@ export function BookClient({
               }}
             >
               <span style={{ fontSize: '18px' }}>⚠️</span>
-              <span>
-                Registration for {track === 'game_master' ? 'Game Master' : 'Facilitator'} closed at{' '}
-                {TRACK_DEADLINES[track].label}. New slot reservations are no longer accepted.
-              </span>
+              <span>{CLOSED_MESSAGE} New slot reservations are no longer accepted.</span>
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>Position:</span>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '5px 12px',
-                borderRadius: '8px',
-                background: track === 'game_master' ? 'var(--badge-gm-bg, #F3F0FF)' : 'var(--badge-facilitator-bg, #EFF4FF)',
-                color: track === 'game_master' ? 'var(--badge-gm-text, #7C3AED)' : 'var(--badge-facilitator-text, #2563EB)',
-                border: `1px solid ${track === 'game_master' ? 'var(--badge-gm-border, #DDD6FE)' : 'var(--badge-facilitator-border, #DBE6FF)'}`,
-                fontWeight: 700,
-                fontSize: '13.5px',
-              }}>
-                <span>{track === 'game_master' ? '🎮' : '🎯'}</span>
-                <span>{track === 'game_master' ? 'Game Master' : 'Facilitator'}</span>
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={goBackToStep1}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                color: 'var(--text-secondary, #475569)',
-                fontWeight: 600,
-                fontSize: '13px',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-              }}
-            >
-              ← Change position
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>Position:</span>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 12px',
+              borderRadius: '8px',
+              background: 'var(--badge-action-bg, #FFF7ED)',
+              color: 'var(--badge-action-text, #C2410C)',
+              border: '1px solid var(--badge-action-border, #FED7AA)',
+              fontWeight: 700,
+              fontSize: '13.5px',
+            }}>
+              <span>{TRACK_ICON}</span>
+              <span>{TRACK_TITLE}</span>
+            </span>
           </div>
 
           {/* Date filter */}
@@ -1290,7 +1153,7 @@ export function BookClient({
               </span>
               <button
                 type="button"
-                disabled={!selectedSlot || reserving || isTrackClosed(track, now)}
+                disabled={!selectedSlot || reserving || closed}
                 onClick={reserveAndContinue}
                 style={{
                   padding: '12px 22px',
@@ -1299,20 +1162,20 @@ export function BookClient({
                   color: '#fff',
                   fontWeight: 700,
                   fontSize: '14.5px',
-                  background: selectedSlot && !reserving && !isTrackClosed(track, now)
+                  background: selectedSlot && !reserving && !closed
                     ? 'linear-gradient(100deg, rgba(0, 255, 255, 0.74), #a855f7, #FE06AB)'
                     : 'var(--btn-neutral-bg, #CBD5E1)',
-                  cursor: selectedSlot && !reserving && !isTrackClosed(track, now)
+                  cursor: selectedSlot && !reserving && !closed
                     ? 'pointer'
                     : 'not-allowed',
-                  boxShadow: selectedSlot && !reserving && !isTrackClosed(track, now)
+                  boxShadow: selectedSlot && !reserving && !closed
                     ? '0 8px 18px -7px rgba(37,99,235,.5)'
                     : 'none',
                 }}
               >
                 {reserving
                   ? 'Holding your seat…'
-                  : isTrackClosed(track, now)
+                  : closed
                   ? 'Position Closed'
                   : 'Continue →'}
               </button>
@@ -1432,11 +1295,11 @@ export function BookClient({
           <div style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border-card, #EAEEF4)', borderRadius: '18px', padding: '16px', boxShadow: '0 1px 2px rgba(16,24,40,.04)', position: 'sticky', top: '80px' }}>
             <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted, #94A3B8)', marginBottom: '10px' }}>Your slot</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: track === 'facilitator' ? 'var(--badge-facilitator-bg, #EFF4FF)' : 'var(--badge-gm-bg, #F3F0FF)', border: `1px solid ${track === 'facilitator' ? 'var(--badge-facilitator-border, #DBE6FF)' : 'var(--badge-gm-border, #DDD6FE)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
-                {track === 'facilitator' ? '🎯' : '🎮'}
+              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'var(--badge-action-bg, #FFF7ED)', border: '1px solid var(--badge-action-border, #FED7AA)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
+                {TRACK_ICON}
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary, #0F172A)' }}>{track === 'facilitator' ? 'Facilitator' : 'Game Master'}</div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary, #0F172A)' }}>{TRACK_TITLE}</div>
                 <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>Interview Slip</div>
               </div>
             </div>
@@ -1473,7 +1336,7 @@ export function BookClient({
 
             <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', textAlign: 'left', marginBottom: '18px' }}>
               {[
-                { label: 'Track', value: confirmation.track === 'facilitator' ? 'Facilitator' : 'Game Master' },
+                { label: 'Track', value: TRACK_LABELS[confirmation.track] },
                 { label: 'Date', value: formatDateHeading(toLocalDateIso(confirmation.slot.starts_at)) },
                 { label: 'Time', value: formatTimeRange(confirmation.slot.starts_at, confirmation.slot.ends_at) },
                 { label: 'Venue', value: confirmation.slot.venue?.trim() || 'TBA' },

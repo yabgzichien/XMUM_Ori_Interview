@@ -4,8 +4,10 @@
 // build time.
 
 import { createClient } from '@/lib/supabase/client'
+import type { BookingWindow } from '@/lib/booking-window'
 
-export type Track = 'facilitator' | 'game_master'
+export type { Track } from '@/lib/tracks'
+import type { Track } from '@/lib/tracks'
 export type Orientation = 'february' | 'april' | 'december'
 
 export type HeadSlot = {
@@ -90,6 +92,14 @@ export async function cancelBooking(bookingId: string) {
   return { data, error }
 }
 
+// Hard delete, admin-only via the bookings_delete_admin RLS policy. Returns
+// the ids actually removed: RLS filters silently, so a non-admin gets [].
+export async function deleteBookings(ids: string[]) {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('bookings').delete().in('id', ids).select('id')
+  return { data: ((data as { id: string }[] | null) ?? []).map((r) => r.id), error }
+}
+
 export async function getTrackSettings(track: Track, orientation: Orientation, orientationYear: number = 2026) {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -138,7 +148,15 @@ export async function bulkDeleteSlots(ids: string[]) {
   return { data, error }
 }
 
-export async function updateTrackWindow(
+export async function getBookingWindow(track: Track, orientation: Orientation, orientationYear: number = 2026) {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('booking_window', { p_track: track, p_orientation: orientation, p_year: orientationYear })
+  const rows = (data as BookingWindow[] | null) ?? []
+  return { data: rows[0] ?? null, error }
+}
+
+// Admin-only (enforced in the RPC). Upserts, so a new orientation year needs no seed row.
+export async function setBookingWindow(
   track: Track,
   orientation: Orientation,
   windowOpen: string | null,
@@ -146,13 +164,14 @@ export async function updateTrackWindow(
   orientationYear: number = 2026,
 ) {
   const supabase = createClient()
-  const { data, error } = await supabase
-    .from('track_settings')
-    .update({ window_open: windowOpen, window_close: windowClose })
-    .eq('track', track)
-    .eq('orientation', orientation)
-    .eq('orientation_year', orientationYear)
-  return { data, error }
+  const { data, error } = await supabase.rpc('admin_set_booking_window', {
+    p_track: track,
+    p_orientation: orientation,
+    p_year: orientationYear,
+    p_window_open: windowOpen,
+    p_window_close: windowClose,
+  })
+  return { data: (data as TrackSettings | null) ?? null, error }
 }
 
 export async function updateInterviewStatus(

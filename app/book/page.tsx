@@ -2,22 +2,19 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { BookClient } from '@/app/book/BookClient'
 import { createClient } from '@/lib/supabase/server'
-import { DEFAULT_ORIENTATION, isOrientation, type Orientation } from '@/lib/orientation'
-import type { Track } from '@/lib/bookings'
+import { DEFAULT_ORIENTATION, DEFAULT_ORIENTATION_YEAR, isOrientation, type Orientation } from '@/lib/orientation'
+import { BOOKABLE_TRACK } from '@/lib/tracks'
 import type { AvailableSlot } from '@/lib/booking-helpers'
+import type { BookingWindow } from '@/lib/booking-window'
 
 export const metadata: Metadata = {
   title: 'Book Interview',
-  description: 'Book interview slots for Facilitator and Game Master orientation positions.',
+  description: 'Book an interview slot for the Action Team orientation position.',
 }
 
 export const dynamic = 'force-dynamic'
 
 type SearchParams = { [key: string]: string | string[] | undefined }
-
-function isTrack(value: string | string[] | undefined): value is Track {
-  return value === 'facilitator' || value === 'game_master'
-}
 
 export default async function BookPage({
   searchParams,
@@ -25,28 +22,25 @@ export default async function BookPage({
   searchParams: Promise<SearchParams>
 }) {
   const params = await searchParams
-  const initTrack: Track = isTrack(params.track) ? params.track : 'facilitator'
   const initOrientation: Orientation = isOrientation(params.orientation)
     ? params.orientation
     : DEFAULT_ORIENTATION
 
   const supabase = await createClient()
-  const [fac, gm] = await Promise.all([
-    supabase.rpc('available_slots', { p_track: 'facilitator', p_orientation: initOrientation, p_year: 2026 }),
-    supabase.rpc('available_slots', { p_track: 'game_master', p_orientation: initOrientation, p_year: 2026 }),
+  const [slotsRes, windowRes] = await Promise.all([
+    supabase.rpc('available_slots', { p_track: BOOKABLE_TRACK, p_orientation: initOrientation, p_year: DEFAULT_ORIENTATION_YEAR }),
+    supabase.rpc('booking_window', { p_track: BOOKABLE_TRACK, p_orientation: initOrientation, p_year: DEFAULT_ORIENTATION_YEAR }),
   ])
 
-  const initialSlotsByTrack: Record<Track, AvailableSlot[]> = {
-    facilitator: (fac.data as AvailableSlot[] | null) ?? [],
-    game_master: (gm.data as AvailableSlot[] | null) ?? [],
-  }
+  const initialSlots = (slotsRes.data as AvailableSlot[] | null) ?? []
+  const bookingWindow = ((windowRes.data as BookingWindow[] | null) ?? [])[0] ?? null
 
   return (
     <Suspense>
       <BookClient
-        initialSlotsByTrack={initialSlotsByTrack}
+        initialSlots={initialSlots}
         initialOrientation={initOrientation}
-        initialTrack={initTrack}
+        bookingWindow={bookingWindow}
         serverTime={Date.now()}
       />
     </Suspense>

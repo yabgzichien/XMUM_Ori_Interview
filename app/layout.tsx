@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     default: 'Interview Booking - XMUM Orientation',
     template: '%s - XMUM Orientation',
   },
-  description: 'Book interview slots for the facilitator and game master tracks.',
+  description: 'Book interview slots for the Action Team.',
   icons: {
     icon: [
       { url: '/vortexalogo.png' },

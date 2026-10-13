@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import type { HeadBooking, HeadSlot, Orientation, Track } from '@/lib/head'
+import { isTrack } from '@/lib/tracks'
 import { generateExportFilename, generateInterviewBookingWorkbook } from '@/lib/excel-export'
 
-function isTrack(val: string | null): val is Track {
-  return val === 'facilitator' || val === 'game_master'
+function isExportTrack(val: string | null): val is Track {
+  return isTrack(val)
 }
 
 function isOrientation(val: string | null): val is Orientation {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
   const startDate = searchParams.get('startDate') || undefined
   const endDate = searchParams.get('endDate') || undefined
 
-  if (!isTrack(trackParam)) {
+  if (!isExportTrack(trackParam)) {
     return NextResponse.json({ error: 'Invalid or missing track parameter.' }, { status: 400 })
   }
   if (!isOrientation(orientationParam)) {

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { errorMessage } from '@/lib/utils'
+import { trackLabel } from '@/lib/tracks'
 
 type BookingInfo = {
   booking_id: string
@@ -37,11 +38,6 @@ function formatTime(iso: string) {
   })
 }
 
-function formatTrack(t: string) {
-  if (t === 'facilitator') return 'Facilitator'
-  if (t === 'game_master') return 'Game Master'
-  return t
-}
 
 function BookingCard({
   b,
@@ -57,7 +53,9 @@ function BookingCard({
 
   const trackColor = b.track === 'facilitator'
     ? { grad: 'linear-gradient(135deg, #3B82F6, #2563EB)', light: '#EFF4FF', text: '#2563EB' }
-    : { grad: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', light: '#F3F0FF', text: '#7C3AED' }
+    : b.track === 'game_master'
+    ? { grad: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', light: '#F3F0FF', text: '#7C3AED' }
+    : { grad: 'linear-gradient(135deg, #F97316, #C2410C)', light: '#FFF7ED', text: '#C2410C' }
 
   return (
     <div
@@ -86,7 +84,7 @@ function BookingCard({
             letterSpacing: '0.08em',
             marginBottom: '6px',
           }}>
-            {formatTrack(b.track)}
+            {trackLabel(b.track)}
           </span>
           <div style={{ fontSize: '17px', fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{b.applicant_name}</div>
         </div>

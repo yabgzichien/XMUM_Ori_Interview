@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { formatDateHeading, formatTimeRange, isPastSlot, toLocalDateIso } from '@/lib/booking-helpers'
-import { cancelBooking, type HeadBooking } from '@/lib/head'
-import type { Orientation } from '@/lib/head'
+import { cancelBooking, deleteBookings, type HeadBooking } from '@/lib/head'
+import type { Orientation, Track } from '@/lib/head'
+import { trackBadgeStyle, trackLabel } from '@/lib/tracks'
 import { DateRangePicker, type DateRange } from '@/components/DateRangePicker'
 import { saveInterviewNotesAction } from '@/app/actions/saveNotesAction'
 import { errorMessage } from '@/lib/utils'
@@ -11,10 +12,11 @@ type Props = {
   bookings: HeadBooking[]
   loading: boolean
   error: string | null
-  track: 'facilitator' | 'game_master'
+  track: Track
   orientation: Orientation
   orientationYear?: number
   onChanged: () => void
+  isAdmin?: boolean
 }
 
 const cancelBtnStyle: React.CSSProperties = {
@@ -29,17 +31,11 @@ const cancelBtnStyle: React.CSSProperties = {
   transition: 'background .15s',
 }
 
-function formatTrack(track: string | undefined | null): string {
-  if (!track) return '-'
-  if (track === 'game_master') return 'Game Master'
-  if (track === 'facilitator') return 'Facilitator'
-  return track.charAt(0).toUpperCase() + track.slice(1)
-}
-
-export function BookingsTable({ bookings, loading, error, track, orientation, orientationYear = 2026, onChanged }: Props) {
+export function BookingsTable({ bookings, loading, error, track, orientation, orientationYear = 2026, onChanged, isAdmin = false }: Props) {
   const [filter, setFilter] = useState('')
-  const [positionFilter, setPositionFilter] = useState<'all' | 'facilitator' | 'game_master'>('all')
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [deleting, setDeleting] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<HeadBooking | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
   const [showPast, setShowPast] = useState<boolean>(true)
@@ -52,7 +48,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   async function handleExportExcel() {
     setExporting(true)
     try {
-      const exportTrack = positionFilter !== 'all' ? positionFilter : track
+      const exportTrack = track
       const params = new URLSearchParams({
         track: exportTrack,
         orientation,
@@ -73,7 +69,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
 
       const blob = await res.blob()
       const disposition = res.headers.get('Content-Disposition')
-      let filename = `${orientation}_${orientationYear}_${exportTrack === 'game_master' ? 'GM' : 'Facilitator'}_Interview_Time_Slot_Export.xlsx`
+      let filename = `${orientation}_${orientationYear}_${trackLabel(exportTrack).replace(/ /g, '_')}_Interview_Time_Slot_Export.xlsx`
       if (disposition) {
         const utf8Match = disposition.match(/filename\*=UTF-8''([^;\n]+)/i)
         if (utf8Match && utf8Match[1]) {
@@ -106,10 +102,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
   const filtered = useMemo(() => {
     const needle = filter.trim().toLowerCase()
     return bookings.filter((b) => {
-      if (positionFilter !== 'all') {
-        const bookingTrack = b.track || track
-        if (bookingTrack !== positionFilter) return false
-      }
       if (needle) {
         const matchesText =
           b.applicant_name?.toLowerCase().includes(needle) ||
@@ -134,7 +126,50 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
       }
       return true
     })
-  }, [bookings, filter, dateRange, showPast, positionFilter, track])
+  }, [bookings, filter, dateRange, showPast])
+
+  // Only rows still visible under the current filters count as selected, so a
+  // filter change can never delete records the admin can no longer see.
+  const visibleSelected = useMemo(
+    () => filtered.filter((b) => selectedIds.has(b.booking_id)).map((b) => b.booking_id),
+    [filtered, selectedIds],
+  )
+  const allVisibleSelected = filtered.length > 0 && visibleSelected.length === filtered.length
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(allVisibleSelected ? new Set() : new Set(filtered.map((b) => b.booking_id)))
+  }
+
+  async function handleDeleteSelected() {
+    const ids = visibleSelected
+    if (ids.length === 0) return
+    if (!window.confirm(`Permanently delete ${ids.length} booking record${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) {
+      return
+    }
+    setDeleting(true)
+    const { data: deletedIds, error: deleteErr } = await deleteBookings(ids)
+    setDeleting(false)
+    if (deleteErr) {
+      showToast(deleteErr.message, 'error')
+      return
+    }
+    setSelectedIds(new Set())
+    if (deletedIds.length < ids.length) {
+      showToast(`Deleted ${deletedIds.length} of ${ids.length} records. The rest could not be deleted.`, 'error')
+    } else {
+      showToast(`Deleted ${deletedIds.length} booking record${deletedIds.length === 1 ? '' : 's'}.`, 'success')
+    }
+    onChanged()
+  }
 
   async function handleCancel(b: HeadBooking) {
     if (!window.confirm(`Cancel ${b.applicant_name}'s booking? This frees the seat.`)) {
@@ -172,63 +207,6 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
           <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Position</label>
-          <div style={{ display: 'inline-flex', background: 'var(--bg-input, #fff)', border: '1px solid var(--border-input, #E2E8F0)', borderRadius: '8px', padding: '3px', height: '38px', boxSizing: 'border-box' }}>
-            <button
-              type="button"
-              onClick={() => setPositionFilter('all')}
-              style={{
-                padding: '0 12px',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: positionFilter === 'all' ? 'var(--text-primary, #0F172A)' : 'transparent',
-                color: positionFilter === 'all' ? 'var(--bg-card, #fff)' : 'var(--text-secondary, #64748B)',
-                transition: 'all .12s',
-              }}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setPositionFilter('facilitator')}
-              style={{
-                padding: '0 12px',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: positionFilter === 'facilitator' ? '#2563EB' : 'transparent',
-                color: positionFilter === 'facilitator' ? '#fff' : 'var(--text-secondary, #64748B)',
-                transition: 'all .12s',
-              }}
-            >
-              Faci
-            </button>
-            <button
-              type="button"
-              onClick={() => setPositionFilter('game_master')}
-              style={{
-                padding: '0 12px',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: positionFilter === 'game_master' ? '#7C3AED' : 'transparent',
-                color: positionFilter === 'game_master' ? '#fff' : 'var(--text-secondary, #64748B)',
-                transition: 'all .12s',
-              }}
-            >
-              GM
-            </button>
-          </div>
-        </div>
-        
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px' }}>
           <input
             type="checkbox"
@@ -243,6 +221,36 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
         </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', height: '36px', flexWrap: 'wrap' }}>
+          {isAdmin && visibleSelected.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                disabled={deleting}
+                style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: 'transparent', color: 'var(--text-secondary, #475569)', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSelected}
+                disabled={deleting}
+                style={{
+                  padding: '8px 15px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--btn-danger-border, #FECACA)',
+                  background: 'var(--btn-danger-bg, #FEE2E2)',
+                  color: 'var(--btn-danger-text, #B91C1C)',
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.7 : 1,
+                }}
+              >
+                {deleting ? 'Deleting...' : `Delete selected (${visibleSelected.length})`}
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={handleExportExcel}
@@ -305,6 +313,17 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
           <table className="tbl-desk" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)' }}>
+                {isAdmin && (
+                  <th style={{ padding: '16px 0 16px 20px', width: '20px' }}>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all visible bookings"
+                      checked={allVisibleSelected}
+                      onChange={toggleSelectAll}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                  </th>
+                )}
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Applicant</th>
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Student ID</th>
                 <th style={{ padding: '16px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)', letterSpacing: '.02em' }}>Position</th>
@@ -322,6 +341,17 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                   style={{ borderBottom: '1px solid var(--border-card, #EAEEF4)', cursor: 'pointer' }}
                   onClick={() => { setSelectedBooking(b); setNotesValue(b.interview_notes ?? ''); setNotesSaved(false) }}
                 >
+                  {isAdmin && (
+                    <td style={{ padding: '18px 0 18px 20px', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${b.applicant_name}`}
+                        checked={selectedIds.has(b.booking_id)}
+                        onChange={() => toggleSelected(b.booking_id)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                    </td>
+                  )}
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle' }}>
                     <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px' }}>{b.applicant_name}</div>
                     <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>{b.applicant_email}</div>
@@ -334,13 +364,11 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                       display: 'inline-flex',
                       padding: '3.5px 8px',
                       borderRadius: '6px',
-                      background: (b.track || track) === 'game_master' ? 'var(--badge-gm-bg, #F3F0FF)' : 'var(--badge-facilitator-bg, #EFF4FF)',
-                      color: (b.track || track) === 'game_master' ? 'var(--badge-gm-text, #7C3AED)' : 'var(--badge-facilitator-text, #2563EB)',
-                      border: `1px solid ${(b.track || track) === 'game_master' ? 'var(--badge-gm-border, #DDD6FE)' : 'var(--badge-facilitator-border, #DBE6FF)'}`,
+                      ...trackBadgeStyle(b.track || track),
                       fontSize: '11.5px',
                       fontWeight: 700
                     }}>
-                      {formatTrack(b.track || track)}
+                      {trackLabel(b.track || track)}
                     </span>
                   </td>
                   <td style={{ padding: '18px 20px', verticalAlign: 'middle' }}>
@@ -385,6 +413,17 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                 onClick={() => { setSelectedBooking(b); setNotesValue(b.interview_notes ?? ''); setNotesSaved(false) }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                  {isAdmin && (
+                    <label onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(b.booking_id)}
+                        onChange={() => toggleSelected(b.booking_id)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      Select
+                    </label>
+                  )}
                   <div style={{ minWidth: 0, maxWidth: '100%' }}>
                     <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary, #0F172A)', marginBottom: '2px', wordBreak: 'break-word' }}>{b.applicant_name}</div>
                     <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 500, wordBreak: 'break-word' }}>{b.applicant_email}</div>
@@ -395,12 +434,10 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                       display: 'inline-flex',
                       padding: '3.5px 8px',
                       borderRadius: '6px',
-                      background: (b.track || track) === 'game_master' ? 'var(--badge-gm-bg, #F3F0FF)' : 'var(--badge-facilitator-bg, #EFF4FF)',
-                      color: (b.track || track) === 'game_master' ? 'var(--badge-gm-text, #7C3AED)' : 'var(--badge-facilitator-text, #2563EB)',
-                      border: `1px solid ${(b.track || track) === 'game_master' ? 'var(--badge-gm-border, #DDD6FE)' : 'var(--badge-facilitator-border, #DBE6FF)'}`,
+                      ...trackBadgeStyle(b.track || track),
                       fontSize: '11.5px',
                       fontWeight: 700
-                    }}>{formatTrack(b.track || track)}</span>
+                    }}>{trackLabel(b.track || track)}</span>
                   </div>
                 </div>
                 <div style={{ background: 'var(--bg-card-subtle, #F8FAFC)', borderRadius: '8px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -481,11 +518,9 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                       marginBottom: '10px',
-                      background: (selectedBooking.track || track) === 'game_master' ? 'var(--badge-gm-bg, #F3F0FF)' : 'var(--badge-facilitator-bg, #EFF4FF)',
-                      color: (selectedBooking.track || track) === 'game_master' ? 'var(--badge-gm-text, #7C3AED)' : 'var(--badge-facilitator-text, #2563EB)',
-                      border: `1px solid ${(selectedBooking.track || track) === 'game_master' ? 'var(--badge-gm-border, #DDD6FE)' : 'var(--badge-facilitator-border, #DBE6FF)'}`,
+                      ...trackBadgeStyle(selectedBooking.track || track),
                     }}>
-                      {formatTrack(selectedBooking.track || track)}
+                      {trackLabel(selectedBooking.track || track)}
                     </span>
                     <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0 }}>
                       {selectedBooking.applicant_name}
@@ -526,7 +561,7 @@ export function BookingsTable({ bookings, loading, error, track, orientation, or
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>Position</label>
-                      <div style={{ fontSize: '14.5px', color: 'var(--text-primary, #0F172A)', fontWeight: 600 }}>{formatTrack(selectedBooking.track || track)}</div>
+                      <div style={{ fontSize: '14.5px', color: 'var(--text-primary, #0F172A)', fontWeight: 600 }}>{trackLabel(selectedBooking.track || track)}</div>
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>Venue</label>
