@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createPracticeBooking, type PracticeServiceError } from '@/lib/practice-server'
-import {
-  getVerificationFingerprint,
-  releaseVerificationAttempt,
-  reserveVerificationAttempt,
-} from '@/lib/practice-rate-limit'
+import { getVerificationFingerprint } from '@/lib/practice-rate-limit'
+import { RATE_LIMITED_MESSAGE } from '@/lib/practice-network'
 
 const NO_STORE = { 'Cache-Control': 'no-store' }
 
@@ -37,21 +34,15 @@ export async function POST(request: Request) {
     )
   }
 
-  let attemptId: number | null = null
-  let retainAttempt = false
   try {
-    const fingerprint = getVerificationFingerprint(request)
-    attemptId = await reserveVerificationAttempt(fingerprint)
-    if (attemptId === null) {
-      return NextResponse.json(
-        { error: 'Too many verification attempts. Try again later.' },
-        { status: 429, headers: NO_STORE },
-      )
+    const result = await createPracticeBooking(
+      { studentId, groupId, holdToken: typeof holdToken === 'string' ? holdToken : null },
+      getVerificationFingerprint(request),
+    )
+    if (result.error === 'rate_limited') {
+      return NextResponse.json({ error: RATE_LIMITED_MESSAGE }, { status: 429, headers: NO_STORE })
     }
-
-    const result = await createPracticeBooking({ studentId, groupId, holdToken: typeof holdToken === 'string' ? holdToken : null })
     if (result.error === 'identity_not_verified') {
-      retainAttempt = true
       return NextResponse.json(
         { error: 'Student ID could not be verified.' },
         { status: 400, headers: NO_STORE },
@@ -76,13 +67,5 @@ export async function POST(request: Request) {
       { error: 'The booking could not be completed.' },
       { status: 500, headers: NO_STORE },
     )
-  } finally {
-    if (attemptId !== null && !retainAttempt) {
-      try {
-        await releaseVerificationAttempt(attemptId)
-      } catch {
-        // Cleanup must never overwrite an authoritative booking response.
-      }
-    }
   }
 }

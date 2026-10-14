@@ -21,6 +21,7 @@ supabase/.temp/
 .DS_Store
 *.log
 load-tests/.state.json
+load-tests/.practice-state.json
 load-tests/results/
 
 # Next.js generated (from create-next-app)

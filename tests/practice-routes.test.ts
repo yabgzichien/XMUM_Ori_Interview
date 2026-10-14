@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const RATE_LIMITED_MESSAGE =
+  'Too many people are booking from this network right now. Switch to mobile data and try again.'
+
 const serviceMocks = vi.hoisted(() => ({
   lookupPractice: vi.fn(),
   createPracticeBooking: vi.fn(),
@@ -7,8 +10,6 @@ const serviceMocks = vi.hoisted(() => ({
 
 const rateLimitMocks = vi.hoisted(() => ({
   getVerificationFingerprint: vi.fn(),
-  reserveVerificationAttempt: vi.fn(),
-  releaseVerificationAttempt: vi.fn(),
 }))
 
 vi.mock('@/lib/practice-server', () => serviceMocks)
@@ -30,8 +31,6 @@ describe('public practice routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     rateLimitMocks.getVerificationFingerprint.mockReturnValue('fingerprint')
-    rateLimitMocks.reserveVerificationAttempt.mockResolvedValue(123)
-    rateLimitMocks.releaseVerificationAttempt.mockResolvedValue(undefined)
   })
 
   it('returns verified groups with no-store caching', async () => {
@@ -48,7 +47,7 @@ describe('public practice routes', () => {
     expect(await response.json()).toEqual({
       data: { state: 'available', groups: [{ id: 'group-1', name: 'Group A', seats_left: 3 }] },
     })
-    expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
+    expect(serviceMocks.lookupPractice).toHaveBeenCalledWith({ studentId: 'DSC2344112' }, 'fingerprint')
   })
 
   it('rejects malformed JSON and wrong primitive types', async () => {
@@ -63,7 +62,7 @@ describe('public practice routes', () => {
     expect(await wrongTypes.json()).toEqual({ error: 'Student ID is required.' })
   })
 
-  it('uses one generic identity error and records the failed attempt', async () => {
+  it('uses one generic identity error for an unverified student ID', async () => {
     serviceMocks.lookupPractice.mockResolvedValue({ data: null, error: 'identity_not_verified' })
     const response = await verifyPOST(request('/api/practice/verify', {
       studentId: 'UNKNOWN',
@@ -72,17 +71,25 @@ describe('public practice routes', () => {
     expect(await response.json()).toEqual({
       error: 'Student ID could not be verified.',
     })
-    expect(rateLimitMocks.releaseVerificationAttempt).not.toHaveBeenCalled()
   })
 
-  it('returns 429 before looking up the roster after ten failed attempts', async () => {
-    rateLimitMocks.reserveVerificationAttempt.mockResolvedValue(null)
+  it('returns 429 when the address has too many failed checks', async () => {
+    serviceMocks.lookupPractice.mockResolvedValue({ data: null, error: 'rate_limited' })
     const response = await verifyPOST(request('/api/practice/verify', {
       studentId: 'UNKNOWN',
     }))
     expect(response.status).toBe(429)
-    expect(await response.json()).toEqual({ error: 'Too many verification attempts. Try again later.' })
-    expect(serviceMocks.lookupPractice).not.toHaveBeenCalled()
+    expect(await response.json()).toEqual({ error: RATE_LIMITED_MESSAGE })
+  })
+
+  it('tells a rate-limited student to switch to mobile data when booking', async () => {
+    serviceMocks.createPracticeBooking.mockResolvedValue({ data: null, error: 'rate_limited' })
+    const response = await bookPOST(request('/api/practice/book', {
+      studentId: 'ABC1234567',
+      groupId: 'group-1',
+    }))
+    expect(response.status).toBe(429)
+    expect(await response.json()).toEqual({ error: RATE_LIMITED_MESSAGE })
   })
 
   it('maps missing rate-limit configuration to a generic server error', async () => {
@@ -109,7 +116,7 @@ describe('public practice routes', () => {
     log.mockRestore()
   })
 
-  it('maps booking conflicts without recording them as identity failures', async () => {
+  it('maps booking conflicts to 409', async () => {
     serviceMocks.createPracticeBooking.mockResolvedValue({ data: null, error: 'group_full' })
     const response = await bookPOST(request('/api/practice/book', {
       studentId: 'DSC2344112',
@@ -117,7 +124,6 @@ describe('public practice routes', () => {
     }))
     expect(response.status).toBe(409)
     expect(await response.json()).toEqual({ error: 'That practice group is full.' })
-    expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
   })
 
   it('rejects verification before the shared opening time with a clear conflict', async () => {
@@ -128,7 +134,6 @@ describe('public practice routes', () => {
 
     expect(response.status).toBe(409)
     expect(await response.json()).toEqual({ error: 'Booking has not opened yet.' })
-    expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
   })
 
   it('rejects booking before the shared opening time with a clear conflict', async () => {
@@ -142,26 +147,31 @@ describe('public practice routes', () => {
     expect(await response.json()).toEqual({ error: 'Booking has not opened yet.' })
   })
 
-  it('does not turn a committed booking into an error when reservation cleanup fails', async () => {
+  it('passes the hold token and address fingerprint to the booking service', async () => {
     serviceMocks.createPracticeBooking.mockResolvedValue({
-      data: { id: 'booking-1', group_id: 'group-1', group_name: 'Group A', sessions: [] },
+      data: { id: 'booking-1', group_id: 'group-1', group_name: 'Group A', sessions: [], leader_names: ['Alice Tan'] },
       error: null,
     })
-    rateLimitMocks.releaseVerificationAttempt.mockRejectedValue(new Error('cleanup failed'))
     const response = await bookPOST(request('/api/practice/book', {
-      studentId: 'DSC2344112', groupId: 'group-1',
+      studentId: 'DSC2344112', groupId: 'group-1', holdToken: 'hold-1',
     }))
     expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({ data: { id: 'booking-1' } })
+    expect(await response.json()).toMatchObject({ data: { id: 'booking-1', leader_names: ['Alice Tan'] } })
+    expect(serviceMocks.createPracticeBooking).toHaveBeenCalledWith(
+      { studentId: 'DSC2344112', groupId: 'group-1', holdToken: 'hold-1' },
+      'fingerprint',
+    )
   })
 
-  it('releases a reservation when the booking service throws', async () => {
+  it('returns a generic error when the booking service throws', async () => {
     serviceMocks.createPracticeBooking.mockRejectedValue(new Error('backend unavailable'))
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const response = await bookPOST(request('/api/practice/book', {
       studentId: 'DSC2344112', groupId: 'group-1',
     }))
     expect(response.status).toBe(500)
-    expect(rateLimitMocks.releaseVerificationAttempt).toHaveBeenCalledWith(123)
+    expect(await response.json()).toEqual({ error: 'The booking could not be completed.' })
+    log.mockRestore()
   })
 
   it('uses the platform-controlled address header ahead of forwarded-for in production', () => {

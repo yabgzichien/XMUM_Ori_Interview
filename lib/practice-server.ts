@@ -20,6 +20,7 @@ export type PracticeServiceError =
   | 'already_booked'
   | 'booking_not_open'
   | 'hold_expired'
+  | 'rate_limited'
   | 'server_error'
 
 export type ServiceResult<T> =
@@ -33,6 +34,7 @@ function classifyError(message: string): PracticeServiceError {
   if (message.includes('already_booked')) return 'already_booked'
   if (message.includes('booking_not_open')) return 'booking_not_open'
   if (message.includes('hold_expired')) return 'hold_expired'
+  if (message.includes('rate_limited')) return 'rate_limited'
   return 'server_error'
 }
 
@@ -47,27 +49,6 @@ function practiceAudioUrl(database: ReturnType<typeof createAdminClient>) {
   return (path: string) => database.storage.from('practice-audio').getPublicUrl(path).data.publicUrl
 }
 
-async function leaderNamesFor(database: ReturnType<typeof createAdminClient>, groupId: string): Promise<string[]> {
-  const { data: links } = await database.from('practice_group_leaders').select('roster_member_id').eq('group_id', groupId)
-  const ids = (links ?? []).map((link: { roster_member_id: string }) => link.roster_member_id)
-  if (ids.length === 0) return []
-  const { data: leaders } = await database.from('committee_roster').select('name').in('id', ids).order('name')
-  return (leaders ?? []).map((leader: { name: string }) => leader.name)
-}
-
-async function memberSummaryFor(database: ReturnType<typeof createAdminClient>, studentId: string): Promise<PracticeMemberSummary | null> {
-  const { data } = await database
-    .from('committee_roster')
-    .select('name, student_id, position, committee_positions(label)')
-    .eq('student_id', studentId)
-    .eq('active', true)
-    .maybeSingle()
-  if (!data) return null
-  const row = data as unknown as { name: string; student_id: string; position: string; committee_positions: { label: string } | { label: string }[] | null }
-  const title = Array.isArray(row.committee_positions) ? row.committee_positions[0] : row.committee_positions
-  return { name: row.name, student_id: row.student_id, position_label: title?.label ?? row.position }
-}
-
 export async function getPracticeCatalog(): Promise<ServiceResult<PracticeCatalog>> {
   const database = createAdminClient()
   const { data, error } = await database.rpc('public_practice_catalog')
@@ -78,55 +59,62 @@ export async function getPracticeCatalog(): Promise<ServiceResult<PracticeCatalo
   }
 }
 
+// The *_limited functions check the per-address rate limit, run the work, and
+// record a failure only for an unverified student ID — one round trip each.
+type LimitedResult<T> = { data: T; error?: undefined } | { data?: undefined; error: PracticeServiceError }
+
+async function callLimited<T>(name: string, args: Record<string, unknown>): Promise<ServiceResult<T>> {
+  const database = createAdminClient()
+  const { data, error } = await database.rpc(name, args)
+  if (error) return { data: null, error: classifyError(error.message) }
+  const result = data as LimitedResult<T>
+  if (result.error) return { data: null, error: result.error }
+  return { data: result.data as T, error: null }
+}
+
 export async function lookupPractice(
   input: PracticeIdentityInput,
+  addressFingerprint: string,
 ): Promise<ServiceResult<PracticeLookupResult>> {
   const identity = rosterIdentity(input.studentId)
   if (!identity) return { data: null, error: 'identity_not_verified' }
-  const database = createAdminClient()
-  const { data, error } = await database.rpc('public_practice_lookup', {
-    p_student_id: identity.studentId,
-    p_email: identity.email,
-  })
-  if (error) return { data: null, error: classifyError(error.message) }
-  const lookup = mapPracticeLookup(data as Parameters<typeof mapPracticeLookup>[0], practiceAudioUrl(database))
-  if (lookup.state === 'booked') {
-    lookup.booking = { ...lookup.booking, leader_names: await leaderNamesFor(database, lookup.booking.group_id) }
-  }
-  const member = await memberSummaryFor(database, identity.studentId)
+  const result = await callLimited<Parameters<typeof mapPracticeLookup>[0] & { member: PracticeMemberSummary | null }>(
+    'practice_verify_limited',
+    { p_address_fingerprint: addressFingerprint, p_student_id: identity.studentId, p_email: identity.email },
+  )
+  if (result.error) return result
+  const { member, ...raw } = result.data
+  const lookup = mapPracticeLookup(raw, practiceAudioUrl(createAdminClient()))
   return { data: member ? { ...lookup, member } : lookup, error: null }
 }
 
 export async function createPracticeBooking(
   input: PracticeBookingInput,
+  addressFingerprint: string,
 ): Promise<ServiceResult<PracticeBookingResult>> {
   const identity = rosterIdentity(input.studentId)
   if (!identity) return { data: null, error: 'identity_not_verified' }
-  const database = createAdminClient()
-  const { data, error } = await database.rpc('public_book_practice_group', {
+  return callLimited<PracticeBookingResult>('practice_book_limited', {
+    p_address_fingerprint: addressFingerprint,
     p_student_id: identity.studentId,
     p_email: identity.email,
     p_group: input.groupId,
     p_token: input.holdToken ?? null,
   })
-  if (error) return { data: null, error: classifyError(error.message) }
-  const booking = data as PracticeBookingResult
-  return { data: { ...booking, leader_names: await leaderNamesFor(database, booking.group_id) }, error: null }
 }
 
 export async function reservePracticeGroup(
   input: PracticeBookingInput,
+  addressFingerprint: string,
 ): Promise<ServiceResult<PracticeHold>> {
   const identity = rosterIdentity(input.studentId)
   if (!identity) return { data: null, error: 'identity_not_verified' }
-  const database = createAdminClient()
-  const { data, error } = await database.rpc('public_reserve_practice_group', {
+  return callLimited<PracticeHold>('practice_reserve_limited', {
+    p_address_fingerprint: addressFingerprint,
     p_student_id: identity.studentId,
     p_email: identity.email,
     p_group: input.groupId,
   })
-  if (error) return { data: null, error: classifyError(error.message) }
-  return { data: data as PracticeHold, error: null }
 }
 
 export async function releasePracticeHold(token: string): Promise<void> {
