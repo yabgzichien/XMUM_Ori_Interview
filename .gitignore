@@ -59,3 +59,4 @@ demo_accounts.md
 
 # Flowchart source/renders — embedded directly in README.md instead
 docs/diagrams/
+.env*
