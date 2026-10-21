@@ -58,6 +58,25 @@ describe('performance-practice preview mode', () => {
     expect(screen.getByRole('button', { name: /available when booking opens/i })).toHaveProperty('disabled', true)
   })
 
+  it('embeds Google Drive performance video and song links', () => {
+    const drive = (id: string) => `https://drive.google.com/file/d/${id}/view?usp=sharing`
+    render(<PracticeClient initialCatalog={{
+      ...previewCatalog,
+      groups: [{
+        ...previewCatalog.groups[0],
+        performance_video_url: drive('1UcjDVjg8Q4Hz29CyYi8wxpOZBQ_H_paH'),
+        song: { type: 'external' as const, url: drive('1JUKe1SfGhpOumeoMXolRzQNxtbZxFfzX') },
+      }],
+    }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /performance video/i }))
+    fireEvent.click(screen.getByRole('button', { name: /song preview/i }))
+    expect(screen.getByTitle(/performance video for Neon Pulse/i).getAttribute('src'))
+      .toBe('https://drive.google.com/file/d/1UcjDVjg8Q4Hz29CyYi8wxpOZBQ_H_paH/preview')
+    expect(screen.getByTitle(/song for Neon Pulse/i).getAttribute('src'))
+      .toBe('https://drive.google.com/file/d/1JUKe1SfGhpOumeoMXolRzQNxtbZxFfzX/preview')
+  })
+
   it('counts down using server time and enables selection when the shared opening time arrives', () => {
     render(<PracticeClient initialCatalog={previewCatalog} />)
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getCurrentProfile } from '@/lib/auth'
 import { normalizeStudentId } from '@/lib/practice-identity'
-import { getYouTubeVideoId, isSecureExternalUrl } from '@/lib/practice-media'
+import { getDriveFileId, getYouTubeVideoId, isSecureExternalUrl } from '@/lib/practice-media'
 import type { PracticeGroupStatus, PracticeSongType } from '@/lib/practice-types'
 import { createClient } from '@/lib/supabase/server'
 
@@ -86,8 +86,8 @@ export async function savePracticeGroupDetailsAction(form: FormData): Promise<Ac
   if (songs.length > 2000) return { data: null, error: 'Songs must be 2,000 characters or fewer.' }
   if (performanceType.length > 80) return { data: null, error: 'Performance type must be 80 characters or fewer.' }
   if (description.length > 2000) return { data: null, error: 'Description must be 2,000 characters or fewer.' }
-  if (performanceVideoUrl && !getYouTubeVideoId(performanceVideoUrl)) {
-    return { data: null, error: 'Enter a valid YouTube performance video link.' }
+  if (performanceVideoUrl && !getYouTubeVideoId(performanceVideoUrl) && !getDriveFileId(performanceVideoUrl)) {
+    return { data: null, error: 'Enter a valid YouTube or Google Drive performance video link.' }
   }
   if (songSourceType && !['youtube', 'mp3', 'external'].includes(songSourceType)) {
     return { data: null, error: 'Choose a valid song source.' }

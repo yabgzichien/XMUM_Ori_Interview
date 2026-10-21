@@ -297,12 +297,12 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions, posit
                 <div className={styles.label}>Performance leaders
                   <LeaderPicker ariaLabel="New group performance leaders" selected={newDetails.leaderRosterMemberIds} options={leaderOptions} onChange={(leaderRosterMemberIds) => setNewDetails((current) => ({ ...current, leaderRosterMemberIds }))} />
                 </div>
-                <label className={`${styles.label} ${styles.detailsWide}`}>YouTube performance video
+                <label className={`${styles.label} ${styles.detailsWide}`}>Performance video (YouTube or Google Drive)
                   <input className={styles.input} aria-label="New group performance video" type="url" placeholder="https://youtube.com/watch?v=…" value={newDetails.performanceVideoUrl} onChange={(event) => setNewDetails((current) => ({ ...current, performanceVideoUrl: event.target.value }))} />
                 </label>
               </div>
               <div className={styles.songPanel}>
-                <div className={styles.songHeading}><Headphones size={16} /><div><strong>Song audio</strong><span>Optional · YouTube, MP3 upload, or external audio link</span></div></div>
+                <div className={styles.songHeading}><Headphones size={16} /><div><strong>Song audio</strong><span>Optional · YouTube, MP3 upload, or external audio link (Google Drive works)</span></div></div>
                 <div className={styles.songGrid}>
                   <label className={styles.label}>Song source
                     <select className={styles.select} aria-label="New group song source" value={newDetails.songSourceType} onChange={(event) => setNewDetails((current) => ({ ...current, songSourceType: event.target.value as PracticeSongType | '', songUrl: '' }))}>
@@ -554,13 +554,13 @@ export function PracticeGroupManager({ groups, roster, bookings, sessions, posit
                   <div className={styles.label}>Performance leaders
                     <LeaderPicker ariaLabel={`Performance leaders for ${group.name}`} selected={detailDraft.leaderRosterMemberIds} options={leaderOptions} onChange={(leaderRosterMemberIds) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, leaderRosterMemberIds } }))} />
                   </div>
-                  <label className={`${styles.label} ${styles.detailsWide}`}>YouTube performance video
+                  <label className={`${styles.label} ${styles.detailsWide}`}>Performance video (YouTube or Google Drive)
                     <input className={styles.input} aria-label={`Performance video for ${group.name}`} type="url" placeholder="https://youtube.com/watch?v=…" value={detailDraft.performanceVideoUrl} onChange={(event) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, performanceVideoUrl: event.target.value } }))} />
                   </label>
                 </div>
 
                 <div className={styles.songPanel}>
-                  <div className={styles.songHeading}><Headphones size={16} /><div><strong>Song audio</strong><span>Optional · YouTube, MP3 upload, or external audio link</span></div></div>
+                  <div className={styles.songHeading}><Headphones size={16} /><div><strong>Song audio</strong><span>Optional · YouTube, MP3 upload, or external audio link (Google Drive works)</span></div></div>
                   <div className={styles.songGrid}>
                     <label className={styles.label}>Song source
                       <select className={styles.select} aria-label={`Song source for ${group.name}`} value={detailDraft.songSourceType} onChange={(event) => setDetailDrafts((current) => ({ ...current, [group.id]: { ...detailDraft, songSourceType: event.target.value as PracticeSongType | '', songUrl: '' } }))}>

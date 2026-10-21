@@ -235,7 +235,7 @@ describe('practice admin actions', () => {
 
     expect(await savePracticeGroupDetailsAction(form)).toEqual({
       data: null,
-      error: 'Enter a valid YouTube performance video link.',
+      error: 'Enter a valid YouTube or Google Drive performance video link.',
     })
   })
 

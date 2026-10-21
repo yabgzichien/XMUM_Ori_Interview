@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { CalendarClock, CheckCircle2, ChevronDown, Clock3, Headphones, Play, ShieldCheck, Sparkles, UserRound } from 'lucide-react'
 import { clearVerifiedIdentity, readVerifiedIdentity, saveVerifiedIdentity, type VerifiedIdentity } from '@/lib/practice-verified-identity'
 import { bookPracticeGroup, releasePracticeHold, reservePracticeGroup, verifyPracticeMember } from '@/lib/practice-public'
-import { getYouTubeEmbedUrl } from '@/lib/practice-media'
+import { getEmbedUrl } from '@/lib/practice-media'
 import type { PracticeCatalog, PracticeIdentityInput, PracticeLookupResult, PublicPracticeBooking, PublicPracticeGroup } from '@/lib/practice-types'
 import { StudentIdDialog } from './StudentIdDialog'
 import styles from './practice-public.module.css'
@@ -90,8 +90,8 @@ function MediaToggle({ label, icon, children }: { label: string; icon: React.Rea
 }
 
 function MediaEmbed({ group }: { group: PublicPracticeGroup }) {
-  const videoEmbed = group.performance_video_url ? getYouTubeEmbedUrl(group.performance_video_url) : null
-  const songEmbed = group.song?.type === 'youtube' ? getYouTubeEmbedUrl(group.song.url) : null
+  const videoEmbed = group.performance_video_url ? getEmbedUrl(group.performance_video_url) : null
+  const songEmbed = group.song && group.song.type !== 'mp3' ? getEmbedUrl(group.song.url) : null
   if (!videoEmbed && !group.song) return null
 
   return (

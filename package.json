@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "seed": "node --env-file=.env.local scripts/seed.mjs",
     "seed:committee": "node --env-file=.env.local scripts/seed-committee.mjs",
+    "seed:practice-groups": "node --env-file=.env.local scripts/seed-practice-groups.mjs",
     "seed:all": "npm run seed && npm run seed:committee",
     "loadtest:applicants": "node --env-file=.env.local scripts/load-test.mjs all",
     "loadtest:seed": "node --env-file=.env.local scripts/load-test.mjs seed",
